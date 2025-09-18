@@ -1,0 +1,10 @@
+﻿{
+    "name": "cardapio-backend",
+    "type": "project",
+    "require": {
+        "php": "^8.2"
+    },
+    "require-dev": {
+        "fakerphp/faker": "^1.9.1"
+    }
+}

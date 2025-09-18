@@ -1,0 +1,96 @@
+﻿:root {
+  --vermelho: #E31837;
+  --vermelho-escuro: #B30E27;
+  --preto: #000000;
+  --cinza-escuro: #1A1A1A;
+  --cinza: #333333;
+  --branco: #FFFFFF;
+  --cinza-claro: #CCCCCC;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--cinza-escuro);
+  color: var(--branco);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.navbar {
+  background-color: var(--preto);
+  padding: 1rem 0;
+  border-bottom: 3px solid var(--vermelho);
+}
+
+.navbar h1 {
+  color: var(--vermelho);
+  font-size: 2rem;
+}
+
+.hero {
+  text-align: center;
+  padding: 3rem 0;
+}
+
+.hero h2 {
+  color: var(--vermelho);
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.hero p {
+  font-size: 1.2rem;
+  color: var(--cinza-claro);
+}
+
+.loading {
+  text-align: center;
+  padding: 2rem;
+  font-size: 1.2rem;
+}
+
+.btn {
+  background-color: var(--vermelho);
+  color: var(--branco);
+  padding: 12px 24px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s;
+}
+
+.btn:hover {
+  background-color: var(--vermelho-escuro);
+}
+
+.card {
+  background-color: var(--cinza);
+  border: 2px solid var(--vermelho);
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+}
+
+.card h3 {
+  color: var(--vermelho);
+  margin-bottom: 1rem;
+}
+
+.price {
+  color: var(--vermelho);
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin: 1rem 0;
+}
