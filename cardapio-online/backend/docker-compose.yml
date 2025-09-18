@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    image: cardapio-backend
+    container_name: cardapio-backend
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+    networks:
+      - cardapio-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: cardapio-nginx
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./:/var/www/html
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - cardapio-network
+    depends_on:
+      - app
+
+networks:
+  cardapio-network:
+    driver: bridge
