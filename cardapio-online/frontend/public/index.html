@@ -1,11 +1,191 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Cardápio Online</title>
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
+<head>
+  <meta charset="UTF-8">
+  <title>Cardápio Jetro's Lanches</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #fffdf8;
+      color: #222;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #b71c1c;
+      color: white;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 2.2em;
+    }
+    h2 {
+      background-color: #f5f5f5;
+      color: #b71c1c;
+      padding: 10px;
+      border-left: 5px solid #b71c1c;
+      margin-top: 40px;
+    }
+    .menu-section {
+      padding: 20px;
+    }
+    .item {
+      margin-bottom: 15px;
+      clear: both;
+    }
+    .item-name {
+      font-weight: bold;
+      font-size: 1.1em;
+      color: #333;
+    }
+    .price {
+      float: right;
+      font-weight: bold;
+      color: #2e7d32;
+    }
+    .desc {
+      font-size: 0.95em;
+      color: #555;
+      margin-top: 2px;
+    }
+    hr {
+      border: none;
+      border-top: 1px dashed #ccc;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🍔 Jetro's Lanches</h1>
+    <p>📞 99611-2820 | 3822-7097</p>
+  </header>
+
+  <!-- PÃO DE SALADINHA -->
+  <section class="menu-section">
+    <h2>Pão de Saladinha</h2>
+    <div class="item"><span class="item-name">Saladinha</span><span class="price">R$19,00</span><div class="desc">Alface, tomate, hambúrguer, presunto e queijo</div></div>
+    <div class="item"><span class="item-name">Saladinha Frango</span><span class="price">R$25,00</span><div class="desc">Alface, tomate, hambúrguer, frango, presunto e queijo</div></div>
+    <div class="item"><span class="item-name">Saladinha Bacon</span><span class="price">R$25,00</span><div class="desc">Alface, tomate, hambúrguer, bacon, presunto e queijo</div></div>
+    <div class="item"><span class="item-name">Saladinha Calabresa</span><span class="price">R$25,00</span><div class="desc">Alface, tomate, hambúrguer, calabresa, presunto e queijo</div></div>
+    <div class="item"><span class="item-name">Saladinha Duplo</span><span class="price">R$25,00</span><div class="desc">Alface, tomate, 2 hambúrgueres, presunto e queijo</div></div>
+    <div class="item"><span class="item-name">X-Tetinha</span><span class="price">R$27,00</span><div class="desc">Alface, tomate, cebola, filé, salsicha, ovo, batata palha, presunto e queijo</div></div>
+  </section>
+
+  <!-- PÃO DE HAMBÚRGUER -->
+  <section class="menu-section">
+    <h2>Pão de Hambúrguer</h2>
+    <div class="item"><span class="item-name">Hot Dog</span><span class="price">R$21,00</span><div class="desc">Alface, tomate, batata palha, 2 salsichas, presunto e queijo</div></div>
+    <div class="item"><span class="item-name">Hot Dog Especial</span><span class="price">R$29,00</span><div class="desc">Alface, tomate, milho, ervilha, batata palha, 2 salsichas, hambúrguer, ovo, presunto e queijo</div></div>
+    <div class="item"><span class="item-name">Bauru</span><span class="price">R$23,00</span><div class="desc">Tomate, presunto e queijo</div></div>
+    <div class="item"><span class="item-name">Prensado</span><span class="price">R$26,00</span><div class="desc">Tomate, milho, ervilha, batata palha, presunto e queijo</div></div>
+    <div class="item"><span class="item-name">X-Salada</span><span class="price">R$24,00</span><div class="desc">Alface, tomate, hambúrguer, presunto e queijo</div></div>
+    <div class="item"><span class="item-name">Misto Quente</span><span class="price">R$23,00</span></div>
+    <div class="item"><span class="item-name">X-Burguer</span><span class="price">R$26,00</span><div class="desc">Tomate, hambúrguer, 2 presuntos e 2 queijos</div></div>
+    <div class="item"><span class="item-name">X-Burguer Egg</span><span class="price">R$26,00</span><div class="desc">Tomate, hambúrguer, ovo, presunto e queijo</div></div>
+    <div class="item"><span class="item-name">X-Mais</span><span class="price">R$40,00</span><div class="desc">Tomate, milho, ervilha, bacon, calabresa, ovo, salsicha, hambúrguer, frango, filé, presunto e queijo</div></div>
+    <div class="item"><span class="item-name">X-Atum</span><span class="price">R$29,00</span><div class="desc">Alface, tomate, milho, ervilha, cebola, atum, ovo e 2 fatias de queijo</div></div>
+    <div class="item"><span class="item-name">X-Palmito</span><span class="price">R$29,00</span><div class="desc">Alface, tomate, milho, ervilha, cebola, palmito, azeitona e 2 fatias de queijo</div></div>
+    <div class="item"><span class="item-name">Vegetariano</span><span class="price">R$27,00</span><div class="desc">Alface, tomate, milho, ervilha, cebola, 2 ovos e 3 fatias de queijo</div></div>
+  </section>
+
+  <!-- X-PICANHA / FILÉ -->
+  <section class="menu-section">
+    <h2>X-Picanha / Filé</h2>
+    <div class="item"><span class="item-name">X-Picanha</span><span class="price">R$40,00</span><div class="desc">Alface, tomate, cebola, picanha e queijo</div></div>
+    <div class="item"><span class="item-name">X-Picanha Cheddar</span><span class="price">R$42,00</span><div class="desc">Alface, tomate, cebola, picanha, cheddar e queijo</div></div>
+    <div class="item"><span class="item-name">X-Filé</span><span class="price">R$39,00</span><div class="desc">Tomate, filé e queijo</div></div>
+    <div class="item"><span class="item-name">X-Filé Bacon</span><span class="price">R$45,00</span><div class="desc">Tomate, filé, bacon e queijo</div></div>
+    <div class="item"><span class="item-name">X-Filé Misto</span><span class="price">R$45,00</span><div class="desc">Tomate, filé e 5 fatias de queijo</div></div>
+    <div class="item"><span class="item-name">X-Filé e Frango</span><span class="price">R$39,00</span><div class="desc">Tomate, filé, frango e queijo</div></div>
+  </section>
+
+  <!-- X-FRANGO -->
+  <section class="menu-section">
+    <h2>X-Frango</h2>
+    <div class="item"><span class="item-name">X-Frango</span><span class="price">R$33,00</span><div class="desc">Tomate, frango e queijo</div></div>
+    <div class="item"><span class="item-name">X-Frango Bacon</span><span class="price">R$39,00</span><div class="desc">Tomate, frango, bacon e queijo</div></div>
+    <div class="item"><span class="item-name">X-Frango Misto</span><span class="price">R$39,00</span><div class="desc">Tomate, frango e 5 fatias de queijo</div></div>
+    <div class="item"><span class="item-name">X-Frango Palmito</span><span class="price">R$39,00</span><div class="desc">Tomate, frango, palmito e queijo</div></div>
+    <div class="item"><span class="item-name">X-Americano</span><span class="price">R$27,00</span><div class="desc">Alface, tomate, milho, ervilha, hambúrguer, ovo, presunto e queijo</div></div>
+  </section>
+
+  <!-- X-CALABRESA / BACON -->
+  <section class="menu-section">
+    <h2>X-Calabresa / Bacon</h2>
+    <div class="item"><span class="item-name">X-Calabresa</span><span class="price">R$30,00</span><div class="desc">Tomate, hambúrguer, calabresa, presunto e queijo</div></div>
+    <div class="item"><span class="item-name">X-Bacon</span><span class="price">R$33,00</span><div class="desc">Tomate, hambúrguer, bacon, presunto e queijo</div></div>
+    <div class="item"><span class="item-name">X-Xuxa</span><span class="price">R$33,00</span><div class="desc">Tomate, milho, bacon, calabresa, presunto e queijo</div></div>
+    <div class="item"><span class="item-name">X-Burgão</span><span class="price">R$35,00</span><div class="desc">Tomate, 3 hambúrgueres e 3 fatias de queijo</div></div>
+    <div class="item"><span class="item-name">X-Tudo</span><span class="price">R$35,00</span><div class="desc">Tomate, milho, ervilha, hambúrguer, bacon, calabresa, ovo, salsicha, presunto e queijo</div></div>
+    <div class="item"><span class="item-name">X-Labor</span><span class="price">R$33,00</span><div class="desc">Tomate, ervilha, hambúrguer, calabresa, ovo, salsicha, presunto e queijo</div></div>
+  </section>
+
+  <!-- LANCHES NO PRATO -->
+  <section class="menu-section">
+    <h2>Lanches no Prato</h2>
+    <div class="item"><span class="item-name">X-Americano no prato</span><span class="price">R$45,00</span></div>
+    <div class="item"><span class="item-name">X-Mais no prato</span><span class="price">R$55,00</span><div class="desc">Alface, tomate, milho, ervilha, palmito, azeitona, bacon, calabresa, ovo, hambúrguer, frango, filé, presunto, queijo e torradas</div></div>
+  </section>
+
+  <!-- PORÇÕES -->
+  <section class="menu-section">
+    <h2>Porções no Prato</h2>
+    <div class="item"><span class="item-name">Salsicha</span><span class="price">Média R$20,00 | Grande R$30,00</span><div class="desc">Salsicha, cebola, tomate e torradas</div></div>
+    <div class="item"><span class="item-name">Calabresa</span><span class="price">Média R$40,00 | Grande R$50,00</span><div class="desc">Calabresa, cebola, tomate e torradas</div></div>
+    <div class="item"><span class="item-name">Frango</span><span class="price">Média R$40,00 | Grande R$50,00</span><div class="desc">Frango, cebola, tomate e torradas</div></div>
+    <div class="item"><span class="item-name">Filé</span><span class="price">Média R$55,00 | Grande R$70,00</span><div class="desc">Filé, cebola, tomate e torradas</div></div>
+    <div class="item"><span class="item-name">Filé e Frango</span><span class="price">Média R$50,00 | Grande R$65,00</span><div class="desc">Filé, frango, cebola, tomate e torradas</div></div>
+    <div class="item"><span class="item-name">Filé com Queijo</span><span class="price">Média R$65,00 | Grande R$80,00</span><div class="desc">Filé, queijo, cebola, tomate e torradas</div></div>
+    <div class="item"><span class="item-name">Picanha</span><span class="price">R$75,00</span><div class="desc">Picanha, cebola, tomate e torradas</div></div>
+  </section>
+
+  <!-- ACRÉSCIMOS -->
+  <section class="menu-section">
+    <h2>Acréscimos</h2>
+    <div class="item"><span class="item-name">Filé</span><span class="price">R$10,00</span></div>
+    <div class="item"><span class="item-name">Bacon</span><span class="price">R$6,00</span></div>
+    <div class="item"><span class="item-name">Frango</span><span class="price">R$6,00</span></div>
+    <div class="item"><span class="item-name">Calabresa</span><span class="price">R$6,00</span></div>
+    <div class="item"><span class="item-name">Hambúrguer</span><span class="price">R$8,00</span></div>
+    <div class="item"><span class="item-name">Palmito</span><span class="price">R$6,00</span></div>
+    <div class="item"><span class="item-name">Catupiry</span><span class="price">R$3,00</span></div>
+    <div class="item"><span class="item-name">Cheddar</span><span class="price">R$3,00</span></div>
+    <div class="item"><span class="item-name">Queijo</span><span class="price">R$3,00</span></div>
+    <div class="item"><span class="item-name">Batata</span><span class="price">R$2,00</span></div>
+    <div class="item"><span class="item-name">Ovo</span><span class="price">R$2,00</span></div>
+    <div class="item"><span class="item-name">Salsicha</span><span class="price">R$2,00</span></div>
+    <div class="item"><span class="item-name">Cebola</span><span class="price">R$2,00</span></div>
+    <div class="item"><span class="item-name">Milho</span><span class="price">R$2,00</span></div>
+    <div class="item"><span class="item-name">Ervilha</span><span class="price">R$2,00</span></div>
+  </section>
+
+  <!-- BEBIDAS -->
+  <section class="menu-section">
+    <h2>Bebidas</h2>
+    <div class="item"><span class="item-name">Coca-Cola</span><span class="price">290ml, Lata, 600ml, 1L, 2L</span></div>
+    <div class="item"><span class="item-name">Funada</span><span class="price">R$10,00</span></div>
+    <div class="item"><span class="item-name">H2O</span><span class="price">R$15,00</span></div>
+    <div class="item"><span class="item-name">Fanta</span><span class="price">R$6,00</span></div>
+    <div class="item"><span class="item-name">Sprite</span><span class="price">R$13,00</span></div>
+    <div class="item"><span class="item-name">Schweppes</span><span class="price">R$10,00</span></div>
+    <div class="item"><span class="item-name">Água</span><span class="price">R$6,00 | R$13,00</span></div>
+    <div class="item"><span class="item-name">Água c/ gás</span><span class="price">R$9,00 | R$8,00</span></div>
+    <div class="item"><span class="item-name">Cerveja Brahma (lata)</span><span class="price">R$4,00</span></div>
+    <div class="item"><span class="item-name">Skol (lata)</span><span class="price">R$3,00</span></div>
+  </section>
+
+  <!-- SUCOS -->
+  <section class="menu-section">
+    <h2>Sucos</h2>
+    <div class="item"><span class="item-name">Laranja</span><span class="price">R$13,00</span></div>
+    <div class="item"><span class="item-name">Maracujá</span><span class="price">R$9,00</span></div>
+    <div class="item"><span class="item-name">Morango</span><span class="price">R$6,00</span></div>
+    <div class="item"><span class="item-name">Limão</span><span class="price">R$6,00</span></div>
+    <div class="item"><span class="item-name">Abacaxi</span><span class="price">R$9,00</span></div>
+    <div class="item"><span class="item-name">Guaraná</span><span class="price">R$9,00 | R$10,00</span></div>
+  </section>
+</body>
 </html>
