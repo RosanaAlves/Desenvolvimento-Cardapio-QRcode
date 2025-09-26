@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   --vermelho: #E31837;
   --vermelho-escuro: #B30E27;
   --preto: #000000;
@@ -254,3 +254,108 @@ label {
     font-size: 0.9rem;
   }
 }
+=======
+<style>
+  /* Reset básico */
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    background-color: #fffdf8;
+    color: #222;
+    line-height: 1.6;
+    font-size: 1.1em; /* Fonte maior para leitura */
+  }
+
+  header {
+    background-color: #b71c1c;
+    color: #ffffff;
+    text-align: center;
+    padding: 20px;
+  }
+
+  h1 {
+    font-size: 2.5em;
+    margin-bottom: 10px;
+  }
+
+  h2 {
+    background-color: #f5f5f5;
+    color: #b71c1c;
+    padding: 12px;
+    border-left: 6px solid #b71c1c;
+    font-size: 1.5em;
+    margin-top: 40px;
+  }
+
+  .menu-section {
+    padding: 20px;
+  }
+
+  .item {
+    margin-bottom: 20px;
+    clear: both;
+    padding: 10px;
+    border-radius: 8px;
+    transition: background 0.2s ease;
+  }
+
+  .item:hover {
+    background-color: #fdf2f2; /* realce ao passar o mouse */
+  }
+
+  .item-name {
+    font-weight: bold;
+    font-size: 1.2em;
+    color: #111;
+  }
+
+  .price {
+    float: right;
+    font-weight: bold;
+    color: #1b5e20;
+    font-size: 1.1em;
+  }
+
+  .desc {
+    font-size: 1em;
+    color: #444;
+    margin-top: 4px;
+  }
+
+  hr {
+    border: none;
+    border-top: 2px dashed #ccc;
+    margin: 30px 0;
+  }
+
+  /* Links e botões */
+  a, button {
+    color: #b71c1c;
+    font-weight: bold;
+  }
+
+  a:focus, button:focus {
+    outline: 3px solid #ffcc00; /* foco visível */
+    outline-offset: 3px;
+  }
+
+  /* Responsividade */
+  @media (max-width: 768px) {
+    body {
+      font-size: 1em;
+    }
+    .item-name {
+      display: block;
+      margin-bottom: 5px;
+    }
+    .price {
+      float: none;
+      display: block;
+      margin-top: 5px;
+    }
+  }
