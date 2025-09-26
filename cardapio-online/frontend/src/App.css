@@ -6,27 +6,41 @@
   --cinza: #333333;
   --branco: #FFFFFF;
   --cinza-claro: #CCCCCC;
+  --foco: #0066CC;
 }
 
+/* Reset acessível */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-body {
-  background-color: var(--cinza-escuro);
-  color: var(--branco);
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  line-height: 1.6;
+/* Foco visível para todos os elementos interativos */
+*:focus {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
 }
 
+/* Melhor contraste e tipografia */
+body {
+  background-color: var(--branco); /* ALTERADO PARA BRANCO */
+  color: var(--preto); /* Alterado para preto para ter contraste com o fundo branco */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Container com max-width para melhor leitura */
 .container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 20px;
 }
 
+/* Navegação acessível */
 .navbar {
   background-color: var(--preto);
   padding: 1rem 0;
@@ -36,8 +50,10 @@ body {
 .navbar h1 {
   color: var(--vermelho);
   font-size: 2rem;
+  font-weight: 700;
 }
 
+/* Cabeçalho hero */
 .hero {
   text-align: center;
   padding: 3rem 0;
@@ -47,19 +63,23 @@ body {
   color: var(--vermelho);
   font-size: 2.5rem;
   margin-bottom: 1rem;
+  font-weight: 700;
 }
 
 .hero p {
   font-size: 1.2rem;
   color: var(--cinza-claro);
+  line-height: 1.8;
 }
 
+/* Estados de loading */
 .loading {
   text-align: center;
   padding: 2rem;
   font-size: 1.2rem;
 }
 
+/* Botões acessíveis */
 .btn {
   background-color: var(--vermelho);
   color: var(--branco);
@@ -68,24 +88,39 @@ body {
   border-radius: 5px;
   cursor: pointer;
   font-size: 1rem;
-  transition: background-color 0.3s;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  min-height: 44px; /* Tamanho mínimo para toque */
+  min-width: 44px;
 }
 
-.btn:hover {
+.btn:hover, .btn:focus {
   background-color: var(--vermelho-escuro);
+  transform: translateY(-2px);
 }
 
+.btn:active {
+  transform: translateY(0);
+}
+
+/* Cards com melhor contraste */
 .card {
-  background-color: var(--cinza);
+  background-color: var(--cinza-claro); /* AJUSTADO PARA TER UM CONTRASTE MELHOR */
   border: 2px solid var(--vermelho);
   border-radius: 10px;
   padding: 1.5rem;
   margin: 1rem 0;
+  transition: transform 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
 }
 
 .card h3 {
   color: var(--vermelho);
   margin-bottom: 1rem;
+  font-weight: 600;
 }
 
 .price {
@@ -93,4 +128,129 @@ body {
   font-size: 1.5rem;
   font-weight: bold;
   margin: 1rem 0;
+}
+
+/* Grid de produtos acessível */
+.produtos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.produto-card {
+  background: var(--cinza-claro); /* AJUSTADO PARA TER UM CONTRASTE MELHOR */
+  padding: 1.5rem;
+  border-radius: 10px;
+  border: 2px solid var(--vermelho);
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.produto-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+}
+
+.produto-card h3 {
+  color: var(--vermelho);
+  margin-bottom: 1rem;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+/* Links acessíveis */
+a {
+  color: var(--vermelho);
+  text-decoration: underline;
+  transition: color 0.3s ease;
+}
+
+a:hover, a:focus {
+  color: var(--vermelho-escuro);
+  text-decoration: none;
+}
+
+/* Formulários acessíveis */
+input, select, textarea {
+  font-size: 1rem;
+  padding: 12px;
+  border: 2px solid var(--cinza);
+  border-radius: 5px;
+  background-color: var(--branco);
+  color: var(--preto);
+  min-height: 44px;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--foco);
+}
+
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--preto); /* ALTERADO PARA TER CONTRASTE COM O FUNDO BRANCO */
+}
+
+/* Esconder visualmente, mas manter para leitores de tela */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Animações reduzidas para usuários sensíveis */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .card:hover, .produto-card:hover, .btn:hover {
+    transform: none;
+  }
+}
+
+/* Alto contraste para usuários que preferem */
+@media (prefers-contrast: high) {
+  .card {
+    border: 3px solid var(--vermelho);
+  }
+  
+  .btn {
+    border: 2px solid var(--branco);
+  }
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 15px;
+  }
+  
+  .navbar h1 {
+    font-size: 1.5rem;
+  }
+  
+  .hero h2 {
+    font-size: 2rem;
+  }
+  
+  .produtos-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .btn {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+  }
 }

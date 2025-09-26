@@ -1,27 +1,47 @@
-﻿import React from 'react';
+﻿import React, { useState } from 'react';
+import { CarrinhoProvider, useCarrinho } from './context/CarrinhoContext';
+import Cardapio from './components/Cardapio';
+import Carrinho from './components/Carrinho';
 import './App.css';
 
-function App() {
+const Header = () => {
+  const { totalItens } = useCarrinho();
+  const [carrinhoAberto, setCarrinhoAberto] = useState(false);
+
   return (
-    <div className="App">
+    <>
       <nav className="navbar">
         <div className="container">
-          <h1>🍔 Cardápio Online</h1>
+          <h1>🍔 Jetro's Lanches</h1>
+          <button 
+            className="btn-carrinho"
+            onClick={() => setCarrinhoAberto(true)}
+            aria-label={`Abrir carrinho com ${totalItens} itens`}
+          >
+            🛒 ({totalItens})
+          </button>
         </div>
       </nav>
       
-      <div className="container">
-        <div className="hero">
-          <h2>Bem-vindo à Nossa Lanchonete</h2>
-          <p>Faça seu pedido online!</p>
-        </div>
-        
-        <div className="loading">
-          <p>Carregando cardápio...</p>
-        </div>
-      </div>
-    </div>
+      <Carrinho 
+        isAberto={carrinhoAberto} 
+        fecharCarrinho={() => setCarrinhoAberto(false)} 
+      />
+    </>
   );
-}
+};
+
+const App = () => {
+  return (
+    <CarrinhoProvider>
+      <div className="App">
+        <Header />
+        <main className="container">
+          <Cardapio />
+        </main>
+      </div>
+    </CarrinhoProvider>
+  );
+};
 
 export default App;
