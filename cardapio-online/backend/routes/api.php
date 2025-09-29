@@ -1,12 +1,13 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ProdutoController;
-use App\Http\Controllers\CategoriaController;
-use App\Http\Controllers\PedidoController;
+use App\Http\Controllers\Api\CategoriaController;
+use App\Http\Controllers\Api\ProdutoController;
 
-// Rotas do MVP
 Route::get('/categorias', [CategoriaController::class, 'index']);
 Route::get('/produtos', [ProdutoController::class, 'index']);
-Route::get('/produtos/categoria/{id}', [ProdutoController::class, 'porCategoria']);
-Route::post('/pedidos', [PedidoController::class, 'store']);
+
+// Rota de teste
+Route::get('/test', function() {
+    return response()->json(['message' => 'API do Cardápio Online funcionando!']);
+});
