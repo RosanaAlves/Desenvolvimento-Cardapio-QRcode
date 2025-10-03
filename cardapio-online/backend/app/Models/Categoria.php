@@ -9,8 +9,19 @@ class Categoria extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['nome', 'descricao'];
+    protected $table = 'categorias';
 
+    protected $fillable = [
+        'nome',
+        'descricao',
+        'disponivel'
+    ];
+
+    protected $casts = [
+        'disponivel' => 'boolean'
+    ];
+
+    // Relação com produtos (se precisar)
     public function produtos()
     {
         return $this->hasMany(Produto::class);

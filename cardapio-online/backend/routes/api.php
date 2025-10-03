@@ -1,13 +1,50 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\CategoriaController;
-use App\Http\Controllers\Api\ProdutoController;
+use App\Models\Categoria;
+use App\Models\Produto;
 
-Route::get('/categorias', [CategoriaController::class, 'index']);
-Route::get('/produtos', [ProdutoController::class, 'index']);
-
-// Rota de teste
 Route::get('/test', function() {
-    return response()->json(['message' => 'API do Cardápio Online funcionando!']);
+    return response()->json([
+        'message' => 'API do Cardápio Online funcionando!',
+        'status' => 'success'
+    ]);
+});
+
+Route::get('/categorias', function() {
+    try {
+        $categorias = Categoria::with(['produtos' => function($query) {
+            $query->where('disponivel', true);
+        }])->get();
+        
+        return response()->json([
+            'success' => true,
+            'data' => $categorias,
+            'count' => $categorias->count()
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
+
+Route::get('/produtos', function() {
+    try {
+        $produtos = Produto::with('categoria')
+                          ->where('disponivel', true)
+                          ->get();
+        
+        return response()->json([
+            'success' => true,
+            'data' => $produtos,
+            'count' => $produtos->count()
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
 });
