@@ -26,3 +26,22 @@ Route::get('/api/produtos', function() {
 Route::get('/api/test', function() {
     return response()->json(['status' => 'OK', 'message' => 'API funcionando']);
 });
+
+// Adicione estas rotas extras no routes/web.php:
+
+// Produtos por categoria
+Route::get('/api/categorias/{id}/produtos', function($id) {
+    $produtos = DB::table('produtos')
+                 ->where('categoria_id', $id)
+                 ->where('disponivel', 1)
+                 ->get();
+    return response()->json($produtos);
+});
+
+// Produto específico
+Route::get('/api/produtos/{id}', function($id) {
+    $produto = DB::table('produtos')
+                ->where('id', $id)
+                ->first();
+    return response()->json($produto);
+});
