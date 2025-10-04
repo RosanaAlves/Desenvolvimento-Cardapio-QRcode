@@ -1,60 +1,72 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { useCarrinho } from '../context/CarrinhoContext';
 
-const Cardapio = () => {
+function Cardapio() {
   const [categorias, setCategorias] = useState([]);
+  const [produtos, setProdutos] = useState([]);
   const [carregando, setCarregando] = useState(true);
-  const { adicionarItem } = useCarrinho();
 
   useEffect(() => {
-    carregarCardapio();
+    const carregarDados = async () => {
+      try {
+        console.log('🔄 Carregando dados da API...');
+        
+        // Buscar categorias
+        const respostaCategorias = await fetch('http://localhost:8000/api/categorias');
+        const dadosCategorias = await respostaCategorias.json();
+        setCategorias(dadosCategorias);
+        console.log('✅ Categorias carregadas:', dadosCategorias.length);
+
+        // Buscar produtos
+        const respostaProdutos = await fetch('http://localhost:8000/api/produtos');
+        const dadosProdutos = await respostaProdutos.json();
+        setProdutos(dadosProdutos);
+        console.log('✅ Produtos carregados:', dadosProdutos.length);
+
+        setCarregando(false);
+      } catch (erro) {
+        console.error('❌ Erro ao carregar dados:', erro);
+        setCarregando(false);
+      }
+    };
+
+    carregarDados();
   }, []);
 
-  const carregarCardapio = async () => {
-    try {
-      const response = await axios.get('http://localhost:8000/api/categorias');
-      setCategorias(response.data);
-      setCarregando(false);
-    } catch (error) {
-      console.error('Erro ao carregar cardápio:', error);
-      setCarregando(false);
-    }
-  };
-
   if (carregando) {
-    return <div className="loading">Carregando cardápio...</div>;
+    return (
+      <div className="text-center p-5">
+        <h2>🔄 Carregando cardápio...</h2>
+        <p>Conectando com a API...</p>
+      </div>
+    );
   }
 
   return (
-    <div className="cardapio">
-      <h2>🍔 Cardápio Jetro's Lanches</h2>
+    <div className="container">
+      <h1>Cardápio Jetro's Lanches</h1>
+      <p>Total: {categorias.length} categorias e {produtos.length} produtos</p>
       
       {categorias.map(categoria => (
-        <section key={categoria.id} className="categoria-section">
-          <h3>{categoria.nome}</h3>
-          <div className="produtos-grid">
-            {categoria.produtos.map(produto => (
-              <div key={produto.id} className="produto-card">
-                <h4>{produto.nome}</h4>
-                <p className="produto-descricao">{produto.descricao}</p>
-                <div className="produto-info">
-                  <span className="price">R$ {produto.preco}</span>
-                  <button 
-                    className="btn-adicionar"
-                    onClick={() => adicionarItem(produto)}
-                    aria-label={`Adicionar ${produto.nome} ao carrinho`}
-                  >
-                    +
-                  </button>
+        <div key={categoria.id} className="categoria">
+          <h2>{categoria.nome}</h2>
+          <p>{categoria.descricao}</p>
+          
+          <div className="produtos">
+            {produtos
+              .filter(produto => produto.categoria_id === categoria.id)
+              .map(produto => (
+                <div key={produto.id} className="produto">
+                  <h3>{produto.nome}</h3>
+                  <p>{produto.descricao}</p>
+                  <strong>R$ {produto.preco}</strong>
                 </div>
-              </div>
-            ))}
+              ))
+            }
           </div>
-        </section>
+        </div>
       ))}
     </div>
   );
-};
+}
 
 export default Cardapio;

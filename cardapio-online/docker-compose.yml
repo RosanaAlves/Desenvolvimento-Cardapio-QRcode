@@ -16,7 +16,9 @@ services:
       - cardapio-network
 
   backend:
-    build: ./backend
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: cardapio-backend
     restart: unless-stopped
     volumes:
@@ -46,7 +48,9 @@ services:
       - backend
 
   frontend:
-    build: ./frontend
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: cardapio-frontend
     restart: unless-stopped
     ports:
@@ -54,10 +58,12 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+    environment:
+      REACT_APP_API_URL: http://localhost:8000
     networks:
       - cardapio-network
     depends_on:
-      - backend
+      - nginx
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
