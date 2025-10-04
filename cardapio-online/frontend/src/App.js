@@ -58,22 +58,6 @@ function App() {
         <p style={{ margin: '0', fontSize: '1.1em' }}>📞 99611-2820 | 3822-7097</p>
       </header>
 
-      {/* STATUS */}
-      <div style={{ 
-        textAlign: 'center', 
-        marginBottom: '40px',
-        padding: '20px',
-        backgroundColor: 'white',
-        borderRadius: '10px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-      }}>
-        <h2 style={{ color: '#2e7d32', marginBottom: '10px' }}>✅ CARDÁPIO CARREGADO!</h2>
-        <p style={{ fontSize: '1.1em', margin: '5px 0' }}>
-          <strong>{categorias.length}</strong> categorias | 
-          <strong> {produtos.length}</strong> produtos
-        </p>
-      </div>
-
       {/* LISTA DE CATEGORIAS E PRODUTOS */}
       {categorias.map(categoria => (
         <div key={categoria.id} style={{ 

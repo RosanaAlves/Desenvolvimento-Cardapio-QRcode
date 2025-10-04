@@ -45,3 +45,64 @@ Route::get('/api/produtos/{id}', function($id) {
                 ->first();
     return response()->json($produto);
 });
+
+// Rotas para Mesas e Pedidos
+Route::get('/api/mesas', function() {
+    return \App\Models\Mesa::where('status', 'livre')->get();
+});
+
+Route::post('/api/pedidos', function(Request $request) {
+    $request->validate([
+        'mesa_id' => 'required|exists:mesas,id',
+        'itens' => 'required|array'
+    ]);
+
+    DB::beginTransaction();
+    try {
+        // Criar pedido
+        $pedido = \App\Models\Pedido::create([
+            'mesa_id' => $request->mesa_id,
+            'status' => 'pendente'
+        ]);
+
+        $total = 0;
+
+        // Adicionar itens
+        foreach ($request->itens as $item) {
+            $produto = \App\Models\Produto::find($item['produto_id']);
+            
+            $pedidoItem = \App\Models\PedidoItem::create([
+                'pedido_id' => $pedido->id,
+                'produto_id' => $item['produto_id'],
+                'quantidade' => $item['quantidade'],
+                'preco_unitario' => $produto->preco,
+                'observacoes' => $item['observacoes'] ?? null
+            ]);
+
+            $total += $item['quantidade'] * $produto->preco;
+        }
+
+        // Atualizar total do pedido
+        $pedido->update(['total' => $total]);
+
+        // Atualizar status da mesa
+        \App\Models\Mesa::where('id', $request->mesa_id)->update(['status' => 'ocupada']);
+
+        DB::commit();
+
+        return response()->json([
+            'success' => true,
+            'pedido_id' => $pedido->id,
+            'total' => $total
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+    }
+});
+
+Route::get('/api/pedidos/{id}', function($id) {
+    $pedido = \App\Models\Pedido::with(['itens.produto', 'mesa'])->find($id);
+    return response()->json($pedido);
+});
