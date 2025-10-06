@@ -198,7 +198,7 @@ function App() {
   // TELA DE SELEÇÃO DE MESA
   if (etapa === 'selecao-mesa') {
     return (
-      <div style={{ padding: '20px', minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
+      <div style={{ padding: '20px', minHeight: '100vh', backgroundColor: '#f5f5f5', fontFamily: 'Arial, sans-serif' }}>
         <header style={{ 
           backgroundColor: '#b71c1c', 
           color: 'white', 
@@ -208,14 +208,24 @@ function App() {
           marginBottom: '30px',
           boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
         }}>
-          <h1 style={{ margin: '0 0 10px 0', fontSize: '2.5em' }}>🍔 Jetro's Lanches</h1>
-          <p style={{ margin: '0 0 10px 0', fontSize: '1.2em' }}>Cardápio Digital</p>
-          <p style={{ margin: '0', fontSize: '1.1em' }}>📞 99611-2820 | 3822-7097</p>
+          <h1 style={{ margin: '0 0 10px 0', fontSize: '3em', fontWeight: 'bold' }}>
+            🍔 Jetro's Lanches
+          </h1>
+          <p style={{ margin: '0 0 10px 0', fontSize: '1.6em', fontWeight: '600' }}>
+            Cardápio Digital
+          </p>
+          <p style={{ margin: '0', fontSize: '1.3em' }}>
+            📞 99611-2820 | 3822-7097
+          </p>
         </header>
 
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-          <h2 style={{ color: '#333', marginBottom: '10px' }}>Selecione sua Mesa</h2>
-          <p style={{ color: '#666' }}>Escolha o número da sua mesa para começar</p>
+          <h2 style={{ color: '#333', marginBottom: '15px', fontSize: '2.2em', fontWeight: 'bold' }}>
+            Selecione sua Mesa
+          </h2>
+          <p style={{ color: '#666', fontSize: '1.3em' }}>
+            Escolha o número da sua mesa para começar
+          </p>
         </div>
 
         {erro ? (
@@ -227,16 +237,20 @@ function App() {
             margin: '20px'
           }}>
             <div style={{ fontSize: '3em', marginBottom: '20px' }}>😞</div>
-            <p style={{ color: '#b71c1c', marginBottom: '20px' }}>{erro}</p>
+            <p style={{ color: '#b71c1c', marginBottom: '20px', fontSize: '1.3em' }}>
+              {erro}
+            </p>
             <button
               onClick={() => window.location.reload()}
               style={{
                 backgroundColor: '#b71c1c',
                 color: 'white',
                 border: 'none',
-                padding: '10px 20px',
-                borderRadius: '5px',
-                cursor: 'pointer'
+                padding: '12px 24px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '1.2em',
+                fontWeight: 'bold'
               }}
             >
               Recarregar Página
@@ -245,13 +259,13 @@ function App() {
         ) : carregando ? (
           <div style={{ textAlign: 'center', padding: '50px' }}>
             <div style={{ fontSize: '3em', marginBottom: '20px' }}>⏳</div>
-            <p>Carregando mesas...</p>
+            <p style={{ fontSize: '1.3em' }}>Carregando mesas...</p>
           </div>
         ) : (
           <div style={{ 
             display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
-            gap: '15px',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+            gap: '20px',
             maxWidth: '600px',
             margin: '0 auto'
           }}>
@@ -265,11 +279,13 @@ function App() {
                   border: 'none',
                   padding: '25px 15px',
                   borderRadius: '15px',
-                  fontSize: '1.5em',
+                  fontSize: '1.8em',
                   fontWeight: 'bold',
                   cursor: 'pointer',
                   boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
-                  transition: 'all 0.3s ease'
+                  transition: 'all 0.3s ease',
+                  minHeight: '80px',
+                  fontFamily: 'Arial, sans-serif'
                 }}
                 onMouseOver={(e) => e.target.style.transform = 'scale(1.05)'}
                 onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
@@ -286,7 +302,7 @@ function App() {
           color: '#666',
           padding: '30px'
         }}>
-          <p style={{ margin: '0', fontSize: '1.1em' }}>
+          <p style={{ margin: '0', fontSize: '1.2em' }}>
             © 2025 Jetro's Lanches - Cardápio Digital
           </p>
         </footer>
@@ -297,7 +313,7 @@ function App() {
   // TELA DE CONFIRMAÇÃO
   if (etapa === 'confirmacao') {
     return (
-      <div style={{ padding: '20px', minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
+      <div style={{ padding: '20px', minHeight: '100vh', backgroundColor: '#f5f5f5', fontFamily: 'Arial, sans-serif' }}>
         <header style={{ 
           backgroundColor: '#2e7d32', 
           color: 'white', 
@@ -307,8 +323,12 @@ function App() {
           marginBottom: '30px',
           boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
         }}>
-          <h1 style={{ margin: '0 0 10px 0', fontSize: '2.5em' }}>✅ Pedido Confirmado!</h1>
-          <p style={{ margin: '0', fontSize: '1.2em' }}>Mesa {mesaSelecionada.numero}</p>
+          <h1 style={{ margin: '0 0 10px 0', fontSize: '2.8em', fontWeight: 'bold' }}>
+            ✅ Pedido Confirmado!
+          </h1>
+          <p style={{ margin: '0', fontSize: '1.6em', fontWeight: '600' }}>
+            Mesa {mesaSelecionada.numero}
+          </p>
         </header>
 
         <div style={{ 
@@ -321,11 +341,13 @@ function App() {
           boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
         }}>
           <div style={{ fontSize: '4em', marginBottom: '20px' }}>🎉</div>
-          <h2 style={{ color: '#2e7d32', marginBottom: '15px' }}>Pedido Recebido!</h2>
-          <p style={{ color: '#666', marginBottom: '10px' }}>
+          <h2 style={{ color: '#2e7d32', marginBottom: '15px', fontSize: '2em', fontWeight: 'bold' }}>
+            Pedido Recebido!
+          </h2>
+          <p style={{ color: '#666', marginBottom: '10px', fontSize: '1.3em' }}>
             Seu pedido foi enviado para a cozinha.
           </p>
-          <p style={{ color: '#666', marginBottom: '25px' }}>
+          <p style={{ color: '#666', marginBottom: '25px', fontSize: '1.3em' }}>
             Aguarde que em breve será preparado!
           </p>
           
@@ -335,15 +357,18 @@ function App() {
             borderRadius: '10px',
             marginBottom: '25px'
           }}>
-            <h3 style={{ color: '#333', marginBottom: '15px' }}>Resumo do Pedido</h3>
+            <h3 style={{ color: '#333', marginBottom: '15px', fontSize: '1.5em', fontWeight: 'bold' }}>
+              Resumo do Pedido
+            </h3>
             {carrinho.map(item => (
               <div key={item.produto_id} style={{
                 display: 'flex',
                 justifyContent: 'space-between',
-                marginBottom: '8px'
+                marginBottom: '10px',
+                fontSize: '1.2em'
               }}>
                 <span>{item.quantidade}x {item.nome}</span>
-                <span>R$ {(Number(item.preco) * item.quantidade).toFixed(2)}</span>
+                <span style={{ fontWeight: '600' }}>R$ {(Number(item.preco) * item.quantidade).toFixed(2)}</span>
               </div>
             ))}
             <hr style={{ margin: '15px 0' }} />
@@ -351,7 +376,7 @@ function App() {
               display: 'flex',
               justifyContent: 'space-between',
               fontWeight: 'bold',
-              fontSize: '1.1em'
+              fontSize: '1.4em'
             }}>
               <span>Total:</span>
               <span>R$ {calcularTotal().toFixed(2)}</span>
@@ -364,12 +389,13 @@ function App() {
               backgroundColor: '#b71c1c',
               color: 'white',
               border: 'none',
-              padding: '15px 30px',
+              padding: '16px 32px',
               borderRadius: '10px',
-              fontSize: '1.1em',
+              fontSize: '1.3em',
               fontWeight: 'bold',
               cursor: 'pointer',
-              width: '100%'
+              width: '100%',
+              fontFamily: 'Arial, sans-serif'
             }}
           >
             Fazer Novo Pedido
@@ -381,7 +407,13 @@ function App() {
 
   // TELA DO CARDÁPIO (etapa === 'cardapio')
   return (
-    <div style={{ padding: '20px', minHeight: '100vh', backgroundColor: '#f5f5f5', paddingBottom: '100px' }}>
+    <div style={{ 
+      padding: '20px', 
+      minHeight: '100vh', 
+      backgroundColor: '#f5f5f5', 
+      paddingBottom: '100px',
+      fontFamily: 'Arial, sans-serif'
+    }}>
       {/* HEADER */}
       <header style={{ 
         backgroundColor: '#b71c1c', 
@@ -399,18 +431,24 @@ function App() {
               backgroundColor: 'transparent',
               color: 'white',
               border: '2px solid white',
-              padding: '8px 15px',
+              padding: '12px 20px',
               borderRadius: '20px',
               cursor: 'pointer',
-              fontSize: '0.9em'
+              fontSize: '1.1em',
+              fontWeight: 'bold',
+              fontFamily: 'Arial, sans-serif'
             }}
           >
             ← Trocar Mesa
           </button>
-          <h1 style={{ margin: '0', fontSize: '2em' }}>🍔 Jetro's Lanches</h1>
+          <h1 style={{ margin: '0', fontSize: '2.2em', fontWeight: 'bold' }}>
+            🍔 Jetro's Lanches
+          </h1>
           <div style={{ width: '100px' }}></div>
         </div>
-        <p style={{ margin: '0', fontSize: '1.1em' }}>Mesa {mesaSelecionada.numero}</p>
+        <p style={{ margin: '0', fontSize: '1.4em', fontWeight: '600' }}>
+          Mesa {mesaSelecionada.numero}
+        </p>
       </header>
 
       {/* CARRINHO FLUTUANTE */}
@@ -421,20 +459,23 @@ function App() {
           right: '20px',
           backgroundColor: '#2e7d32',
           color: 'white',
-          padding: '15px 25px',
+          padding: '18px 26px',
           borderRadius: '50px',
           boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
           cursor: 'pointer',
           zIndex: 1000,
           display: 'flex',
           alignItems: 'center',
-          gap: '10px'
+          gap: '12px',
+          fontSize: '1.2em',
+          fontWeight: 'bold',
+          fontFamily: 'Arial, sans-serif'
         }}
         onClick={() => setEtapa('carrinho')}
         >
-          <span style={{ fontSize: '1.2em' }}>🛒</span>
-          <span style={{ fontWeight: 'bold' }}>{carrinho.reduce((total, item) => total + item.quantidade, 0)} itens</span>
-          <span style={{ fontWeight: 'bold' }}>R$ {calcularTotal().toFixed(2)}</span>
+          <span style={{ fontSize: '1.4em' }}>🛒</span>
+          <span>{carrinho.reduce((total, item) => total + item.quantidade, 0)} itens</span>
+          <span>R$ {calcularTotal().toFixed(2)}</span>
         </div>
       )}
 
@@ -452,7 +493,8 @@ function App() {
             borderBottom: '3px solid #b71c1c',
             paddingBottom: '15px',
             marginBottom: '20px',
-            fontSize: '1.8em'
+            fontSize: '1.8em',
+            fontWeight: 'bold'
           }}>
             {categoria.nome}
           </h3>
@@ -461,7 +503,7 @@ function App() {
             <p style={{ 
               color: '#666', 
               fontStyle: 'italic', 
-              fontSize: '1.1em',
+              fontSize: '1.3em',
               marginBottom: '25px'
             }}>
               {categoria.descricao}
@@ -487,7 +529,8 @@ function App() {
                     <h4 style={{ 
                       margin: '0 0 8px 0', 
                       color: '#333',
-                      fontSize: '1.3em'
+                      fontSize: '1.5em',
+                      fontWeight: 'bold'
                     }}>
                       {produto.nome}
                     </h4>
@@ -495,7 +538,7 @@ function App() {
                       <p style={{ 
                         margin: '0', 
                         color: '#666', 
-                        fontSize: '1em',
+                        fontSize: '1.2em',
                         lineHeight: '1.4'
                       }}>
                         {produto.descricao}
@@ -507,12 +550,13 @@ function App() {
                     <span style={{ 
                       backgroundColor: '#2e7d32', 
                       color: 'white', 
-                      padding: '8px 16px', 
+                      padding: '10px 18px', 
                       borderRadius: '25px',
                       fontWeight: 'bold',
-                      fontSize: '1.1em',
-                      minWidth: '80px',
-                      textAlign: 'center'
+                      fontSize: '1.3em',
+                      minWidth: '100px',
+                      textAlign: 'center',
+                      fontFamily: 'Arial, sans-serif'
                     }}>
                       R$ {Number(produto.preco).toFixed(2)}
                     </span>
@@ -523,11 +567,13 @@ function App() {
                         backgroundColor: '#b71c1c',
                         color: 'white',
                         border: 'none',
-                        padding: '10px 15px',
+                        padding: '14px 18px',
                         borderRadius: '8px',
                         cursor: 'pointer',
                         fontWeight: 'bold',
-                        fontSize: '1.1em'
+                        fontSize: '1.3em',
+                        fontFamily: 'Arial, sans-serif',
+                        minWidth: '55px'
                       }}
                     >
                       +
@@ -562,16 +608,19 @@ function App() {
             maxWidth: '500px',
             width: '100%',
             maxHeight: '80vh',
-            overflow: 'auto'
+            overflow: 'auto',
+            fontFamily: 'Arial, sans-serif'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ margin: 0, color: '#333' }}>Seu Pedido</h2>
+              <h2 style={{ margin: 0, color: '#333', fontSize: '1.8em', fontWeight: 'bold' }}>
+                Seu Pedido
+              </h2>
               <button
                 onClick={() => setEtapa('cardapio')}
                 style={{
                   backgroundColor: 'transparent',
                   border: 'none',
-                  fontSize: '1.5em',
+                  fontSize: '1.8em',
                   cursor: 'pointer',
                   color: '#666'
                 }}
@@ -581,7 +630,7 @@ function App() {
             </div>
 
             {carrinho.length === 0 ? (
-              <p style={{ textAlign: 'center', color: '#666', padding: '40px' }}>
+              <p style={{ textAlign: 'center', color: '#666', padding: '40px', fontSize: '1.3em' }}>
                 Seu carrinho está vazio
               </p>
             ) : (
@@ -596,8 +645,12 @@ function App() {
                       borderBottom: '1px solid #eee'
                     }}>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>{item.nome}</div>
-                        <div style={{ color: '#666', fontSize: '0.9em' }}>R$ {Number(item.preco).toFixed(2)} cada</div>
+                        <div style={{ fontWeight: 'bold', marginBottom: '5px', fontSize: '1.3em' }}>
+                          {item.nome}
+                        </div>
+                        <div style={{ color: '#666', fontSize: '1.1em' }}>
+                          R$ {Number(item.preco).toFixed(2)} cada
+                        </div>
                       </div>
                       
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -606,15 +659,18 @@ function App() {
                           style={{
                             backgroundColor: '#f5f5f5',
                             border: '1px solid #ddd',
-                            padding: '5px 10px',
+                            padding: '10px 14px',
                             borderRadius: '5px',
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            fontSize: '1.1em',
+                            fontWeight: 'bold',
+                            fontFamily: 'Arial, sans-serif'
                           }}
                         >
                           -
                         </button>
                         
-                        <span style={{ minWidth: '30px', textAlign: 'center' }}>
+                        <span style={{ minWidth: '30px', textAlign: 'center', fontSize: '1.2em', fontWeight: 'bold' }}>
                           {item.quantidade}
                         </span>
                         
@@ -623,9 +679,12 @@ function App() {
                           style={{
                             backgroundColor: '#f5f5f5',
                             border: '1px solid #ddd',
-                            padding: '5px 10px',
+                            padding: '10px 14px',
                             borderRadius: '5px',
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            fontSize: '1.1em',
+                            fontWeight: 'bold',
+                            fontFamily: 'Arial, sans-serif'
                           }}
                         >
                           +
@@ -637,10 +696,13 @@ function App() {
                             backgroundColor: '#ffebee',
                             color: '#b71c1c',
                             border: 'none',
-                            padding: '5px 10px',
+                            padding: '10px 14px',
                             borderRadius: '5px',
                             cursor: 'pointer',
-                            marginLeft: '10px'
+                            marginLeft: '10px',
+                            fontSize: '1.1em',
+                            fontWeight: 'bold',
+                            fontFamily: 'Arial, sans-serif'
                           }}
                         >
                           🗑️
@@ -659,7 +721,7 @@ function App() {
                     display: 'flex',
                     justifyContent: 'space-between',
                     fontWeight: 'bold',
-                    fontSize: '1.2em'
+                    fontSize: '1.4em'
                   }}>
                     <span>Total:</span>
                     <span>R$ {calcularTotal().toFixed(2)}</span>
@@ -673,12 +735,13 @@ function App() {
                     backgroundColor: enviandoPedido ? '#ccc' : '#2e7d32',
                     color: 'white',
                     border: 'none',
-                    padding: '15px',
+                    padding: '18px',
                     borderRadius: '10px',
-                    fontSize: '1.1em',
+                    fontSize: '1.3em',
                     fontWeight: 'bold',
                     cursor: enviandoPedido ? 'not-allowed' : 'pointer',
-                    width: '100%'
+                    width: '100%',
+                    fontFamily: 'Arial, sans-serif'
                   }}
                 >
                   {enviandoPedido ? 'Enviando...' : `Finalizar Pedido - R$ ${calcularTotal().toFixed(2)}`}
@@ -696,7 +759,7 @@ function App() {
         color: '#666',
         padding: '30px'
       }}>
-        <p style={{ margin: '0', fontSize: '1.1em' }}>
+        <p style={{ margin: '0', fontSize: '1.2em' }}>
           © 2025 Jetro's Lanches - Cardápio Digital
         </p>
       </footer>
