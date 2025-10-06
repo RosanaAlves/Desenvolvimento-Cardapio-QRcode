@@ -1,5 +1,33 @@
 ﻿import React, { useState, useEffect } from 'react';
-import './App.css';
+
+// Configuração da API
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
+// Função para fetch com tratamento de erro
+const fetchWithErrorHandling = async (url, options = {}) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}${url}`, {
+      credentials: 'include',
+      ...options
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    // Validação básica dos dados
+    if (data === null || data === undefined) {
+      throw new Error('Resposta da API vazia');
+    }
+
+    return data;
+  } catch (error) {
+    console.error(`❌ Erro na requisição para ${url}:`, error);
+    throw error;
+  }
+};
 
 function App() {
   // Estados do sistema
@@ -10,29 +38,35 @@ function App() {
   const [produtos, setProdutos] = useState([]);
   const [carrinho, setCarrinho] = useState([]);
   const [carregando, setCarregando] = useState(true);
-  const [pedidoEnviado, setPedidoEnviado] = useState(false);
+  const [erro, setErro] = useState(null);
+  const [enviandoPedido, setEnviandoPedido] = useState(false);
 
   // Carregar dados iniciais
   useEffect(() => {
     const carregarDados = async () => {
       try {
-        const [resMesas, resCategorias, resProdutos] = await Promise.all([
-          fetch('/api/mesas'),
-          fetch('/api/categorias'),
-          fetch('/api/produtos')
+        setCarregando(true);
+        setErro(null);
+
+        const [dadosMesas, dadosCategorias, dadosProdutos] = await Promise.all([
+          fetchWithErrorHandling('/api/mesas'),
+          fetchWithErrorHandling('/api/categorias'),
+          fetchWithErrorHandling('/api/produtos')
         ]);
 
-        const dadosMesas = await resMesas.json();
-        const dadosCategorias = await resCategorias.json();
-        const dadosProdutos = await resProdutos.json();
+        // Validação dos dados recebidos
+        if (!Array.isArray(dadosMesas)) throw new Error('Formato inválido de mesas');
+        if (!Array.isArray(dadosCategorias)) throw new Error('Formato inválido de categorias');
+        if (!Array.isArray(dadosProdutos)) throw new Error('Formato inválido de produtos');
 
         setMesas(dadosMesas);
         setCategorias(dadosCategorias);
         setProdutos(dadosProdutos);
-        setCarregando(false);
         
       } catch (erro) {
         console.error('❌ Erro ao carregar dados:', erro);
+        setErro('Erro ao carregar cardápio. Tente recarregar a página.');
+      } finally {
         setCarregando(false);
       }
     };
@@ -49,10 +83,13 @@ function App() {
   // Adicionar item ao carrinho
   const adicionarAoCarrinho = (produto) => {
     const itemExistente = carrinho.find(item => item.produto_id === produto.id);
-    
-    // CONVERTER preco para número
     const precoNumerico = Number(produto.preco);
     
+    if (isNaN(precoNumerico)) {
+      console.error('Preço inválido:', produto.preco);
+      return;
+    }
+
     if (itemExistente) {
       setCarrinho(carrinho.map(item =>
         item.produto_id === produto.id
@@ -91,45 +128,56 @@ function App() {
 
   // Calcular total do carrinho
   const calcularTotal = () => {
-    return carrinho.reduce((total, item) => total + (Number(item.preco) * item.quantidade), 0);
+    return carrinho.reduce((total, item) => {
+      const preco = Number(item.preco) || 0;
+      const quantidade = item.quantidade || 0;
+      return total + (preco * quantidade);
+    }, 0);
   };
 
-  // Finalizar pedido - CORRIGIDO COM CSRF TOKEN
+  // Finalizar pedido - MELHORADO
   const finalizarPedido = async () => {
     try {
-      // Primeiro, pegue o CSRF token
-      await fetch('/sanctum/csrf-cookie');
-      
+      setEnviandoPedido(true);
+
+      // 1. Primeiro garantir o CSRF token
+      await fetchWithErrorHandling('/sanctum/csrf-cookie', {
+        method: 'GET'
+      });
+
+      // 2. Preparar dados do pedido
       const pedidoData = {
         mesa_id: mesaSelecionada.id,
         itens: carrinho.map(item => ({
-          ...item,
-          preco: Number(item.preco)
+          produto_id: item.produto_id,
+          nome: item.nome,
+          preco: Number(item.preco),
+          quantidade: item.quantidade,
+          observacoes: item.observacoes
         }))
       };
 
-      const resposta = await fetch('/api/pedidos', {
+      // 3. Fazer a requisição do pedido
+      const resultado = await fetchWithErrorHandling('/api/pedidos', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'application/json',
         },
-        credentials: 'include',
         body: JSON.stringify(pedidoData)
       });
 
-      const resultado = await resposta.json();
-
-      if (resultado.success) {
-        setPedidoEnviado(true);
+      if (resultado.success || resultado.id) {
         setEtapa('confirmacao');
       } else {
-        alert('Erro ao enviar pedido: ' + resultado.error);
+        throw new Error(resultado.error || 'Erro desconhecido ao enviar pedido');
       }
 
     } catch (erro) {
       console.error('Erro ao finalizar pedido:', erro);
       alert('Erro ao enviar pedido. Tente novamente.');
+    } finally {
+      setEnviandoPedido(false);
     }
   };
 
@@ -144,7 +192,6 @@ function App() {
   const fazerNovoPedido = () => {
     setMesaSelecionada(null);
     setCarrinho([]);
-    setPedidoEnviado(false);
     setEtapa('selecao-mesa');
   };
 
@@ -171,8 +218,33 @@ function App() {
           <p style={{ color: '#666' }}>Escolha o número da sua mesa para começar</p>
         </div>
 
-        {carregando ? (
+        {erro ? (
+          <div style={{ 
+            textAlign: 'center', 
+            padding: '50px',
+            backgroundColor: '#ffebee',
+            borderRadius: '10px',
+            margin: '20px'
+          }}>
+            <div style={{ fontSize: '3em', marginBottom: '20px' }}>😞</div>
+            <p style={{ color: '#b71c1c', marginBottom: '20px' }}>{erro}</p>
+            <button
+              onClick={() => window.location.reload()}
+              style={{
+                backgroundColor: '#b71c1c',
+                color: 'white',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '5px',
+                cursor: 'pointer'
+              }}
+            >
+              Recarregar Página
+            </button>
+          </div>
+        ) : carregando ? (
           <div style={{ textAlign: 'center', padding: '50px' }}>
+            <div style={{ fontSize: '3em', marginBottom: '20px' }}>⏳</div>
             <p>Carregando mesas...</p>
           </div>
         ) : (
@@ -596,19 +668,20 @@ function App() {
 
                 <button
                   onClick={finalizarPedido}
+                  disabled={enviandoPedido}
                   style={{
-                    backgroundColor: '#2e7d32',
+                    backgroundColor: enviandoPedido ? '#ccc' : '#2e7d32',
                     color: 'white',
                     border: 'none',
                     padding: '15px',
                     borderRadius: '10px',
                     fontSize: '1.1em',
                     fontWeight: 'bold',
-                    cursor: 'pointer',
+                    cursor: enviandoPedido ? 'not-allowed' : 'pointer',
                     width: '100%'
                   }}
                 >
-                  Finalizar Pedido - R$ {calcularTotal().toFixed(2)}
+                  {enviandoPedido ? 'Enviando...' : `Finalizar Pedido - R$ ${calcularTotal().toFixed(2)}`}
                 </button>
               </>
             )}

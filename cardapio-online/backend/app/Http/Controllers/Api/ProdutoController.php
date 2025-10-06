@@ -1,19 +1,20 @@
 <?php
-
-namespace App\Http\Controllers\Api;
-
-use App\Http\Controllers\Controller;
-use App\Models\Produto;
-use Illuminate\Http\Request;
-
-class ProdutoController extends Controller
+// backend/app/Http/Controllers/Api/ProductController.php
+public function index()
 {
-    public function index()
-    {
-        $produtos = Produto::with('categoria')
-                          ->where('disponivel', true)
-                          ->get();
-        
-        return response()->json($produtos);
-    }
+    $products = Product::with('categoria')
+        ->where('disponivel', true)
+        ->get();
+    
+    return ProductResource::collection($products);
+}
+
+public function byCategory($categoryId)
+{
+    $products = Product::with('categoria')
+        ->where('categoria_id', $categoryId)
+        ->where('disponivel', true)
+        ->get();
+    
+    return ProductResource::collection($products);
 }

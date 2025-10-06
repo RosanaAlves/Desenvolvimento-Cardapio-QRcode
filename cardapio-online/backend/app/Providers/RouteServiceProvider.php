@@ -1,4 +1,3 @@
-cat > app/Providers/RouteServiceProvider.php << 'EOF'
 <?php
 
 namespace App\Providers;
@@ -27,4 +26,3 @@ class RouteServiceProvider extends ServiceProvider
         });
     }
 }
-EOF
