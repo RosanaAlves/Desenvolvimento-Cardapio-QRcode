@@ -8,16 +8,16 @@ return new class extends Migration
 {
     public function up()
     {
-        Schema::create('mesas', function (Blueprint $table) {
-            $table->id();
-            $table->integer('numero')->unique();
-            $table->enum('status', ['livre', 'ocupada'])->default('livre');
-            $table->timestamps();
+        Schema::table('mesas', function (Blueprint $table) {
+            $table->string('cliente_nome')->nullable()->after('numero');
+            $table->enum('status_pagamento', ['aberta', 'fechada', 'paga'])->default('aberta')->after('status');
         });
     }
 
     public function down()
     {
-        Schema::dropIfExists('mesas');
+        Schema::table('mesas', function (Blueprint $table) {
+            $table->dropColumn(['cliente_nome', 'status_pagamento']);
+        });
     }
 };

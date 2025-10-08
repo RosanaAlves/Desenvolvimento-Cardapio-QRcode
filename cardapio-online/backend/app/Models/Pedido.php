@@ -9,7 +9,19 @@ class Pedido extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['mesa_id', 'status', 'total', 'observacoes'];
+    // 🔥 ADICIONAR cliente_nome no fillable
+    protected $fillable = [
+        'mesa_id', 
+        'cliente_nome',  // NOVO CAMPO
+        'status', 
+        'total', 
+        'observacoes'
+    ];
+
+    // 🔥 ADICIONAR CASTS
+    protected $casts = [
+        'total' => 'decimal:2',
+    ];
 
     public function mesa()
     {
@@ -26,5 +38,11 @@ class Pedido extends Model
         return $this->itens->sum(function($item) {
             return $item->quantidade * $item->preco_unitario;
         });
+    }
+
+    // 🔥 MÉTODO PARA MARCAR COMO CONCLUÍDO
+    public function marcarComoConcluido()
+    {
+        return $this->update(['status' => 'concluido']);
     }
 }

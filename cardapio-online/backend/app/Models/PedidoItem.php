@@ -5,19 +5,27 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class PedidoItem extends Model
+class Pedido extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['pedido_id', 'produto_id', 'quantidade', 'preco_unitario', 'observacoes'];
+    // 🔥 ADICIONAR cliente_nome no fillable
+    protected $fillable = ['mesa_id', 'cliente_nome', 'status', 'total', 'observacoes'];
 
-    public function pedido()
+    public function mesa()
     {
-        return $this->belongsTo(Pedido::class);
+        return $this->belongsTo(Mesa::class);
     }
 
-    public function produto()
+    public function itens()
     {
-        return $this->belongsTo(Produto::class);
+        return $this->hasMany(PedidoItem::class);
+    }
+
+    public function calcularTotal()
+    {
+        return $this->itens->sum(function($item) {
+            return $item->quantidade * $item->preco_unitario;
+        });
     }
 }
