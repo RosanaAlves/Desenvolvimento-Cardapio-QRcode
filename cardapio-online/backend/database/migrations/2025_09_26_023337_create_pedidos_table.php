@@ -8,19 +8,22 @@ return new class extends Migration
 {
     public function up()
     {
-        Schema::create('pedido_itens', function (Blueprint $table) {
+        Schema::create("pedidos", function (Blueprint $table) {
             $table->id();
-            $table->foreignId('pedido_id')->constrained()->onDelete('cascade');
-            $table->foreignId('produto_id')->constrained()->onDelete('cascade');
-            $table->integer('quantidade');
-            $table->decimal('preco_unitario', 8, 2);
-            $table->text('observacoes')->nullable();
+            $table->unsignedBigInteger("mesa_id"); // ← Use unsignedBigInteger em vez de foreignId
+            $table->string("cliente_nome");
+            $table->enum("status", ["pendente", "preparando", "pronto", "entregue", "cancelado"])->default("pendente");
+            $table->decimal("total", 8, 2)->default(0);
+            $table->text("observacoes")->nullable();
             $table->timestamps();
+            
+            // Vamos adicionar a foreign key depois em uma migração separada
+            // $table->foreignId("mesa_id")->constrained()->onDelete("cascade");
         });
     }
 
     public function down()
     {
-        Schema::dropIfExists('pedido_itens');
+        Schema::dropIfExists("pedidos");
     }
 };

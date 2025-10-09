@@ -5,27 +5,29 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Pedido extends Model
+class PedidoItem extends Model
 {
     use HasFactory;
 
-    // 🔥 ADICIONAR cliente_nome no fillable
-    protected $fillable = ['mesa_id', 'cliente_nome', 'status', 'total', 'observacoes'];
+    protected $table = 'pedido_itens';
 
-    public function mesa()
+    // 🔥 CORREÇÃO: Use o nome correto da chave estrangeira
+    protected $fillable = [
+        'pedidos_id',  // ← Provavelmente é este o nome
+        'produto_id', 
+        'quantidade',
+        'preco_unitario',
+        'observacoes'
+    ];
+
+    // 🔥 CORREÇÃO: Especifique a chave estrangeira
+    public function pedido()
     {
-        return $this->belongsTo(Mesa::class);
+        return $this->belongsTo(Pedido::class, 'pedidos_id'); // ← Adicione o segundo parâmetro
     }
 
-    public function itens()
+    public function produto()
     {
-        return $this->hasMany(PedidoItem::class);
-    }
-
-    public function calcularTotal()
-    {
-        return $this->itens->sum(function($item) {
-            return $item->quantidade * $item->preco_unitario;
-        });
+        return $this->belongsTo(Produto::class);
     }
 }

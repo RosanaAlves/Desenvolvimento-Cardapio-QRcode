@@ -10,12 +10,16 @@ return new class extends Migration
     {
         Schema::create('pedido_itens', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('pedido_id')->constrained()->onDelete('cascade');
-            $table->foreignId('produto_id')->constrained()->onDelete('cascade');
+            $table->foreignId('pedido_id')->constrained('pedidos')->onDelete('cascade');
+            $table->foreignId('produto_id')->constrained('produtos')->onDelete('cascade');
             $table->integer('quantidade');
             $table->decimal('preco_unitario', 8, 2);
             $table->text('observacoes')->nullable();
             $table->timestamps();
+            
+            // Índices para melhor performance
+            $table->index('pedido_id');
+            $table->index('produto_id');
         });
     }
 

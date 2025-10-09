@@ -9,22 +9,23 @@ class Mesa extends Model
 {
     use HasFactory;
 
-    // 🔥 ADICIONAR OS NOVOS CAMPOS
+    // 🔥 ADICIONE ESTA LINHA
+    protected $table = 'mesas';
+
     protected $fillable = [
         'numero', 
         'status', 
-        'cliente_nome',  // NOVO
-        'status_pagamento' // NOVO
+        'cliente_nome',
+        'status_pagamento'
     ];
 
-    // 🔥 ADICIONAR CASTS PARA TIPOS CORRETOS
     protected $casts = [
         'status_pagamento' => 'string'
     ];
 
     public function pedidos()
     {
-        return $this->hasMany(Pedido::class);
+        return $this->hasMany(Pedido::class, 'mesa_id');
     }
 
     public function pedidoAtivo()

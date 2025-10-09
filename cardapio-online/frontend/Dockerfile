@@ -1,31 +1,17 @@
-FROM php:8.2-apache
+FROM node:18-alpine
 
-# Instalar extensões PHP
-RUN docker-php-ext-install pdo pdo_mysql
+WORKDIR /app
 
-# Habilitar mod_rewrite do Apache (essencial para Laravel)
-RUN a2enmod rewrite
-RUN a2enmod headers
+# Copia package.json primeiro (para cache)
+COPY package*.json ./
 
-# Configurar documento root para a pasta public
-ENV APACHE_DOCUMENT_ROOT /var/www/html/public
+# Instala dependências
+RUN npm install
 
-# Substituir a configuração padrão do Apache
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
-RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
-
-# Diretório de trabalho
-WORKDIR /var/www/html
-
-# Copiar arquivos
+# Copia todo o código fonte
 COPY . .
 
-# Configurar permissões
-RUN chown -R www-data:www-data /var/www/html/storage
-RUN chown -R www-data:www-data /var/www/html/bootstrap/cache
-RUN chmod -R 775 /var/www/html/storage
-RUN chmod -R 775 /var/www/html/bootstrap/cache
+EXPOSE 3000
 
-EXPOSE 80
-
-CMD ["apache2-foreground"]
+# Comando para desenvolvimento do Create React App
+CMD ["npm", "start"]

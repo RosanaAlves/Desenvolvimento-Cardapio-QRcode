@@ -37,10 +37,6 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80/api/test"]
-      timeout: 30s
-      retries: 5
 
   nginx:
     image: nginx:1.25.3-alpine
@@ -54,8 +50,7 @@ services:
     networks:
       - cardapio-network
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
 
   frontend:
     build: 
@@ -70,10 +65,14 @@ services:
       - /app/node_modules
     environment:
       REACT_APP_API_URL: http://localhost:8000
+      CHOKIDAR_USEPOLLING: "true"  # ⬅️ IMPORTANTE para hot reload
+      WATCHPACK_POLLING: "true"     # ⬅️ IMPORTANTE para file watching
+    stdin_open: true                # ⬅️ Para React Scripts
+    tty: true                       # ⬅️ Para React Scripts
     networks:
       - cardapio-network
     depends_on:
-      - nginx
+      - backend    # ⬅️ Depende apenas do backend
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
@@ -102,10 +101,14 @@ services:
       - /app/node_modules
     environment:
       REACT_APP_API_URL: http://localhost:8000
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+    stdin_open: true
+    tty: true
     networks:
       - cardapio-network
     depends_on:
-      - nginx
+      - backend
 
 volumes:
   mysql_data:

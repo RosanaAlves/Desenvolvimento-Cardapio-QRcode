@@ -1,13 +1,19 @@
 ﻿import React, { useState, useEffect } from 'react';
 
-// Configuração da API
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+// 🔥 CORREÇÃO: URL base da API - use localhost:8000 diretamente
+const API_BASE_URL = 'http://localhost:8000';
 
 // Função para fetch com tratamento de erro
 const fetchWithErrorHandling = async (url, options = {}) => {
   try {
+    // 🔥 CORREÇÃO: Adicione credentials: 'include' em TODAS as chamadas
     const response = await fetch(`${API_BASE_URL}${url}`, {
-      credentials: 'include',
+      credentials: 'include', // ← ESTA LINHA É ESSENCIAL
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        ...options.headers
+      },
       ...options
     });
 
@@ -31,8 +37,8 @@ const fetchWithErrorHandling = async (url, options = {}) => {
 
 function App() {
   // Estados do sistema
-  const [etapa, setEtapa] = useState('coletar-nome'); // NOVA ETAPA
-  const [nomeCliente, setNomeCliente] = useState(''); // NOVO ESTADO
+  const [etapa, setEtapa] = useState('coletar-nome');
+  const [nomeCliente, setNomeCliente] = useState('');
   const [mesas, setMesas] = useState([]);
   const [mesaSelecionada, setMesaSelecionada] = useState(null);
   const [categorias, setCategorias] = useState([]);
@@ -41,7 +47,7 @@ function App() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(null);
   const [enviandoPedido, setEnviandoPedido] = useState(false);
-  const [resumoConta, setResumoConta] = useState(null); // NOVO ESTADO
+  const [resumoConta, setResumoConta] = useState(null);
 
   // Carregar dados iniciais
   useEffect(() => {
@@ -50,6 +56,7 @@ function App() {
         setCarregando(true);
         setErro(null);
 
+        // 🔥 CORREÇÃO: URLs completas com /api
         const [dadosMesas, dadosCategorias, dadosProdutos] = await Promise.all([
           fetchWithErrorHandling('/api/mesas'),
           fetchWithErrorHandling('/api/categorias'),
@@ -146,43 +153,33 @@ function App() {
     }, 0);
   };
 
-  // Finalizar pedido - ATUALIZADO COM NOME DO CLIENTE
+  // Finalizar pedido - ATUALIZADO
   const finalizarPedido = async () => {
     try {
       setEnviandoPedido(true);
 
-      // 1. Primeiro garantir o CSRF token
-      await fetchWithErrorHandling('/sanctum/csrf-cookie', {
-        method: 'GET'
-      });
-
-      // 2. Preparar dados do pedido COM NOME DO CLIENTE
+      // 🔥 CORREÇÃO: Preparar dados do pedido
       const pedidoData = {
         mesa_id: mesaSelecionada.id,
-        cliente_nome: nomeCliente, // NOVO CAMPO
+        cliente_nome: nomeCliente,
         itens: carrinho.map(item => ({
           produto_id: item.produto_id,
-          nome: item.nome,
-          preco: Number(item.preco),
           quantidade: item.quantidade,
-          observacoes: item.observacoes
+          observacoes: item.observacoes || ''
         }))
       };
 
-      // 3. Fazer a requisição do pedido
+      // 🔥 CORREÇÃO: Fazer a requisição diretamente
       const resultado = await fetchWithErrorHandling('/api/pedidos', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
         body: JSON.stringify(pedidoData)
       });
 
-      if (resultado.success || resultado.id) {
+      if (resultado.success) {
         setEtapa('confirmacao');
+        setCarrinho([]); // Limpar carrinho após sucesso
       } else {
-        throw new Error(resultado.error || 'Erro desconhecido ao enviar pedido');
+        throw new Error(resultado.message || 'Erro desconhecido ao enviar pedido');
       }
 
     } catch (erro) {
@@ -193,7 +190,7 @@ function App() {
     }
   };
 
-  // NOVA FUNÇÃO - Fechar conta
+  // Fechar conta
   const fecharConta = async () => {
     try {
       const resultado = await fetchWithErrorHandling(`/api/mesas/${mesaSelecionada.id}/fechar-conta`, {
@@ -204,7 +201,7 @@ function App() {
         setResumoConta(resultado);
         setEtapa('conta-fechada');
       } else {
-        throw new Error(resultado.error || 'Erro ao fechar conta');
+        throw new Error(resultado.message || 'Erro ao fechar conta');
       }
     } catch (erro) {
       console.error('Erro ao fechar conta:', erro);
@@ -263,7 +260,13 @@ function App() {
     }
   };
 
-  // TELA DE COLETAR NOME - NOVA TELA
+  // 🔥 TESTE RÁPIDO: Adicione este useEffect para debug
+  useEffect(() => {
+    console.log('🔧 Debug - API_BASE_URL:', API_BASE_URL);
+    console.log('🔧 Debug - Etapa atual:', etapa);
+  }, [etapa]);
+
+  // TELA DE COLETAR NOME
   if (etapa === 'coletar-nome') {
     return (
       <div style={{ 
@@ -698,7 +701,7 @@ function App() {
     );
   }
 
-  // NOVA TELA - CONTA FECHADA
+  // TELA CONTA FECHADA
   if (etapa === 'conta-fechada') {
     return (
       <div style={{ 
@@ -792,7 +795,7 @@ function App() {
                 }}>
                   Todos os Pedidos
                 </h3>
-                {resumoConta.pedidos.map(pedido => (
+                {resumoConta.pedidos && resumoConta.pedidos.map(pedido => (
                   <div key={pedido.id} style={{
                     backgroundColor: '#f8f9fa',
                     padding: '15px',

@@ -9,40 +9,30 @@ class Pedido extends Model
 {
     use HasFactory;
 
-    // 🔥 ADICIONAR cliente_nome no fillable
+    // 🔥 ADICIONE ESTA LINHA para especificar o nome da tabela
+    protected $table = 'pedidos';
+
     protected $fillable = [
         'mesa_id', 
-        'cliente_nome',  // NOVO CAMPO
+        'cliente_nome',
         'status', 
         'total', 
         'observacoes'
     ];
 
-    // 🔥 ADICIONAR CASTS
     protected $casts = [
         'total' => 'decimal:2',
     ];
 
     public function mesa()
     {
-        return $this->belongsTo(Mesa::class);
+        return $this->belongsTo(Mesa::class, 'mesa_id');
     }
 
     public function itens()
     {
-        return $this->hasMany(PedidoItem::class);
+        return $this->hasMany(PedidoItem::class, 'pedido_id');
     }
 
-    public function calcularTotal()
-    {
-        return $this->itens->sum(function($item) {
-            return $item->quantidade * $item->preco_unitario;
-        });
-    }
-
-    // 🔥 MÉTODO PARA MARCAR COMO CONCLUÍDO
-    public function marcarComoConcluido()
-    {
-        return $this->update(['status' => 'concluido']);
-    }
+    // ... resto do código
 }

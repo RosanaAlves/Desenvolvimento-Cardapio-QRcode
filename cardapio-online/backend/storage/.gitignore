@@ -1,0 +1,24 @@
+# Ignore tudo nestas pastas...
+/app/*
+!/app/public/
+/framework/*
+!/framework/cache/
+!/framework/sessions/
+!/framework/views/
+!/framework/testing/
+
+# Mas não ignore estes específicos...
+!/framework/cache/data/
+!/framework/cache/data/*
+
+# Exceto os .gitkeep
+!*.gitkeep
+
+# Arquivos de sessão podem ser ignorados
+/framework/sessions/*
+
+# Arquivos de view compilados podem ser ignorados  
+/framework/views/*
+
+# Mas mantenha a estrutura de pastas
+!.gitkeep
