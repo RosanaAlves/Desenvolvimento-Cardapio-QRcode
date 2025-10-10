@@ -25,10 +25,15 @@ Route::get('/pedidos', function() {
 // ROTAS DO ADMIN
 Route::get('/admin/dashboard', function() {
     try {
+        // 🔥 CORREÇÃO: Calcular mesas ocupadas baseado em pedidos ativos
+        $mesasOcupadas = Mesa::whereHas('pedidos', function($query) {
+            $query->whereIn('status', ['pendente', 'preparando', 'pronto']);
+        })->count();
+        
         $stats = [
             'total_mesas' => Mesa::count(),
-            'mesas_ocupadas' => Mesa::where('status', 'ocupada')->count(),
-            'mesas_livres' => Mesa::where('status', 'livre')->count(),
+            'mesas_ocupadas' => $mesasOcupadas, // 🔥 CORRIGIDO
+            'mesas_livres' => Mesa::count() - $mesasOcupadas, // 🔥 CORRIGIDO
             'total_pedidos' => Pedido::count(),
             'pedidos_pendentes' => Pedido::where('status', 'pendente')->count(),
             'pedidos_preparando' => Pedido::where('status', 'preparando')->count(),
@@ -141,10 +146,54 @@ Route::get('/admin/produtos', function() {
     }
 });
 
+// 🔥 NOVA ROTA: MESAS COM STATUS REAL (PARA FRONTEND)
+Route::get('/mesas/status', function() {
+    try {
+        $mesas = Mesa::with(['pedidos' => function($query) {
+            $query->whereIn('status', ['pendente', 'preparando', 'pronto']);
+        }])->get();
+
+        $mesasComStatus = $mesas->map(function($mesa) {
+            $pedidoAtivo = $mesa->pedidos->first();
+            
+            return [
+                'id' => $mesa->id,
+                'numero' => $mesa->numero,
+                'status' => $pedidoAtivo ? 'ocupada' : 'disponivel', // 🔥 STATUS REAL
+                'cliente_nome' => $pedidoAtivo ? $pedidoAtivo->cliente_nome : null,
+                'pedido_id' => $pedidoAtivo ? $pedidoAtivo->id : null,
+                'total_pedido' => $pedidoAtivo ? $pedidoAtivo->total : null,
+                'created_at' => $mesa->created_at,
+                'updated_at' => $mesa->updated_at
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $mesasComStatus
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Erro ao buscar status das mesas: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Erro ao buscar status das mesas'
+        ], 500);
+    }
+});
+
 // Rotas de Categorias
 Route::get('/categorias', function() {
     try {
-        $categorias = Categoria::where('disponivel', 1)->get();
+        // 🔥 CORREÇÃO: Verificar se a coluna 'disponivel' existe
+        $query = Categoria::query();
+        
+        // Verifica se a coluna 'disponivel' existe na tabela
+        if (Schema::hasColumn('categorias', 'disponivel')) {
+            $query->where('disponivel', 1);
+        }
+        
+        $categorias = $query->get();
         return response()->json($categorias);
     } catch (\Exception $e) {
         Log::error('Erro em /categorias: ' . $e->getMessage());
@@ -155,9 +204,14 @@ Route::get('/categorias', function() {
 // Rotas de Produtos (público)
 Route::get('/produtos', function() {
     try {
-        $produtos = Produto::with('categoria')
-                          ->where('disponivel', 1)
-                          ->get();
+        // 🔥 CORREÇÃO: Verificar se a coluna 'disponivel' existe
+        $query = Produto::with('categoria');
+        
+        if (Schema::hasColumn('produtos', 'disponivel')) {
+            $query->where('disponivel', 1);
+        }
+        
+        $produtos = $query->get();
         return response()->json($produtos);
     } catch (\Exception $e) {
         Log::error('Erro em /produtos: ' . $e->getMessage());
@@ -168,9 +222,14 @@ Route::get('/produtos', function() {
 // Produtos por categoria
 Route::get('/categorias/{id}/produtos', function($id) {
     try {
-        $produtos = Produto::where('categoria_id', $id)
-                          ->where('disponivel', 1)
-                          ->get();
+        // 🔥 CORREÇÃO: Verificar se a coluna 'disponivel' existe
+        $query = Produto::where('categoria_id', $id);
+        
+        if (Schema::hasColumn('produtos', 'disponivel')) {
+            $query->where('disponivel', 1);
+        }
+        
+        $produtos = $query->get();
         return response()->json($produtos);
     } catch (\Exception $e) {
         Log::error('Erro em /categorias/{id}/produtos: ' . $e->getMessage());
@@ -192,7 +251,7 @@ Route::get('/produtos/{id}', function($id) {
     }
 });
 
-// Rotas para Mesas
+// Rotas para Mesas (mantida para compatibilidade)
 Route::get('/mesas', function() {
     try {
         $mesas = Mesa::all();

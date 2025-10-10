@@ -11,23 +11,64 @@ class PedidoItem extends Model
 
     protected $table = 'pedido_itens';
 
-    // 🔥 CORREÇÃO: Use o nome correto da chave estrangeira
+    /**
+     * Os atributos que são mass assignable.
+     */
     protected $fillable = [
-        'pedidos_id',  // ← Provavelmente é este o nome
+        'pedido_id',  // ✅ CORRETO - bate com a coluna na tabela
         'produto_id', 
         'quantidade',
         'preco_unitario',
         'observacoes'
     ];
 
-    // 🔥 CORREÇÃO: Especifique a chave estrangeira
+    /**
+     * Os atributos que devem ser convertidos.
+     */
+    protected $casts = [
+        'preco_unitario' => 'decimal:2',
+        'quantidade' => 'integer',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime'
+    ];
+
+    /**
+     * Relacionamento com o pedido.
+     */
     public function pedido()
     {
-        return $this->belongsTo(Pedido::class, 'pedidos_id'); // ← Adicione o segundo parâmetro
+        return $this->belongsTo(Pedido::class, 'pedido_id'); // ✅ CORRETO
     }
 
+    /**
+     * Relacionamento com o produto.
+     */
     public function produto()
     {
-        return $this->belongsTo(Produto::class);
+        return $this->belongsTo(Produto::class, 'produto_id');
+    }
+
+    /**
+     * Calcula o subtotal do item.
+     */
+    public function getSubtotalAttribute()
+    {
+        return $this->quantidade * $this->preco_unitario;
+    }
+
+    /**
+     * Retorna o subtotal formatado em Reais.
+     */
+    public function getSubtotalFormatadoAttribute()
+    {
+        return 'R$ ' . number_format($this->subtotal, 2, ',', '.');
+    }
+
+    /**
+     * Retorna o preço unitário formatado em Reais.
+     */
+    public function getPrecoUnitarioFormatadoAttribute()
+    {
+        return 'R$ ' . number_format($this->preco_unitario, 2, ',', '.');
     }
 }
