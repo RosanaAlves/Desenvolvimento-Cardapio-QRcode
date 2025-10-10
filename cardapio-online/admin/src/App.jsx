@@ -478,22 +478,378 @@ function App() {
     );
   };
 
-  // Componente de Produtos
-  const Produtos = () => {
-    return (
-      <div>
-        <h2 style={{ marginBottom: '20px', color: '#333' }}>🍔 Produtos</h2>
-        
-        <div style={{ ...estilos.card, marginBottom: '20px' }}>
-          <h3 style={{ marginBottom: '15px' }}>Adicionar Novo Produto</h3>
-          <p style={{ color: '#666' }}>Funcionalidade em desenvolvimento...</p>
-        </div>
+ // Componente de Produtos
+const Produtos = () => {
+  const [mostrarForm, setMostrarForm] = useState(false);
+  const [produtoEditando, setProdutoEditando] = useState(null);
+  const [formData, setFormData] = useState({
+    nome: '',
+    descricao: '',
+    preco: '',
+    categoria_id: '',
+    disponivel: true,
+    imagem: ''
+  });
 
-        <div style={estilos.card}>
+  // Carregar categorias para o select
+  const carregarCategorias = async () => {
+    try {
+      const data = await fetchAPI('/admin/categorias');
+      setCategorias(data);
+    } catch (erro) {
+      console.error('Erro ao carregar categorias:', erro);
+    }
+  };
+
+  // Abrir formulário para novo produto
+  const abrirFormNovoProduto = () => {
+    setFormData({
+      nome: '',
+      descricao: '',
+      preco: '',
+      categoria_id: '',
+      disponivel: true,
+      imagem: ''
+    });
+    setProdutoEditando(null);
+    setMostrarForm(true);
+  };
+
+  // Abrir formulário para editar produto
+  const abrirFormEditarProduto = (produto) => {
+    setFormData({
+      nome: produto.nome,
+      descricao: produto.descricao || '',
+      preco: produto.preco,
+      categoria_id: produto.categoria_id,
+      disponivel: produto.disponivel,
+      imagem: produto.imagem || ''
+    });
+    setProdutoEditando(produto);
+    setMostrarForm(true);
+  };
+
+  // Fechar formulário
+  const fecharForm = () => {
+    setMostrarForm(false);
+    setProdutoEditando(null);
+  };
+
+  // Manipular mudanças no formulário
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  // Submeter formulário
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      setCarregando(true);
+
+      if (produtoEditando) {
+        // Editar produto existente
+        await fetchAPI(`/admin/produtos/${produtoEditando.id}`, {
+          method: 'PUT',
+          body: JSON.stringify(formData)
+        });
+        alert('✅ Produto atualizado com sucesso!');
+      } else {
+        // Criar novo produto
+        await fetchAPI('/admin/produtos', {
+          method: 'POST',
+          body: JSON.stringify(formData)
+        });
+        alert('✅ Produto criado com sucesso!');
+      }
+
+      fecharForm();
+      carregarProdutos(); // Recarregar lista
+    } catch (erro) {
+      console.error('Erro ao salvar produto:', erro);
+      alert('❌ Erro ao salvar produto');
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  // Excluir produto
+  const excluirProduto = async (produtoId, produtoNome) => {
+    if (window.confirm(`Tem certeza que deseja excluir o produto "${produtoNome}"?`)) {
+      try {
+        await fetchAPI(`/admin/produtos/${produtoId}`, {
+          method: 'DELETE'
+        });
+        alert('✅ Produto excluído com sucesso!');
+        carregarProdutos(); // Recarregar lista
+      } catch (erro) {
+        console.error('Erro ao excluir produto:', erro);
+        alert('❌ Erro ao excluir produto');
+      }
+    }
+  };
+
+  // Toggle disponibilidade
+  const toggleDisponibilidade = async (produto) => {
+    try {
+      await fetchAPI(`/admin/produtos/${produto.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          disponivel: !produto.disponivel
+        })
+      });
+      alert(`✅ Produto ${!produto.disponivel ? 'ativado' : 'desativado'} com sucesso!`);
+      carregarProdutos(); // Recarregar lista
+    } catch (erro) {
+      console.error('Erro ao atualizar produto:', erro);
+      alert('❌ Erro ao atualizar produto');
+    }
+  };
+
+  // Carregar categorias quando o componente montar
+  useEffect(() => {
+    carregarCategorias();
+  }, []);
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2 style={{ color: '#333', margin: 0 }}>🍔 Produtos</h2>
+        <button
+          onClick={abrirFormNovoProduto}
+          style={{
+            backgroundColor: '#28a745',
+            color: 'white',
+            border: 'none',
+            padding: '10px 20px',
+            borderRadius: '5px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: 'bold'
+          }}
+        >
+          ➕ Novo Produto
+        </button>
+      </div>
+
+      {/* Formulário Modal */}
+      {mostrarForm && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '30px',
+            borderRadius: '8px',
+            maxWidth: '500px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflow: 'auto'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3>{produtoEditando ? '✏️ Editar Produto' : '➕ Novo Produto'}</h3>
+              <button
+                onClick={fecharForm}
+                style={{ backgroundColor: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit}>
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                  Nome do Produto *
+                </label>
+                <input
+                  type="text"
+                  name="nome"
+                  value={formData.nome}
+                  onChange={handleInputChange}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                  Descrição
+                </label>
+                <textarea
+                  name="descricao"
+                  value={formData.descricao}
+                  onChange={handleInputChange}
+                  rows="3"
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    resize: 'vertical'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                  Preço (R$) *
+                </label>
+                <input
+                  type="number"
+                  name="preco"
+                  value={formData.preco}
+                  onChange={handleInputChange}
+                  step="0.01"
+                  min="0"
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                  Categoria *
+                </label>
+                <select
+                  name="categoria_id"
+                  value={formData.categoria_id}
+                  onChange={handleInputChange}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '14px'
+                  }}
+                >
+                  <option value="">Selecione uma categoria</option>
+                  {categorias.map(categoria => (
+                    <option key={categoria.id} value={categoria.id}>
+                      {categoria.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                  URL da Imagem
+                </label>
+                <input
+                  type="url"
+                  name="imagem"
+                  value={formData.imagem}
+                  onChange={handleInputChange}
+                  placeholder="https://exemplo.com/imagem.jpg"
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type="checkbox"
+                    name="disponivel"
+                    checked={formData.disponivel}
+                    onChange={handleInputChange}
+                  />
+                  <span style={{ fontWeight: 'bold' }}>Produto disponível</span>
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={fecharForm}
+                  style={{
+                    padding: '10px 20px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    backgroundColor: 'white',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={carregando}
+                  style={{
+                    padding: '10px 20px',
+                    border: 'none',
+                    borderRadius: '4px',
+                    backgroundColor: '#007bff',
+                    color: 'white',
+                    cursor: carregando ? 'not-allowed' : 'pointer',
+                    opacity: carregando ? 0.6 : 1
+                  }}
+                >
+                  {carregando ? 'Salvando...' : (produtoEditando ? 'Atualizar' : 'Criar')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Lista de Produtos */}
+      <div style={estilos.card}>
+        {produtos.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+            <p>Nenhum produto cadastrado.</p>
+            <button
+              onClick={abrirFormNovoProduto}
+              style={{
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                marginTop: '10px'
+              }}
+            >
+              ➕ Cadastrar Primeiro Produto
+            </button>
+          </div>
+        ) : (
           <table style={estilos.table}>
             <thead>
               <tr>
                 <th style={estilos.th}>Nome</th>
+                <th style={estilos.th}>Descrição</th>
                 <th style={estilos.th}>Categoria</th>
                 <th style={estilos.th}>Preço</th>
                 <th style={estilos.th}>Disponível</th>
@@ -503,33 +859,69 @@ function App() {
             <tbody>
               {produtos.map(produto => (
                 <tr key={produto.id}>
-                  <td style={estilos.td}>{produto.nome}</td>
-                  <td style={estilos.td}>{produto.categoria_nome}</td>
-                  <td style={estilos.td}>R$ {Number(produto.preco).toFixed(2)}</td>
                   <td style={estilos.td}>
-                    <span style={{
-                      ...estilos.badge,
-                      ...(produto.disponivel ? estilos.badgeSuccess : estilos.badgeDanger)
-                    }}>
-                      {produto.disponivel ? 'Sim' : 'Não'}
-                    </span>
+                    <div style={{ fontWeight: 'bold' }}>{produto.nome}</div>
+                    {produto.imagem && (
+                      <div style={{ marginTop: '5px' }}>
+                        <img 
+                          src={produto.imagem} 
+                          alt={produto.nome}
+                          style={{ 
+                            width: '50px', 
+                            height: '50px', 
+                            objectFit: 'cover',
+                            borderRadius: '4px'
+                          }}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                      </div>
+                    )}
+                  </td>
+                  <td style={estilos.td}>{produto.descricao || '-'}</td>
+                  <td style={estilos.td}>{produto.categoria_nome}</td>
+                  <td style={estilos.td}>
+                    <strong>R$ {Number(produto.preco).toFixed(2)}</strong>
                   </td>
                   <td style={estilos.td}>
-                    <button style={{ ...estilos.button, ...estilos.buttonPrimary, marginRight: '5px' }}>
-                      ✏️ Editar
+                    <button
+                      onClick={() => toggleDisponibilidade(produto)}
+                      style={{
+                        ...estilos.badge,
+                        ...(produto.disponivel ? estilos.badgeSuccess : estilos.badgeDanger),
+                        cursor: 'pointer',
+                        border: 'none'
+                      }}
+                    >
+                      {produto.disponivel ? '✅ Sim' : '❌ Não'}
                     </button>
-                    <button style={{ ...estilos.button, ...estilos.buttonDanger }}>
-                      🗑️ Excluir
-                    </button>
+                  </td>
+                  <td style={estilos.td}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                      <button 
+                        onClick={() => abrirFormEditarProduto(produto)}
+                        style={{ ...estilos.button, ...estilos.buttonPrimary }}
+                      >
+                        ✏️ Editar
+                      </button>
+                      <button 
+                        onClick={() => excluirProduto(produto.id, produto.nome)}
+                        style={{ ...estilos.button, ...estilos.buttonDanger }}
+                      >
+                        🗑️ Excluir
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        )}
       </div>
-    );
-  };
+    </div>
+  );
+};
 
   // Renderização Principal
   return (

@@ -65,28 +65,14 @@ services:
       - /app/node_modules
     environment:
       REACT_APP_API_URL: http://localhost:8000
-      CHOKIDAR_USEPOLLING: "true"  # ⬅️ IMPORTANTE para hot reload
-      WATCHPACK_POLLING: "true"     # ⬅️ IMPORTANTE para file watching
-    stdin_open: true                # ⬅️ Para React Scripts
-    tty: true                       # ⬅️ Para React Scripts
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+    stdin_open: true
+    tty: true
     networks:
       - cardapio-network
     depends_on:
-      - backend    # ⬅️ Depende apenas do backend
-
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    container_name: cardapio-phpmyadmin
-    restart: unless-stopped
-    ports:
-      - "8080:80"
-    environment:
-      PMA_HOST: mysql
-      MYSQL_ROOT_PASSWORD: rootpassword
-    networks:
-      - cardapio-network
-    depends_on:
-      - mysql
+      - backend
 
   admin:
     build:
@@ -109,6 +95,43 @@ services:
       - cardapio-network
     depends_on:
       - backend
+
+  # NOVO SERVIÇO - CARDÁPIO DO CLIENTE
+  cardapio-cliente:
+    build:
+      context: ./cardapio-cliente
+      dockerfile: Dockerfile
+    container_name: cardapio-cliente
+    restart: unless-stopped
+    ports:
+      - "3002:3000"
+    volumes:
+      - ./cardapio-cliente:/app
+      - /app/node_modules
+    environment:
+      REACT_APP_API_URL: http://localhost:8000
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+    stdin_open: true
+    tty: true
+    networks:
+      - cardapio-network
+    depends_on:
+      - backend
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: cardapio-phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: mysql
+      MYSQL_ROOT_PASSWORD: rootpassword
+    networks:
+      - cardapio-network
+    depends_on:
+      - mysql
 
 volumes:
   mysql_data:
