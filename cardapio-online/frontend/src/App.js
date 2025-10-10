@@ -56,19 +56,22 @@ function App() {
         setCarregando(true);
         setErro(null);
 
-        // 🔥 CORREÇÃO: URLs completas com /api
+        // 🔥 CORREÇÃO: Usar a nova rota /api/mesas/status para status real
         const [dadosMesas, dadosCategorias, dadosProdutos] = await Promise.all([
-          fetchWithErrorHandling('/api/mesas'),
+          fetchWithErrorHandling('/api/mesas/status'), // ← ALTERADO PARA /status
           fetchWithErrorHandling('/api/categorias'),
           fetchWithErrorHandling('/api/produtos')
         ]);
 
+        // 🔥 CORREÇÃO: A nova rota /mesas/status retorna { success: true, data: [...] }
+        const mesasFormatadas = dadosMesas.success ? dadosMesas.data : dadosMesas;
+        
         // Validação dos dados recebidos
-        if (!Array.isArray(dadosMesas)) throw new Error('Formato inválido de mesas');
+        if (!Array.isArray(mesasFormatadas)) throw new Error('Formato inválido de mesas');
         if (!Array.isArray(dadosCategorias)) throw new Error('Formato inválido de categorias');
         if (!Array.isArray(dadosProdutos)) throw new Error('Formato inválido de produtos');
 
-        setMesas(dadosMesas);
+        setMesas(mesasFormatadas);
         setCategorias(dadosCategorias);
         setProdutos(dadosProdutos);
         
@@ -264,7 +267,8 @@ function App() {
   useEffect(() => {
     console.log('🔧 Debug - API_BASE_URL:', API_BASE_URL);
     console.log('🔧 Debug - Etapa atual:', etapa);
-  }, [etapa]);
+    console.log('🔧 Debug - Mesas carregadas:', mesas);
+  }, [etapa, mesas]);
 
   // TELA DE COLETAR NOME
   if (etapa === 'coletar-nome') {
@@ -505,36 +509,118 @@ function App() {
             <p style={estilos.texto}>Carregando mesas...</p>
           </div>
         ) : (
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-            gap: '20px',
-            maxWidth: '600px',
-            margin: '0 auto'
-          }}>
-            {mesas.filter(mesa => mesa.status === 'livre').map(mesa => (
-              <button
-                key={mesa.id}
-                onClick={() => selecionarMesa(mesa)}
-                style={{
-                  backgroundColor: '#2e7d32',
-                  color: 'white',
-                  border: 'none',
-                  padding: '25px 15px',
-                  borderRadius: '15px',
-                  fontSize: '1.6em',
-                  ...estilos.botao,
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
-                  transition: 'all 0.3s ease',
-                  minHeight: '80px'
-                }}
-                onMouseOver={(e) => e.target.style.transform = 'scale(1.05)'}
-                onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
-              >
-                Mesa {mesa.numero}
-              </button>
-            ))}
+          <div>
+            {/* 🔥 PAINEL DE STATUS */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              gap: '20px', 
+              marginBottom: '30px',
+              flexWrap: 'wrap'
+            }}>
+              <div style={{ 
+                backgroundColor: '#2e7d32', 
+                color: 'white', 
+                padding: '10px 20px', 
+                borderRadius: '20px',
+                ...estilos.botao
+              }}>
+                ✅ Disponíveis: {mesas.filter(m => m.status === 'disponivel').length}
+              </div>
+              <div style={{ 
+                backgroundColor: '#b71c1c', 
+                color: 'white', 
+                padding: '10px 20px', 
+                borderRadius: '20px',
+                ...estilos.botao
+              }}>
+                🍽️ Ocupadas: {mesas.filter(m => m.status === 'ocupada').length}
+              </div>
+            </div>
+
+            {/* 🔥 TODAS AS MESAS - DISPONÍVEIS E OCUPADAS */}
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+              gap: '20px',
+              maxWidth: '600px',
+              margin: '0 auto'
+            }}>
+              {mesas.map(mesa => (
+                <div key={mesa.id} style={{ position: 'relative' }}>
+                  <button
+                    onClick={() => selecionarMesa(mesa)} // 🔥 TODAS SÃO CLICÁVEIS
+                    style={{
+                      backgroundColor: mesa.status === 'disponivel' ? '#2e7d32' : '#b71c1c', // 🔥 CORES DIFERENTES
+                      color: 'white',
+                      border: 'none',
+                      padding: '25px 15px',
+                      borderRadius: '15px',
+                      fontSize: '1.6em',
+                      ...estilos.botao,
+                      cursor: 'pointer', // 🔥 SEMPRE CLICÁVEL
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+                      transition: 'all 0.3s ease',
+                      minHeight: '80px',
+                      width: '100%'
+                    }}
+                    onMouseOver={(e) => e.target.style.transform = 'scale(1.05)'} // 🔥 SEMPRE COM HOVER
+                    onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
+                  >
+                    Mesa {mesa.numero}
+                    {mesa.status === 'ocupada' && ( // 🔥 INDICADOR VISUAL PARA OCUPADA
+                      <div style={{
+                        fontSize: '0.7em',
+                        marginTop: '5px',
+                        opacity: 0.9
+                      }}>
+                        🍽️ Ocupada
+                      </div>
+                    )}
+                  </button>
+                  
+                  {/* 🔥 INDICADOR DE CLIENTE SE ESTIVER OCUPADA */}
+                  {mesa.status === 'ocupada' && mesa.cliente_nome && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '-8px',
+                      right: '-8px',
+                      backgroundColor: '#ff9800',
+                      color: 'white',
+                      borderRadius: '50%',
+                      width: '30px',
+                      height: '30px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '0.7em',
+                      fontWeight: 'bold',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                    }}
+                    title={`Cliente: ${mesa.cliente_nome}`}
+                    >
+                      👤
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* 🔥 LEGENDA ATUALIZADA */}
+            <div style={{ 
+              textAlign: 'center', 
+              marginTop: '30px', 
+              color: '#666',
+              ...estilos.texto
+            }}>
+              <p>
+                <span style={{ color: '#2e7d32', fontWeight: 'bold' }}>Verde</span> = Disponível • 
+                <span style={{ color: '#b71c1c', fontWeight: 'bold' }}> Vermelho</span> = Ocupada (pode acessar)
+              </p>
+              <p style={{ fontSize: '0.9em', marginTop: '5px' }}>
+                💡 Mesas ocupadas podem ser selecionadas para adicionar mais pedidos
+              </p>
+            </div>
           </div>
         )}
 
@@ -579,7 +665,7 @@ function App() {
             fontSize: '2.3em',
             ...estilos.titulo
           }}>
-            ✅ Pedido Confirmado!
+            ✅ Pedido Enviado!
           </h1>
           <p style={{ 
             margin: '0', 
@@ -614,7 +700,7 @@ function App() {
             ...estilos.texto,
             fontSize: '1.1em'
           }}>
-            Seu pedido foi enviado para a cozinha.
+            ✅ Seu pedido foi enviado com sucesso!
           </p>
           <p style={{ 
             color: '#666', 
@@ -622,45 +708,9 @@ function App() {
             ...estilos.texto,
             fontSize: '1.1em'
           }}>
-            Aguarde que em breve será preparado!
+            Aguarde, em breve entregaremos na sua mesa.
           </p>
           
-          <div style={{ 
-            backgroundColor: '#f8f9fa', 
-            padding: '20px', 
-            borderRadius: '10px',
-            marginBottom: '25px'
-          }}>
-            <h3 style={{ 
-              color: '#333', 
-              marginBottom: '15px',
-              ...estilos.subtitulo
-            }}>
-              Resumo do Pedido
-            </h3>
-            {carrinho.map(item => (
-              <div key={item.produto_id} style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                marginBottom: '10px',
-                ...estilos.texto
-              }}>
-                <span>{item.quantidade}x {item.nome}</span>
-                <span style={{ fontWeight: '600' }}>R$ {(Number(item.preco) * item.quantidade).toFixed(2)}</span>
-              </div>
-            ))}
-            <hr style={{ margin: '15px 0' }} />
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              ...estilos.subtitulo,
-              fontSize: '1.2em'
-            }}>
-              <span>Total:</span>
-              <span>R$ {calcularTotal().toFixed(2)}</span>
-            </div>
-          </div>
-
           <div style={{ display: 'flex', gap: '15px' }}>
             <button
               onClick={() => setEtapa('cardapio')}
