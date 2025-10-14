@@ -1,0 +1,157 @@
+<?php
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Configuracao;
+use App\Models\Mesa;
+use App\Models\Pedido;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+
+class ConfiguracaoController extends Controller
+{
+    public function show()
+    {
+        try {
+            $config = Configuracao::getConfig();
+            return $this->success($config);
+        } catch (\Exception $e) {
+            return $this->error('Erro ao carregar configurações', 500);
+        }
+    }
+
+    public function atualizar(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'total_mesas' => 'required|integer|min:1|max:50'
+            ]);
+
+            $config = Configuracao::getConfig();
+            $config->update($validated);
+
+            // Atualizar mesas existentes
+            $this->atualizarMesas($validated['total_mesas']);
+
+            return $this->success($config, 'Configurações atualizadas com sucesso');
+        } catch (\Exception $e) {
+            return $this->error('Erro ao atualizar configurações', 500);
+        }
+    }
+
+    public function iniciarExpediente()
+    {
+        try {
+            DB::beginTransaction();
+
+            $config = Configuracao::getConfig();
+            
+            // Fechar pedidos do dia anterior
+            Pedido::whereDate('created_at', today())
+                  ->where('status', '!=', 'entregue')
+                  ->update(['status' => 'cancelado', 'motivo_cancelamento' => 'Expediente reiniciado']);
+
+            // Liberar todas as mesas
+            Mesa::query()->update([
+                'status' => 'livre',
+                'cliente_nome' => null,
+                'status_pagamento' => 'fechada'
+            ]);
+
+            // Iniciar novo expediente
+            $config->update([
+                'expediente_aberto' => true,
+                'data_expediente' => now(),
+                'faturamento_dia' => 0
+            ]);
+
+            DB::commit();
+
+            return $this->success($config, 'Expediente iniciado com sucesso!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->error('Erro ao iniciar expediente', 500);
+        }
+    }
+
+    public function finalizarExpediente()
+    {
+        try {
+            DB::beginTransaction();
+
+            $config = Configuracao::getConfig();
+            
+            // Calcular faturamento do dia
+            $faturamento = Pedido::whereDate('created_at', today())
+                                ->where('status', 'entregue')
+                                ->sum('total');
+
+            // Fechar expediente
+            $config->update([
+                'expediente_aberto' => false,
+                'faturamento_dia' => $faturamento
+            ]);
+
+            DB::commit();
+
+            return $this->success([
+                'config' => $config,
+                'faturamento_dia' => $faturamento
+            ], 'Expediente finalizado com sucesso!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->error('Erro ao finalizar expediente', 500);
+        }
+    }
+
+    public function reiniciarSistema()
+    {
+        try {
+            DB::beginTransaction();
+
+            // Cancelar todos os pedidos ativos
+            Pedido::whereIn('status', ['pendente', 'preparando', 'pronto'])
+                  ->update(['status' => 'cancelado', 'motivo_cancelamento' => 'Sistema reiniciado']);
+
+            // Liberar todas as mesas
+            Mesa::query()->update([
+                'status' => 'livre',
+                'cliente_nome' => null,
+                'status_pagamento' => 'fechada'
+            ]);
+
+            // Reiniciar faturamento
+            $config = Configuracao::getConfig();
+            $config->update(['faturamento_dia' => 0]);
+
+            DB::commit();
+
+            return $this->success(null, 'Sistema reiniciado com sucesso!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->error('Erro ao reiniciar sistema', 500);
+        }
+    }
+
+    private function atualizarMesas($totalMesas)
+    {
+        $mesasExistentes = Mesa::count();
+        
+        if ($totalMesas > $mesasExistentes) {
+            // Adicionar mesas
+            for ($i = $mesasExistentes + 1; $i <= $totalMesas; $i++) {
+                Mesa::create([
+                    'numero' => $i,
+                    'status' => 'livre',
+                    'status_pagamento' => 'fechada'
+                ]);
+            }
+        } elseif ($totalMesas < $mesasExistentes) {
+            // Remover mesas (apenas as livres)
+            Mesa::where('status', 'livre')
+                 ->where('numero', '>', $totalMesas)
+                 ->delete();
+        }
+    }
+}

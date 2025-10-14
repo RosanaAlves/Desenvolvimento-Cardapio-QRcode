@@ -8,19 +8,35 @@ return new class extends Migration
 {
     public function up()
     {
-        Schema::create('pedido_itens', function (Blueprint $table) {
+        Schema::create("pedidos", function (Blueprint $table) {
             $table->id();
-            $table->foreignId('pedido_id')->constrained()->onDelete('cascade');
-            $table->foreignId('produto_id')->constrained()->onDelete('cascade');
-            $table->integer('quantidade');
-            $table->decimal('preco_unitario', 8, 2);
-            $table->text('observacoes')->nullable();
+            $table->unsignedBigInteger("mesa_id"); // ← Use unsignedBigInteger em vez de foreignId
+            $table->string("cliente_nome");
+            $table->enum("status", ["pendente", "preparando", "pronto", "entregue", "cancelado"])->default("pendente");
+            $table->decimal("total", 8, 2)->default(0);
+            $table->text("observacoes")->nullable();
             $table->timestamps();
+            $table->string('garcom_nome')->nullable()->after('cliente_nome');
+            $table->string('cancelado_por')->nullable()->after('observacoes');
+            $table->text('motivo_cancelamento')->nullable()->after('cancelado_por');
+            $table->timestamp('cancelado_em')->nullable()->after('motivo_cancelamento');
+            
+            // Vamos adicionar a foreign key depois em uma migração separada
+            // $table->foreignId("mesa_id")->constrained()->onDelete("cascade");
+            $table->foreign('mesa_id')->references('id')->on('mesas')->onDelete('cascade');
         });
     }
 
     public function down()
-    {
-        Schema::dropIfExists('pedido_itens');
+    { 
+        Schema::table('pedidos', function (Blueprint $table) {
+            // Remove os novos campos
+            $table->dropColumn(['garcom_nome', 'cancelado_por', 'motivo_cancelamento', 'cancelado_em']);
+            
+            // Remove a foreign key
+            $table->dropForeign(['mesa_id']);
+        });
     }
+
+
 };

@@ -1,0 +1,151 @@
+// app/Http/Controllers/Api/DashboardController.php
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Categoria;
+use App\Models\Produto;
+use App\Models\Mesa;
+use App\Models\Pedido;
+use App\Models\PedidoItem;
+use Illuminate\Support\Facades\DB;
+
+class DashboardController extends Controller
+{
+    public function index()
+    {
+        try {
+            // 🔥 ESTATÍSTICAS BÁSICAS
+            $stats = [
+                // MESAS
+                'total_mesas' => Mesa::count(),
+                'mesas_ocupadas' => Mesa::where('status', 'ocupada')->count(),
+                'mesas_livres' => Mesa::where('status', 'livre')->count(),
+                
+                // PEDIDOS
+                'total_pedidos' => Pedido::count(),
+                'pedidos_pendentes' => Pedido::where('status', 'pendente')->count(),
+                'pedidos_preparando' => Pedido::where('status', 'preparando')->count(),
+                'pedidos_prontos' => Pedido::where('status', 'pronto')->count(),
+                'pedidos_entregues' => Pedido::where('status', 'entregue')->count(),
+                'pedidos_hoje' => Pedido::whereDate('created_at', today())->count(),
+                
+                // PRODUTOS
+                'total_produtos' => Produto::count(),
+                'produtos_disponiveis' => Produto::where('disponivel', true)->count(),
+                'produtos_indisponiveis' => Produto::where('disponivel', false)->count(),
+                
+                // CATEGORIAS
+                'total_categorias' => Categoria::count(),
+                
+                // FATURAMENTO
+                'faturamento_hoje' => Pedido::whereDate('created_at', today())
+                                        ->where('status', 'entregue')
+                                        ->sum('total'),
+                'faturamento_mes' => Pedido::whereMonth('created_at', now()->month)
+                                        ->where('status', 'entregue')
+                                        ->sum('total'),
+                'faturamento_total' => Pedido::where('status', 'entregue')->sum('total')
+            ];
+
+            // 🔥 PRODUTOS MAIS VENDIDOS (TOP 5)
+            $produtosMaisVendidos = PedidoItem::select(
+                'produto_id',
+                DB::raw('SUM(quantidade) as total_vendido'),
+                DB::raw('SUM(quantidade * preco_unitario) as total_faturado')
+            )
+            ->with('produto')
+            ->groupBy('produto_id')
+            ->orderByDesc('total_vendido')
+            ->limit(5)
+            ->get()
+            ->map(function($item) {
+                return [
+                    'produto_id' => $item->produto_id,
+                    'produto_nome' => $item->produto->nome ?? 'Produto não encontrado',
+                    'total_vendido' => $item->total_vendido,
+                    'total_faturado' => $item->total_faturado
+                ];
+            });
+
+            // 🔥 PEDIDOS RECENTES (ÚLTIMOS 5)
+            $pedidosRecentes = Pedido::with(['mesa', 'itens.produto'])
+                ->orderBy('created_at', 'desc')
+                ->limit(5)
+                ->get()
+                ->map(function($pedido) {
+                    return [
+                        'id' => $pedido->id,
+                        'mesa_numero' => $pedido->mesa->numero ?? 'N/A',
+                        'cliente_nome' => $pedido->cliente_nome,
+                        'status' => $pedido->status,
+                        'total' => $pedido->total,
+                        'created_at' => $pedido->created_at->format('d/m/Y H:i'),
+                        'itens_count' => $pedido->itens->count()
+                    ];
+                });
+
+            // 🔔 PEDIDOS QUE PRECISAM DE ATENÇÃO
+            $pedidosAtencao = Pedido::whereIn('status', ['pendente', 'preparando'])
+                ->with('mesa')
+                ->orderBy('created_at', 'asc')
+                ->get()
+                ->map(function($pedido) {
+                    return [
+                        'id' => $pedido->id,
+                        'mesa_numero' => $pedido->mesa->numero ?? 'N/A',
+                        'status' => $pedido->status,
+                        'tempo_espera' => $pedido->created_at->diffForHumans(),
+                        'cliente_nome' => $pedido->cliente_nome
+                    ];
+                });
+
+            return $this->success([
+                'estatisticas' => $stats,
+                'produtos_mais_vendidos' => $produtosMaisVendidos,
+                'pedidos_recentes' => $pedidosRecentes,
+                'pedidos_atencao' => $pedidosAtencao,
+                'atualizado_em' => now()->format('d/m/Y H:i:s')
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Erro no DashboardController: ' . $e->getMessage());
+            return $this->error('Erro ao carregar dashboard: ' . $e->getMessage(), 500);
+        }
+    }
+
+    // 🔥 MÉTODO PARA RELATÓRIO DE VENDAS POR PERÍODO
+    public function relatorioVendas($periodo = 'hoje')
+    {
+        try {
+            $query = Pedido::where('status', 'entregue');
+            
+            switch ($periodo) {
+                case 'hoje':
+                    $query->whereDate('created_at', today());
+                    break;
+                case 'semana':
+                    $query->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
+                    break;
+                case 'mes':
+                    $query->whereMonth('created_at', now()->month);
+                    break;
+            }
+            
+            $vendas = $query->select(
+                DB::raw('DATE(created_at) as data'),
+                DB::raw('COUNT(*) as total_pedidos'),
+                DB::raw('SUM(total) as faturamento')
+            )
+            ->groupBy('data')
+            ->orderBy('data')
+            ->get();
+
+            return $this->success($vendas);
+
+        } catch (\Exception $e) {
+            return $this->error('Erro ao gerar relatório: ' . $e->getMessage(), 500);
+        }
+    }
+}

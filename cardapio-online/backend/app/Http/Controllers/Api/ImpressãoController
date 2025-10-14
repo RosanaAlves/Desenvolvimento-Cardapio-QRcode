@@ -1,0 +1,84 @@
+<?php
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Pedido;
+use Mike42\Escpos\PrintConnectors\FilePrintConnector;
+use Mike42\Escpos\Printer;
+use Mike42\Escpos\EscposImage;
+
+class ImpressaoController extends Controller
+{
+    public function imprimirPedido($pedidoId)
+    {
+        try {
+            $pedido = Pedido::with(['itens.produto', 'mesa'])->find($pedidoId);
+            
+            if (!$pedido) {
+                return $this->error('Pedido não encontrado', 404);
+            }
+
+            // Configurar impressora (ajuste o caminho conforme sua impressora)
+            $connector = new FilePrintConnector("/dev/usb/lp0"); // Linux
+            // $connector = new FilePrintConnector("LPT1"); // Windows
+            // $connector = new NetworkPrintConnector("192.168.1.100", 9100); // Rede
+
+            $printer = new Printer($connector);
+            
+            // Configurações para impressora térmica 58mm
+            $printer->setJustification(Printer::JUSTIFY_CENTER);
+            
+            // Cabeçalho
+            $printer->setTextSize(2, 2);
+            $printer->text("JETRO'S LANCHE\n");
+            $printer->setTextSize(1, 1);
+            $printer->text("----------------\n");
+            
+            // Dados do pedido
+            $printer->setJustification(Printer::JUSTIFY_LEFT);
+            $printer->text("Pedido: #" . $pedido->id . "\n");
+            $printer->text("Mesa: " . $pedido->mesa->numero . "\n");
+            $printer->text("Garçom: " . $pedido->garcom_nome . "\n");
+            $printer->text("Data: " . $pedido->created_at->format('d/m/Y H:i') . "\n");
+            $printer->text("----------------\n");
+            
+            // Itens
+            $printer->text("ITENS:\n");
+            foreach ($pedido->itens as $item) {
+                $printer->text($item->quantidade . "x " . $item->produto->nome . "\n");
+                $printer->text("R$ " . number_format($item->preco_unitario, 2, ',', '.') . " = R$ " . 
+                             number_format($item->quantidade * $item->preco_unitario, 2, ',', '.') . "\n");
+                
+                if ($item->observacoes) {
+                    $printer->text("Obs: " . $item->observacoes . "\n");
+                }
+                $printer->text("---\n");
+            }
+            
+            // Total
+            $printer->text("----------------\n");
+            $printer->setTextSize(2, 1);
+            $printer->text("TOTAL: R$ " . number_format($pedido->total, 2, ',', '.') . "\n");
+            
+            // Rodapé
+            $printer->setTextSize(1, 1);
+            $printer->text("----------------\n");
+            $printer->setJustification(Printer::JUSTIFY_CENTER);
+            $printer->text("Obrigado pela preferência!\n");
+            $printer->text("📞 99611-2820\n");
+            
+            // Cortar papel
+            $printer->cut();
+            $printer->close();
+
+            return $this->success(null, 'Pedido enviado para impressão!');
+
+        } catch (\Exception $e) {
+            // Fallback: retorna dados para impressão em PDF
+            return $this->success([
+                'pedido' => $pedido,
+                'mensagem' => 'Dados para impressão'
+            ], 'Impressora offline - use impressão PDF');
+        }
+    }
+}

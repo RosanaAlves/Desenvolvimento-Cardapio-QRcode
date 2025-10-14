@@ -12,6 +12,8 @@ return new class extends Migration
             $table->id();
             $table->integer('numero')->unique();
             $table->enum('status', ['livre', 'ocupada'])->default('livre');
+            $table->string('cliente_nome')->nullable();
+            $table->enum('status_pagamento', ['aberta', 'fechada', 'paga'])->default('aberta');
             $table->timestamps();
         });
     }

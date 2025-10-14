@@ -1,0 +1,68 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Pedido;
+use Mike42\Escpos\PrintConnectors\NetworkPrintConnector;
+use Mike42\Escpos\PrintConnectors\FilePrintConnector;
+use Mike42\Escpos\Printer;
+
+class ImpressaoController extends Controller
+{
+    public function imprimirPedido($pedidoId)
+    {
+        $pedido = Pedido::with(['itens.produto', 'mesa'])->find($pedidoId);
+        
+        try {
+            // ✅ Configuração para impressora térmica 58mm
+            $connector = new NetworkPrintConnector("192.168.1.100", 9100);
+            // Ou para USB: new FilePrintConnector("/dev/usb/lp0");
+            
+            $printer = new Printer($connector);
+            
+            // Configurações da impressora
+            $printer->setJustification(Printer::JUSTIFY_CENTER);
+            $printer->setTextSize(2, 2);
+            $printer->text("LANCHONETE\n");
+            $printer->setTextSize(1, 1);
+            $printer->text("================\n");
+            
+            $printer->setJustification(Printer::JUSTIFY_LEFT);
+            $printer->text("Mesa: #" . $pedido->mesa->numero . "\n");
+            $printer->text("Garçom: " . $pedido->garcom_nome . "\n");
+            $printer->text("Pedido: #" . $pedido->id . "\n");
+            $printer->text("Data: " . $pedido->created_at->format('d/m/Y H:i') . "\n");
+            $printer->text("================\n");
+            
+            // Itens do pedido
+            foreach ($pedido->itens as $item) {
+                $printer->text($item->quantidade . "x " . $item->produto->nome . "\n");
+                $printer->text("R$ " . number_format($item->subtotal, 2, ',', '.') . "\n");
+                
+                if ($item->observacoes) {
+                    $printer->setEmphasis(true);
+                    $printer->text("Obs: " . $item->observacoes . "\n");
+                    $printer->setEmphasis(false);
+                }
+                $printer->text("---\n");
+            }
+            
+            $printer->text("================\n");
+            $printer->setEmphasis(true);
+            $printer->text("TOTAL: R$ " . number_format($pedido->total, 2, ',', '.') . "\n");
+            $printer->setEmphasis(false);
+            
+            $printer->feed(3);
+            $printer->cut();
+            $printer->close();
+            
+            return response()->json(['message' => 'Pedido enviado para impressão']);
+            
+        } catch (\Exception $e) {
+            // Em caso de erro na impressão, apenas log e continue
+            \Log::error('Erro na impressão: ' . $e->getMessage());
+            return response()->json(['message' => 'Pedido criado, mas erro na impressão']);
+        }
+    }
+}
