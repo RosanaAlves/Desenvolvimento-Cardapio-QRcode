@@ -4,91 +4,88 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Pedido;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class PedidoController extends Controller
 {
-    public function index()
+    // ✅ CANCELAR PEDIDO
+    public function cancelar($id)
     {
+        DB::beginTransaction();
         try {
-            $pedidos = Pedido::with(['itens.produto', 'mesa'])
-                            ->orderBy('created_at', 'desc')
-                            ->get()
-                            ->map(function($pedido) {
-                                return [
-                                    'id' => $pedido->id,
-                                    'mesa_id' => $pedido->mesa_id,
-                                    'mesa_numero' => $pedido->mesa->numero,
-                                    'cliente_nome' => $pedido->cliente_nome,
-                                    'garcom_nome' => $pedido->garcom_nome,
-                                    'status' => $pedido->status,
-                                    'status_formatado' => $pedido->status_formatado,
-                                    'total' => $pedido->total,
-                                    'total_formatado' => $pedido->total_formatado,
-                                    'created_at' => $pedido->created_at->format('d/m/Y H:i'),
-                                    'tempo_espera' => $pedido->tempo_espera,
-                                    'itens' => $pedido->itens->map(function($item) {
-                                        return [
-                                            'produto_nome' => $item->produto->nome,
-                                            'quantidade' => $item->quantidade,
-                                            'preco_unitario' => $item->preco_unitario,
-                                            'observacoes' => $item->observacoes
-                                        ];
-                                    })
-                                ];
-                            });
-
-            return $this->success($pedidos);
-
-        } catch (\Exception $e) {
-            \Log::error('Erro Admin/Pedidos: ' . $e->getMessage());
-            return $this->error('Erro ao carregar pedidos', 500);
-        }
-    }
-
-    public function cancelar(Request $request, $id)
-    {
-        try {
-            $validated = $request->validate([
-                'motivo' => 'required|string|max:500',
-                'cancelado_por' => 'required|string|max:255'
-            ]);
-
             $pedido = Pedido::find($id);
             
             if (!$pedido) {
-                return $this->error('Pedido não encontrado', 404);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pedido não encontrado'
+                ], 404);
             }
 
-            $pedido->marcarComoCancelado($validated['motivo'], $validated['cancelado_por']);
+            // Verificar se pode cancelar
+            if ($pedido->status === 'entregue' || $pedido->status === 'cancelado') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pedido não pode ser cancelado no status atual'
+                ], 422);
+            }
 
-            return $this->success($pedido, 'Pedido cancelado com sucesso');
+            $pedido->update(['status' => 'cancelado']);
+
+            // Log de cancelamento
+            // LogPedido::create([
+            //     'pedido_id' => $pedido->id,
+            //     'acao' => 'cancelamento',
+            //     'user_id' => auth()->id()
+            // ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pedido cancelado com sucesso!'
+            ]);
 
         } catch (\Exception $e) {
-            \Log::error('Erro ao cancelar pedido (admin): ' . $e->getMessage());
-            return $this->error('Erro ao cancelar pedido', 500);
+            DB::rollBack();
+            Log::error('Erro em PedidoController::cancelar: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao cancelar pedido'
+            ], 500);
         }
     }
 
-    public function atualizarStatus(Request $request, $id)
+    // ✅ LISTAR PEDIDOS COM FILTROS
+    public function index(Request $request)
     {
         try {
-            $validated = $request->validate([
-                'status' => 'required|in:pendente,preparando,pronto,entregue,cancelado'
-            ]);
-
-            $pedido = Pedido::find($id);
+            $query = Pedido::with(['itens.produto', 'mesa']);
             
-            if (!$pedido) {
-                return $this->error('Pedido não encontrado', 404);
+            // Filtro por data
+            if ($request->has('data')) {
+                $query->whereDate('created_at', $request->data);
+            }
+            
+            // Filtro por status
+            if ($request->has('status')) {
+                $query->where('status', $request->status);
             }
 
-            $pedido->update(['status' => $validated['status']]);
+            $pedidos = $query->orderBy('created_at', 'desc')->get();
 
-            return $this->success($pedido, 'Status atualizado com sucesso');
+            return response()->json([
+                'success' => true,
+                'data' => $pedidos
+            ]);
 
         } catch (\Exception $e) {
-            \Log::error('Erro ao atualizar status (admin): ' . $e->getMessage());
-            return $this->error('Erro ao atualizar status', 500);
+            Log::error('Erro em PedidoController::index: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao carregar pedidos'
+            ], 500);
         }
     }
 }

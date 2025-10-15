@@ -129,7 +129,7 @@ const fetchWithErrorHandling = async (url, options = {}) => {
 };
 
 // 🔥 COMPONENTE DE STATUS DA MESA
-const StatusMesaInfo = ({ mesaSelecionada, fecharConta, reabrirConta }) => {
+const StatusMesaInfo = ({ mesaSelecionada, verResumoConta, reabrirConta }) => {
   if (mesaSelecionada.status_pagamento === 'fechada') {
     return (
       <div style={{
@@ -148,7 +148,7 @@ const StatusMesaInfo = ({ mesaSelecionada, fecharConta, reabrirConta }) => {
           Aguardando pagamento no caixa
         </p>
         <button
-          onClick={fecharConta}
+          onClick={verResumoConta}
           style={{
             backgroundColor: '#ff9800',
             color: 'white',
@@ -216,6 +216,7 @@ function App() {
   const [resumoConta, setResumoConta] = useState(null);
   const [itemComObservacao, setItemComObservacao] = useState(null);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [carregandoResumo, setCarregandoResumo] = useState(false);
 
   // 🔥 DETECTAR TAMANHO DA TELA PARA RESPONSIVIDADE
   useEffect(() => {
@@ -455,6 +456,26 @@ function App() {
     } catch (erro) {
       console.error('Erro ao fechar conta:', erro);
       alert(erro.message || 'Erro ao fechar conta. Tente novamente.');
+    }
+  };
+
+  // ✅ NOVO: Ver resumo da conta (usando a rota statusConta)
+  const verResumoConta = async () => {
+    try {
+      setCarregandoResumo(true);
+      const resultado = await fetchWithErrorHandling(`/api/garcom/mesas/${mesaSelecionada.id}/status-conta`);
+      
+      if (resultado.success) {
+        setResumoConta(resultado.data);
+        setEtapa('conta-fechada');
+      } else {
+        throw new Error(resultado.message || 'Erro ao carregar resumo da conta');
+      }
+    } catch (erro) {
+      console.error('Erro ao carregar resumo:', erro);
+      alert('Erro ao carregar resumo da conta. Tente novamente.');
+    } finally {
+      setCarregandoResumo(false);
     }
   };
 
@@ -1131,7 +1152,7 @@ function App() {
     );
   }
 
-  // 🔥 TELA CONTA FECHADA
+  // 🔥 TELA CONTA FECHADA (ATUALIZADA)
   if (etapa === 'conta-fechada') {
     return (
       <div style={{ 
@@ -1154,7 +1175,7 @@ function App() {
             fontSize: designSystem.fontSizes['3xl'],
             ...estilosBase.titulo
           }}>
-            🧾 Conta Fechada!
+            🧾 Resumo da Conta
           </h1>
           <p style={{ 
             margin: '0', 
@@ -1168,7 +1189,7 @@ function App() {
             fontSize: designSystem.fontSizes.lg,
             opacity: 0.9
           }}>
-            💰 Direcione o cliente ao caixa
+            {mesaSelecionada.status_pagamento === 'fechada' ? '💰 Direcione o cliente ao caixa' : '📊 Visualização do resumo'}
           </p>
         </header>
 
@@ -1182,26 +1203,23 @@ function App() {
           boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
           border: `2px solid ${designSystem.cores.borda}`
         }}>
-          <div style={{ fontSize: '5em', marginBottom: designSystem.spacing.xl }}>💰</div>
-          <h2 style={{ 
-            color: designSystem.cores.aviso, 
-            marginBottom: designSystem.spacing.lg,
-            ...estilosBase.titulo,
-            fontSize: designSystem.fontSizes['2xl']
-          }}>
-            Resumo da Conta
-          </h2>
-          <p style={{ 
-            color: '#666', 
-            marginBottom: designSystem.spacing['2xl'],
-            ...estilosBase.texto,
-            fontSize: designSystem.fontSizes.lg
-          }}>
-            Mostre este valor no caixa para pagamento
-          </p>
-
-          {resumoConta && (
+          {carregandoResumo ? (
+            <div style={{ textAlign: 'center', padding: designSystem.spacing['3xl'] }}>
+              <div style={{ fontSize: '4em', marginBottom: designSystem.spacing.lg }}>⏳</div>
+              <p style={{ ...estilosBase.texto, fontSize: designSystem.fontSizes.lg }}>Carregando resumo...</p>
+            </div>
+          ) : resumoConta ? (
             <>
+              <div style={{ fontSize: '5em', marginBottom: designSystem.spacing.xl }}>💰</div>
+              <h2 style={{ 
+                color: designSystem.cores.aviso, 
+                marginBottom: designSystem.spacing.lg,
+                ...estilosBase.titulo,
+                fontSize: designSystem.fontSizes['2xl']
+              }}>
+                Resumo da Conta
+              </h2>
+              
               <div style={{ 
                 backgroundColor: '#fff3cd', 
                 padding: designSystem.spacing.xl, 
@@ -1223,7 +1241,7 @@ function App() {
                   fontWeight: 'bold',
                   color: designSystem.cores.sucesso
                 }}>
-                  R$ {Number(resumoConta.total_conta).toFixed(2)}
+                  R$ {Number(resumoConta.total_conta || resumoConta.total).toFixed(2)}
                 </div>
                 <p style={{
                   textAlign: 'center',
@@ -1278,45 +1296,76 @@ function App() {
                         <span>{new Date(pedido.created_at).toLocaleString('pt-BR')}</span>
                         <span style={{ fontWeight: 'bold' }}>R$ {Number(pedido.total).toFixed(2)}</span>
                       </div>
+                      
+                      {/* Itens do pedido */}
+                      {pedido.itens && pedido.itens.length > 0 && (
+                        <div style={{ marginTop: designSystem.spacing.sm, textAlign: 'left' }}>
+                          <div style={{ fontSize: designSystem.fontSizes.sm, fontWeight: 'bold', marginBottom: '5px' }}>
+                            Itens:
+                          </div>
+                          {pedido.itens.map((item, index) => (
+                            <div key={index} style={{ 
+                              fontSize: designSystem.fontSizes.xs, 
+                              color: '#666',
+                              marginBottom: '2px'
+                            }}>
+                              • {item.quantidade}x {item.produto?.nome || 'Produto'} 
+                              {item.observacoes && ` (${item.observacoes})`}
+                              - R$ {Number(item.preco_unitario * item.quantidade).toFixed(2)}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
               )}
             </>
+          ) : (
+            <div style={{ textAlign: 'center', padding: designSystem.spacing['3xl'] }}>
+              <div style={{ fontSize: '4em', marginBottom: designSystem.spacing.lg }}>😞</div>
+              <p style={{ ...estilosBase.texto, fontSize: designSystem.fontSizes.lg }}>
+                Não foi possível carregar o resumo da conta.
+              </p>
+            </div>
           )}
 
           <div style={{ display: 'flex', gap: designSystem.spacing.md, flexDirection: 'column' }}>
-            <button
-              onClick={pagarConta}
-              style={{
-                backgroundColor: designSystem.cores.sucesso,
-                color: designSystem.cores.textoClaro,
-                border: 'none',
-                padding: designSystem.spacing.lg,
-                borderRadius: '12px',
-                fontSize: designSystem.fontSizes.lg,
-                ...estilosBase.botao,
-                cursor: 'pointer'
-              }}
-            >
-              ✅ Confirmar Pagamento
-            </button>
+            {mesaSelecionada.status_pagamento === 'fechada' && (
+              <button
+                onClick={pagarConta}
+                style={{
+                  backgroundColor: designSystem.cores.sucesso,
+                  color: designSystem.cores.textoClaro,
+                  border: 'none',
+                  padding: designSystem.spacing.lg,
+                  borderRadius: '12px',
+                  fontSize: designSystem.fontSizes.lg,
+                  ...estilosBase.botao,
+                  cursor: 'pointer'
+                }}
+              >
+                ✅ Confirmar Pagamento
+              </button>
+            )}
 
-            <button
-              onClick={reabrirConta}
-              style={{
-                backgroundColor: designSystem.cores.aviso,
-                color: designSystem.cores.textoClaro,
-                border: 'none',
-                padding: designSystem.spacing.lg,
-                borderRadius: '12px',
-                fontSize: designSystem.fontSizes.lg,
-                ...estilosBase.botao,
-                cursor: 'pointer'
-              }}
-            >
-              ↩️ Reabrir Conta
-            </button>
+            {mesaSelecionada.status_pagamento === 'fechada' && (
+              <button
+                onClick={reabrirConta}
+                style={{
+                  backgroundColor: designSystem.cores.aviso,
+                  color: designSystem.cores.textoClaro,
+                  border: 'none',
+                  padding: designSystem.spacing.lg,
+                  borderRadius: '12px',
+                  fontSize: designSystem.fontSizes.lg,
+                  ...estilosBase.botao,
+                  cursor: 'pointer'
+                }}
+              >
+                ↩️ Reabrir Conta
+              </button>
+            )}
             
             <button
               onClick={voltarParaMesas}
@@ -1415,7 +1464,7 @@ function App() {
       {/* STATUS DA MESA */}
       <StatusMesaInfo 
         mesaSelecionada={mesaSelecionada}
-        fecharConta={fecharConta}
+        verResumoConta={verResumoConta}
         reabrirConta={reabrirConta}
       />
 
