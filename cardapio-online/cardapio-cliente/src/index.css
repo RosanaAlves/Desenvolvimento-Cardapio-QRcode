@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Estilos personalizados para melhor legibilidade */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+}
+
+/* Melhor contraste para texto */
+.texto-contraste {
+  color: #2d3748;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+/* Cartões com melhor sombra e contraste */
+.cartao-produto {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  border: 1px solid #e2e8f0;
+}
+
+.cartao-produto:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+}
+
+/* Botões com melhor contraste */
+.botao-primario {
+  background: linear-gradient(135deg, #b71c1c, #d32f2f);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.botao-primario:hover {
+  background: linear-gradient(135deg, #8b0000, #b71c1c);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(183, 28, 28, 0.3);
+}
+
+/* Mesas com estilo melhorado */
+.mesa-item {
+  background: linear-gradient(135deg, #2e7d32, #4caf50);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 20px 15px;
+  font-size: 1.4em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mesa-item:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* Header com gradiente */
+.header-principal {
+  background: linear-gradient(135deg, #b71c1c, #d32f2f);
+  color: white;
+  border-radius: 15px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Melhor contraste para categorias */
+.categoria-titulo {
+  color: #b71c1c;
+  border-bottom: 3px solid #b71c1c;
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+  font-size: 1.6em;
+  font-weight: 700;
+}
+
+/* Texto de descrição mais legível */
+.descricao-produto {
+  color: #4a5568;
+  line-height: 1.5;
+  font-size: 0.95em;
+}

@@ -13,5 +13,5 @@ COPY . .
 
 EXPOSE 3000
 
-# Comando para desenvolvimento do Create React App
+# Comando para desenvolvimento
 CMD ["npm", "start"]

@@ -128,6 +128,80 @@ const fetchWithErrorHandling = async (url, options = {}) => {
   }
 };
 
+// 🔥 COMPONENTE DE STATUS DA MESA
+const StatusMesaInfo = ({ mesaSelecionada, fecharConta, reabrirConta }) => {
+  if (mesaSelecionada.status_pagamento === 'fechada') {
+    return (
+      <div style={{
+        backgroundColor: '#fff3cd',
+        border: '2px solid #ff9800',
+        borderRadius: '10px',
+        padding: '15px',
+        marginBottom: '20px',
+        textAlign: 'center'
+      }}>
+        <div style={{ fontSize: '2em', marginBottom: '10px' }}>💰</div>
+        <h3 style={{ margin: '0 0 10px 0', color: '#856404' }}>
+          Conta Fechada
+        </h3>
+        <p style={{ margin: '0 0 15px 0', color: '#856404' }}>
+          Aguardando pagamento no caixa
+        </p>
+        <button
+          onClick={fecharConta}
+          style={{
+            backgroundColor: '#ff9800',
+            color: 'white',
+            border: 'none',
+            padding: '10px 20px',
+            borderRadius: '5px',
+            cursor: 'pointer',
+            marginRight: '10px'
+          }}
+        >
+          👀 Ver Resumo
+        </button>
+        <button
+          onClick={reabrirConta}
+          style={{
+            backgroundColor: '#b71c1c',
+            color: 'white',
+            border: 'none',
+            padding: '10px 20px',
+            borderRadius: '5px',
+            cursor: 'pointer'
+          }}
+        >
+          ↩️ Reabrir Conta
+        </button>
+      </div>
+    );
+  }
+
+  if (mesaSelecionada.status_pagamento === 'paga') {
+    return (
+      <div style={{
+        backgroundColor: '#d4edda',
+        border: '2px solid #28a745',
+        borderRadius: '10px',
+        padding: '15px',
+        marginBottom: '20px',
+        textAlign: 'center'
+      }}>
+        <div style={{ fontSize: '2em', marginBottom: '10px' }}>✅</div>
+        <h3 style={{ margin: '0 0 10px 0', color: '#155724' }}>
+          Conta Paga
+        </h3>
+        <p style={{ margin: '0', color: '#155724' }}>
+          Mesa liberada para novos clientes
+        </p>
+      </div>
+    );
+  }
+
+  return null;
+};
+
 function App() {
   // Estados do sistema
   const [etapa, setEtapa] = useState('coletar-garcom');
@@ -361,7 +435,7 @@ function App() {
     }
   };
 
-  // Fechar conta com validação
+  // Fechar conta (preparar para pagamento)
   const fecharConta = async () => {
     try {
       const resultado = await fetchWithErrorHandling(`/api/garcom/mesas/${mesaSelecionada.id}/fechar-conta`, {
@@ -384,20 +458,43 @@ function App() {
     }
   };
 
-  // Pagar conta
+  // Pagar conta (após pagamento no caixa)
   const pagarConta = async () => {
+    if (!window.confirm(`Confirmar pagamento da Mesa ${mesaSelecionada.numero}?\n\nApós confirmar, a mesa será liberada.`)) {
+      return;
+    }
+
     try {
       const resultado = await fetchWithErrorHandling(`/api/garcom/mesas/${mesaSelecionada.id}/pagar-conta`, {
         method: 'POST'
       });
 
       if (resultado.success) {
-        alert('Conta paga com sucesso!');
+        alert('✅ Conta paga com sucesso! Mesa liberada.');
         voltarParaMesas();
+      } else {
+        throw new Error(resultado.message || 'Erro ao processar pagamento');
       }
     } catch (erro) {
       console.error('Erro ao pagar conta:', erro);
-      alert('Erro ao processar pagamento.');
+      alert(erro.message || 'Erro ao processar pagamento. Verifique se a conta está fechada.');
+    }
+  };
+
+  // Reabrir conta
+  const reabrirConta = async () => {
+    try {
+      const resultado = await fetchWithErrorHandling(`/api/garcom/mesas/${mesaSelecionada.id}/reabrir-conta`, {
+        method: 'POST'
+      });
+
+      if (resultado.success) {
+        alert('Conta reaberta com sucesso!');
+        setEtapa('cardapio');
+      }
+    } catch (erro) {
+      console.error('Erro ao reabrir conta:', erro);
+      alert('Erro ao reabrir conta.');
     }
   };
 
@@ -1044,7 +1141,7 @@ function App() {
         ...estilosBase.fontePrimaria
       }}>
         <header style={{ 
-          backgroundColor: designSystem.cores.aviso, 
+          backgroundColor: designSystem.cores.aviso,
           color: designSystem.cores.textoClaro, 
           padding: designSystem.spacing['2xl'],
           textAlign: 'center',
@@ -1066,28 +1163,42 @@ function App() {
           }}>
             Mesa {mesaSelecionada.numero} - Garçom: {garcomNome}
           </p>
+          <p style={{ 
+            margin: '10px 0 0 0', 
+            fontSize: designSystem.fontSizes.lg,
+            opacity: 0.9
+          }}>
+            💰 Direcione o cliente ao caixa
+          </p>
         </header>
 
         <div style={{ 
           backgroundColor: designSystem.cores.card, 
-          padding: designSystem.spacing['2xl'], 
+          padding: designSystem.spacing['3xl'], 
           borderRadius: '20px',
-          maxWidth: '700px',
+          maxWidth: '600px',
           margin: '0 auto',
+          textAlign: 'center',
           boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
           border: `2px solid ${designSystem.cores.borda}`
         }}>
-          <div style={{ textAlign: 'center', marginBottom: designSystem.spacing.xl }}>
-            <div style={{ fontSize: '4em', marginBottom: designSystem.spacing.lg }}>💰</div>
-            <h2 style={{ 
-              color: designSystem.cores.aviso, 
-              marginBottom: designSystem.spacing.sm,
-              ...estilosBase.titulo,
-              fontSize: designSystem.fontSizes['2xl']
-            }}>
-              Resumo da Conta
-            </h2>
-          </div>
+          <div style={{ fontSize: '5em', marginBottom: designSystem.spacing.xl }}>💰</div>
+          <h2 style={{ 
+            color: designSystem.cores.aviso, 
+            marginBottom: designSystem.spacing.lg,
+            ...estilosBase.titulo,
+            fontSize: designSystem.fontSizes['2xl']
+          }}>
+            Resumo da Conta
+          </h2>
+          <p style={{ 
+            color: '#666', 
+            marginBottom: designSystem.spacing['2xl'],
+            ...estilosBase.texto,
+            fontSize: designSystem.fontSizes.lg
+          }}>
+            Mostre este valor no caixa para pagamento
+          </p>
 
           {resumoConta && (
             <>
@@ -1096,14 +1207,13 @@ function App() {
                 padding: designSystem.spacing.xl, 
                 borderRadius: '16px',
                 marginBottom: designSystem.spacing.xl,
-                border: `3px solid #ffeaa7`
+                border: `2px solid #ffeaa7`
               }}>
                 <h3 style={{ 
                   color: '#856404', 
                   marginBottom: designSystem.spacing.lg,
                   textAlign: 'center',
-                  ...estilosBase.subtitulo,
-                  fontSize: designSystem.fontSizes.xl
+                  ...estilosBase.subtitulo
                 }}>
                   Total a Pagar
                 </h3>
@@ -1115,58 +1225,67 @@ function App() {
                 }}>
                   R$ {Number(resumoConta.total_conta).toFixed(2)}
                 </div>
+                <p style={{
+                  textAlign: 'center',
+                  color: '#856404',
+                  margin: '10px 0 0 0',
+                  fontSize: designSystem.fontSizes.sm
+                }}>
+                  💰 Valor para pagamento no caixa
+                </p>
               </div>
 
-              <div style={{ marginBottom: designSystem.spacing.xl }}>
-                <h3 style={{ 
-                  color: designSystem.cores.texto, 
-                  marginBottom: designSystem.spacing.lg,
-                  ...estilosBase.subtitulo,
-                  fontSize: designSystem.fontSizes.xl
-                }}>
-                  Pedidos da Mesa
-                </h3>
-                {resumoConta.pedidos && resumoConta.pedidos.map(pedido => (
-                  <div key={pedido.id} style={{
-                    backgroundColor: designSystem.cores.fundo,
-                    padding: designSystem.spacing.lg,
-                    borderRadius: '12px',
-                    marginBottom: designSystem.spacing.md,
-                    border: `2px solid ${designSystem.cores.borda}`
+              {resumoConta.pedidos && resumoConta.pedidos.length > 0 && (
+                <div style={{ marginBottom: designSystem.spacing.xl }}>
+                  <h3 style={{ 
+                    color: designSystem.cores.texto, 
+                    marginBottom: designSystem.spacing.lg,
+                    ...estilosBase.subtitulo
                   }}>
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: designSystem.spacing.sm
+                    Pedidos da Mesa
+                  </h3>
+                  {resumoConta.pedidos.map(pedido => (
+                    <div key={pedido.id} style={{
+                      backgroundColor: designSystem.cores.fundo,
+                      padding: designSystem.spacing.lg,
+                      borderRadius: '12px',
+                      marginBottom: designSystem.spacing.md,
+                      border: `1px solid ${designSystem.cores.borda}`
                     }}>
-                      <span style={{ fontWeight: 'bold', fontSize: designSystem.fontSizes.lg }}>Pedido #{pedido.id}</span>
-                      <span style={{ 
-                        backgroundColor: '#007bff',
-                        color: designSystem.cores.textoClaro,
-                        padding: '6px 12px',
-                        borderRadius: '15px',
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: designSystem.spacing.sm
+                      }}>
+                        <span style={{ fontWeight: 'bold' }}>Pedido #{pedido.id}</span>
+                        <span style={{ 
+                          backgroundColor: designSystem.cores.primaria,
+                          color: designSystem.cores.textoClaro,
+                          padding: '4px 12px',
+                          borderRadius: '25px',
+                          fontSize: designSystem.fontSizes.sm
+                        }}>
+                          {pedido.status}
+                        </span>
+                      </div>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        color: '#666',
                         fontSize: designSystem.fontSizes.sm
                       }}>
-                        {pedido.status}
-                      </span>
+                        <span>{new Date(pedido.created_at).toLocaleString('pt-BR')}</span>
+                        <span style={{ fontWeight: 'bold' }}>R$ {Number(pedido.total).toFixed(2)}</span>
+                      </div>
                     </div>
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      color: '#666',
-                      fontSize: designSystem.fontSizes.base
-                    }}>
-                      <span>{new Date(pedido.created_at).toLocaleString('pt-BR')}</span>
-                      <span style={{ fontWeight: 'bold' }}>R$ {Number(pedido.total).toFixed(2)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </>
           )}
 
-          <div style={{ display: 'flex', gap: designSystem.spacing.md, flexDirection: windowWidth < 768 ? 'column' : 'row' }}>
+          <div style={{ display: 'flex', gap: designSystem.spacing.md, flexDirection: 'column' }}>
             <button
               onClick={pagarConta}
               style={{
@@ -1177,29 +1296,61 @@ function App() {
                 borderRadius: '12px',
                 fontSize: designSystem.fontSizes.lg,
                 ...estilosBase.botao,
-                cursor: 'pointer',
-                flex: 1
+                cursor: 'pointer'
               }}
             >
-              ✅ Pagar Conta
+              ✅ Confirmar Pagamento
             </button>
-            
+
             <button
-              onClick={voltarParaMesas}
+              onClick={reabrirConta}
               style={{
-                backgroundColor: designSystem.cores.primaria,
+                backgroundColor: designSystem.cores.aviso,
                 color: designSystem.cores.textoClaro,
                 border: 'none',
                 padding: designSystem.spacing.lg,
                 borderRadius: '12px',
                 fontSize: designSystem.fontSizes.lg,
                 ...estilosBase.botao,
-                cursor: 'pointer',
-                flex: 1
+                cursor: 'pointer'
+              }}
+            >
+              ↩️ Reabrir Conta
+            </button>
+            
+            <button
+              onClick={voltarParaMesas}
+              style={{
+                backgroundColor: '#6c757d',
+                color: designSystem.cores.textoClaro,
+                border: 'none',
+                padding: designSystem.spacing.lg,
+                borderRadius: '12px',
+                fontSize: designSystem.fontSizes.lg,
+                ...estilosBase.botao,
+                cursor: 'pointer'
               }}
             >
               Voltar para Mesas
             </button>
+          </div>
+
+          <div style={{
+            marginTop: designSystem.spacing.xl,
+            padding: designSystem.spacing.lg,
+            backgroundColor: '#e8f5e8',
+            borderRadius: '12px',
+            border: `1px solid #c8e6c9`
+          }}>
+            <p style={{ 
+              margin: '0', 
+              color: designSystem.cores.sucesso,
+              fontSize: designSystem.fontSizes.sm,
+              textAlign: 'center'
+            }}>
+              💡 <strong>Fluxo correto:</strong><br />
+              1. Fechar conta → 2. Cliente paga no caixa → 3. Confirmar pagamento
+            </p>
           </div>
         </div>
       </div>
@@ -1261,6 +1412,13 @@ function App() {
         </p>
       </header>
 
+      {/* STATUS DA MESA */}
+      <StatusMesaInfo 
+        mesaSelecionada={mesaSelecionada}
+        fecharConta={fecharConta}
+        reabrirConta={reabrirConta}
+      />
+
       {/* CARRINHO FLUTUANTE */}
       {carrinho.length > 0 && (
         <div style={{
@@ -1290,24 +1448,26 @@ function App() {
       )}
 
       {/* BOTÃO FECHAR CONTA NO CARDÁPIO */}
-      <div style={{ textAlign: 'center', marginBottom: designSystem.spacing.xl }}>
-        <button
-          onClick={fecharConta}
-          style={{
-            backgroundColor: designSystem.cores.aviso,
-            color: designSystem.cores.textoClaro,
-            border: 'none',
-            padding: designSystem.spacing.lg,
-            borderRadius: '12px',
-            fontSize: designSystem.fontSizes.lg,
-            ...estilosBase.botao,
-            cursor: 'pointer',
-            boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
-          }}
-        >
-          🧾 Fechar Conta
-        </button>
-      </div>
+      {mesaSelecionada.status_pagamento !== 'fechada' && mesaSelecionada.status_pagamento !== 'paga' && (
+        <div style={{ textAlign: 'center', marginBottom: designSystem.spacing.xl }}>
+          <button
+            onClick={fecharConta}
+            style={{
+              backgroundColor: designSystem.cores.aviso,
+              color: designSystem.cores.textoClaro,
+              border: 'none',
+              padding: designSystem.spacing.lg,
+              borderRadius: '12px',
+              fontSize: designSystem.fontSizes.lg,
+              ...estilosBase.botao,
+              cursor: 'pointer',
+              boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
+            }}
+          >
+            🧾 Fechar Conta
+          </button>
+        </div>
+      )}
 
       {/* LISTA DE CATEGORIAS E PRODUTOS */}
       {categorias.map(categoria => (
@@ -1395,13 +1555,18 @@ function App() {
                   
                   <button
                     onClick={() => adicionarAoCarrinho(produto)}
+                    disabled={mesaSelecionada.status_pagamento === 'fechada' || mesaSelecionada.status_pagamento === 'paga'}
                     style={{
-                      backgroundColor: designSystem.cores.primaria,
+                      backgroundColor: (mesaSelecionada.status_pagamento === 'fechada' || mesaSelecionada.status_pagamento === 'paga') 
+                        ? '#ccc' 
+                        : designSystem.cores.primaria,
                       color: designSystem.cores.textoClaro,
                       border: 'none',
                       padding: designSystem.spacing.lg,
                       borderRadius: '12px',
-                      cursor: 'pointer',
+                      cursor: (mesaSelecionada.status_pagamento === 'fechada' || mesaSelecionada.status_pagamento === 'paga') 
+                        ? 'not-allowed' 
+                        : 'pointer',
                       ...estilosBase.botao,
                       fontSize: designSystem.fontSizes.xl,
                       minWidth: '60px',

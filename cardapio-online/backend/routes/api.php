@@ -100,6 +100,7 @@ Route::prefix('garcom')->group(function () {
     Route::post('/mesas/{id}/liberar', [MesaController::class, 'liberar']);
     Route::post('/mesas/{id}/fechar-conta', [MesaController::class, 'fecharConta']);
     Route::post('/mesas/{id}/pagar-conta', [MesaController::class, 'pagarConta']);
+    Route::get('/mesas/{id}/status-conta', [GarcomMesaController::class, 'statusConta']);
     
     // 🔥 PEDIDOS - GARÇOM
     Route::post('/pedidos', [PedidoController::class, 'store']);

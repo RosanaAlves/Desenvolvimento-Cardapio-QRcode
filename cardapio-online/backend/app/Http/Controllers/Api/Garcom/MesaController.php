@@ -176,7 +176,9 @@ class MesaController extends Controller
         }
     }
 
-    // Fechar conta - CORRIGIDO
+    // ... outros métodos ...
+
+    // ✅ FECHAR CONTA - Com validação de status
     public function fecharConta($id)
     {
         DB::beginTransaction();
@@ -189,12 +191,28 @@ class MesaController extends Controller
                 ], 404);
             }
 
+            // ✅ VALIDAÇÃO: Verifica se a conta já está fechada
+            if ($mesa->status_pagamento === 'fechada') {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Conta já foi fechada! Aguarde o pagamento no caixa.'
+                ], 422);
+            }
+
+            // ✅ VALIDAÇÃO: Verifica se a conta já está paga
+            if ($mesa->status_pagamento === 'paga') {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Conta já foi paga! Mesa liberada.'
+                ], 422);
+            }
+
             $pedidos = Pedido::where('mesa_id', $id)
                             ->where('status', '!=', 'cancelado')
                             ->with('itens.produto')
                             ->get();
 
-            // VALIDAÇÃO: Verifica se há pedidos
+            // ✅ VALIDAÇÃO: Verifica se há pedidos
             if ($pedidos->isEmpty()) {
                 return response()->json([
                     'success' => false,
@@ -204,6 +222,7 @@ class MesaController extends Controller
 
             $totalConta = $pedidos->sum('total');
 
+            // ✅ Fecha a conta
             $mesa->update([
                 'status_pagamento' => 'fechada'
             ]);
@@ -214,7 +233,8 @@ class MesaController extends Controller
                 'success' => true,
                 'total_conta' => $totalConta,
                 'pedidos' => $pedidos,
-                'mesa' => $mesa
+                'mesa' => $mesa,
+                'message' => 'Conta fechada! Direcione o cliente ao caixa.'
             ]);
 
         } catch (\Exception $e) {
@@ -227,7 +247,7 @@ class MesaController extends Controller
         }
     }
 
-    // Pagar conta - CORRIGIDO
+    // ✅ PAGAR CONTA - Com validações
     public function pagarConta($id)
     {
         try {
@@ -240,6 +260,14 @@ class MesaController extends Controller
                 ], 404);
             }
 
+            // ✅ VERIFICA: Só pode pagar conta se estiver FECHADA
+            if ($mesa->status_pagamento !== 'fechada') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'A conta precisa estar fechada antes do pagamento'
+                ], 422);
+            }
+
             $mesa->update([
                 'status' => 'livre',
                 'status_pagamento' => 'paga',
@@ -248,7 +276,7 @@ class MesaController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Conta paga com sucesso'
+                'message' => 'Conta paga com sucesso! Mesa liberada.'
             ]);
 
         } catch (\Exception $e) {
@@ -256,6 +284,46 @@ class MesaController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Erro ao processar pagamento: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // ✅ OBTER STATUS DA CONTA (nova função)
+    public function statusConta($id)
+    {
+        try {
+            $mesa = Mesa::find($id);
+            
+            if (!$mesa) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Mesa não encontrada'
+                ], 404);
+            }
+
+            $pedidos = Pedido::where('mesa_id', $id)
+                            ->where('status', '!=', 'cancelado')
+                            ->with('itens.produto')
+                            ->get();
+
+            $totalConta = $pedidos->sum('total');
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'mesa' => $mesa,
+                    'total_conta' => $totalConta,
+                    'pedidos' => $pedidos,
+                    'status_pagamento' => $mesa->status_pagamento,
+                    'pode_fechar' => $mesa->status_pagamento === 'aberta' && $pedidos->count() > 0
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erro em MesaController::statusConta: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao verificar status da conta'
             ], 500);
         }
     }
