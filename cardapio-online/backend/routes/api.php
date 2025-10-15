@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\Garcom\DashboardController;
 use App\Http\Controllers\Api\Garcom\MesaController;
 use App\Http\Controllers\Api\Garcom\PedidoController;
 use App\Http\Controllers\Api\Garcom\ProdutoController;
+// 🔥 ADICIONE ESTE IMPORT
+use App\Http\Controllers\Api\Cliente\CardapioController as ClienteCardapioController;
 
 /*
 |--------------------------------------------------------------------------
@@ -27,7 +29,17 @@ Route::get('/test', function() {
 // ROTAS PÚBLICAS - CARDÁPIO DO CLIENTE
 // =========================================================================
 
-Route::get('/cliente/cardapio', function() {
+// 🔥 ADICIONE ESTE GRUPO DE ROTAS DO CLIENTE COM CONTROLLERS
+Route::prefix('cliente')->group(function () {
+    Route::get('/cardapio', [ClienteCardapioController::class, 'categorias']);
+    Route::get('/categorias', [ClienteCardapioController::class, 'categorias']);
+    Route::get('/produtos', [ClienteCardapioController::class, 'produtos']);
+    Route::get('/categorias/{categoriaId}/produtos', [ClienteCardapioController::class, 'produtosPorCategoria']);
+    Route::get('/produtos/{id}', [ClienteCardapioController::class, 'show']);
+});
+
+// 🔥 MANTENHA AS ROTAS DE CLOSURE COMO FALLBACK (opcional)
+Route::get('/cliente/cardapio/fallback', function() {
     try {
         $categorias = \App\Models\Categoria::where('disponivel', true)
             ->with(['produtos' => function($query) {
@@ -45,7 +57,7 @@ Route::get('/cliente/cardapio', function() {
     }
 });
 
-Route::get('/cliente/categorias', function() {
+Route::get('/cliente/categorias/fallback', function() {
     try {
         $categorias = \App\Models\Categoria::where('disponivel', true)->get();
         return response()->json($categorias);
@@ -55,7 +67,7 @@ Route::get('/cliente/categorias', function() {
     }
 });
 
-Route::get('/cliente/produtos', function() {
+Route::get('/cliente/produtos/fallback', function() {
     try {
         $produtos = \App\Models\Produto::with('categoria')
             ->where('disponivel', true)

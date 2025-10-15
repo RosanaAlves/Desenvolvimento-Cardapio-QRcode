@@ -1,6 +1,101 @@
 ﻿import React, { useState, useEffect } from 'react';
 
-// 🔥 CORREÇÃO: URL base da API para o sistema do GARÇOM
+// 🔥 SISTEMA DE DESIGN RESPONSIVO E ACESSÍVEL
+const designSystem = {
+  // Cores com alto contraste
+  cores: {
+    primaria: '#b71c1c',
+    secundaria: '#2e7d32', 
+    sucesso: '#2e7d32',
+    aviso: '#ff9800',
+    perigo: '#b71c1c',
+    texto: '#1a1a1a',
+    textoClaro: '#ffffff',
+    fundo: '#f8f9fa',
+    card: '#ffffff',
+    borda: '#e0e0e0'
+  },
+
+  // Tamanhos de fonte escaláveis (ACESSIBILIDADE)
+  fontSizes: {
+    xs: '0.875rem',    // 14px
+    sm: '1rem',        // 16px  
+    base: '1.125rem',  // 18px - BASE MAIOR
+    lg: '1.25rem',     // 20px
+    xl: '1.5rem',      // 24px
+    '2xl': '1.875rem', // 30px
+    '3xl': '2.25rem',  // 36px
+    '4xl': '3rem',     // 48px
+  },
+
+  // Espaçamentos generosos
+  spacing: {
+    xs: '8px',
+    sm: '12px',
+    md: '16px',
+    lg: '20px',
+    xl: '24px',
+    '2xl': '32px',
+    '3xl': '48px',
+    '4xl': '64px'
+  },
+
+  // Botões touch-friendly
+  botao: {
+    minHeight: '60px',
+    minWidth: '120px',
+    padding: '16px 24px'
+  },
+
+  // Breakpoints responsivos
+  breakpoints: {
+    mobile: 768,
+    tablet: 1024,
+    desktop: 1200
+  }
+};
+
+// 🔥 ESTILOS BASE RESPONSIVOS
+const estilosBase = {
+  fontePrimaria: {
+    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+    lineHeight: '1.6',
+    fontSize: designSystem.fontSizes.base,
+    fontWeight: '400'
+  },
+  titulo: {
+    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+    fontWeight: '700',
+    lineHeight: '1.3',
+    fontSize: designSystem.fontSizes['3xl']
+  },
+  subtitulo: {
+    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+    fontWeight: '600', 
+    lineHeight: '1.4',
+    fontSize: designSystem.fontSizes.xl
+  },
+  texto: {
+    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+    fontWeight: '400',
+    lineHeight: '1.5',
+    fontSize: designSystem.fontSizes.base
+  },
+  botao: {
+    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+    fontWeight: '600',
+    fontSize: designSystem.fontSizes.lg,
+    minHeight: designSystem.botao.minHeight,
+    minWidth: designSystem.botao.minWidth,
+    padding: designSystem.botao.padding,
+    border: 'none',
+    borderRadius: '12px',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease'
+  }
+};
+
+// Configuração da API
 const API_BASE_URL = 'http://localhost:8000';
 
 // Função para fetch com tratamento de erro
@@ -34,7 +129,7 @@ const fetchWithErrorHandling = async (url, options = {}) => {
 };
 
 function App() {
-  // Estados do sistema do GARÇOM
+  // Estados do sistema
   const [etapa, setEtapa] = useState('coletar-garcom');
   const [garcomNome, setGarcomNome] = useState('');
   const [mesas, setMesas] = useState([]);
@@ -46,6 +141,45 @@ function App() {
   const [enviandoPedido, setEnviandoPedido] = useState(false);
   const [resumoConta, setResumoConta] = useState(null);
   const [itemComObservacao, setItemComObservacao] = useState(null);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+  // 🔥 DETECTAR TAMANHO DA TELA PARA RESPONSIVIDADE
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // 🔥 ESTILOS RESPONSIVOS DINÂMICOS
+  const getResponsiveStyles = () => {
+    if (windowWidth < designSystem.breakpoints.mobile) {
+      return {
+        gridColunasMesas: 'repeat(2, 1fr)',
+        fontSizeBase: designSystem.fontSizes.base,
+        paddingContainer: designSystem.spacing.md,
+        tamanhoMesa: '100px',
+        fontSizeMesa: designSystem.fontSizes.xl
+      };
+    } else if (windowWidth < designSystem.breakpoints.tablet) {
+      return {
+        gridColunasMesas: 'repeat(3, 1fr)',
+        fontSizeBase: designSystem.fontSizes.lg,
+        paddingContainer: designSystem.spacing.lg,
+        tamanhoMesa: '120px',
+        fontSizeMesa: designSystem.fontSizes['2xl']
+      };
+    } else {
+      return {
+        gridColunasMesas: 'repeat(4, 1fr)',
+        fontSizeBase: designSystem.fontSizes.xl,
+        paddingContainer: designSystem.spacing.xl,
+        tamanhoMesa: '140px',
+        fontSizeMesa: designSystem.fontSizes['3xl']
+      };
+    }
+  };
+
+  const responsive = getResponsiveStyles();
 
   // Carregar dados iniciais
   useEffect(() => {
@@ -54,28 +188,16 @@ function App() {
         setCarregando(true);
         setErro(null);
 
-        // 🔥 CORREÇÃO: Usar rotas dos controllers do GARÇOM
         const [dadosMesas, dadosCategorias] = await Promise.all([
-          fetchWithErrorHandling('/api/garcom/mesas/status'), // MesaController::status
-          fetchWithErrorHandling('/api/garcom/cardapio/categorias') // CardapioController::categorias
+          fetchWithErrorHandling('/api/garcom/mesas/status'),
+          fetchWithErrorHandling('/api/garcom/cardapio/categorias')
         ]);
 
-        console.log('📦 Dados recebidos - Mesas:', dadosMesas);
-        console.log('📦 Dados recebidos - Categorias:', dadosCategorias);
-
-        // 🔥 CORREÇÃO: Formatação correta dos dados
         const mesasFormatadas = dadosMesas.success ? dadosMesas.data : [];
         const categoriasFormatadas = dadosCategorias.success ? dadosCategorias.data : [];
 
-        if (!Array.isArray(mesasFormatadas)) {
-          console.error('❌ Formato inválido de mesas:', dadosMesas);
-          throw new Error('Formato inválido de mesas');
-        }
-
-        if (!Array.isArray(categoriasFormatadas)) {
-          console.error('❌ Formato inválido de categorias:', dadosCategorias);
-          throw new Error('Formato inválido de categorias');
-        }
+        if (!Array.isArray(mesasFormatadas)) throw new Error('Formato inválido de mesas');
+        if (!Array.isArray(categoriasFormatadas)) throw new Error('Formato inválido de categorias');
 
         setMesas(mesasFormatadas);
         setCategorias(categoriasFormatadas);
@@ -100,18 +222,14 @@ function App() {
     setEtapa('selecao-mesa');
   };
 
-  // 🔥 CORREÇÃO: Selecionar mesa com nome do GARÇOM
+  // Selecionar mesa com nome do GARÇOM
   const selecionarMesa = async (mesa) => {
-    console.log('Selecionando mesa:', mesa);
-    
-    // Se mesa já está ocupada, apenas seleciona
     if (mesa.status === 'ocupada') {
       setMesaSelecionada(mesa);
       setEtapa('cardapio');
       return;
     }
 
-    // Se mesa está livre, ocupa com nome do garçom
     try {
       const resultado = await fetchWithErrorHandling(`/api/garcom/mesas/${mesa.id}/ocupar`, {
         method: 'POST',
@@ -120,18 +238,13 @@ function App() {
         })
       });
 
-      console.log('Resposta ocupar mesa:', resultado);
-
       if (resultado.success) {
-        // Atualizar lista de mesas
         const mesasAtualizadas = await fetchWithErrorHandling('/api/garcom/mesas/status');
         const mesaAtualizada = mesasAtualizadas.data.find(m => m.id === mesa.id);
         
         setMesaSelecionada(mesaAtualizada);
         setEtapa('cardapio');
         setMesas(mesasAtualizadas.data);
-      } else {
-        throw new Error(resultado.message || 'Erro ao ocupar mesa');
       }
     } catch (erro) {
       console.error('Erro ao ocupar mesa:', erro);
@@ -139,7 +252,7 @@ function App() {
     }
   };
 
-  // 🔥 NOVO: Adicionar item ao carrinho com observações
+  // Adicionar item ao carrinho com observações
   const adicionarAoCarrinho = (produto) => {
     setItemComObservacao({
       produto: produto,
@@ -147,7 +260,7 @@ function App() {
     });
   };
 
-  // 🔥 NOVO: Confirmar item com observações
+  // Confirmar item com observações
   const confirmarItemComObservacoes = () => {
     if (!itemComObservacao) return;
 
@@ -213,7 +326,7 @@ function App() {
     }, 0);
   };
 
-  // 🔥 CORREÇÃO: Finalizar pedido com GARÇOM_NOME
+  // Finalizar pedido com GARÇOM_NOME
   const finalizarPedido = async () => {
     try {
       setEnviandoPedido(true);
@@ -228,7 +341,6 @@ function App() {
         }))
       };
 
-      // 🔥 CORREÇÃO: Usar rota do PedidoController
       const resultado = await fetchWithErrorHandling('/api/garcom/pedidos', {
         method: 'POST',
         body: JSON.stringify(pedidoData)
@@ -249,7 +361,7 @@ function App() {
     }
   };
 
-  // 🔥 CORREÇÃO: Fechar conta com validação
+  // Fechar conta com validação
   const fecharConta = async () => {
     try {
       const resultado = await fetchWithErrorHandling(`/api/garcom/mesas/${mesaSelecionada.id}/fechar-conta`, {
@@ -272,7 +384,7 @@ function App() {
     }
   };
 
-  // 🔥 CORREÇÃO: Pagar conta
+  // Pagar conta
   const pagarConta = async () => {
     try {
       const resultado = await fetchWithErrorHandling(`/api/garcom/mesas/${mesaSelecionada.id}/pagar-conta`, {
@@ -304,98 +416,71 @@ function App() {
     setEtapa('coletar-garcom');
   };
 
-  // Estilos
-  const estilos = {
-    fontePrimaria: {
-      fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-      lineHeight: '1.6'
-    },
-    titulo: {
-      fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-      fontWeight: '700',
-      lineHeight: '1.3'
-    },
-    subtitulo: {
-      fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-      fontWeight: '600',
-      lineHeight: '1.4'
-    },
-    texto: {
-      fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-      fontWeight: '400',
-      lineHeight: '1.5'
-    },
-    botao: {
-      fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-      fontWeight: '600',
-      fontSize: '1em'
-    }
-  };
-
   // 🔥 TELA DE COLETAR NOME DO GARÇOM
   if (etapa === 'coletar-garcom') {
     return (
       <div style={{ 
-        padding: '20px', 
+        padding: responsive.paddingContainer,
         minHeight: '100vh', 
-        backgroundColor: '#f5f5f5',
-        ...estilos.fontePrimaria
+        backgroundColor: designSystem.cores.fundo,
+        ...estilosBase.fontePrimaria
       }}>
         <header style={{ 
-          backgroundColor: '#b71c1c',
-          color: 'white', 
-          padding: '25px', 
+          backgroundColor: designSystem.cores.primaria,
+          color: designSystem.cores.textoClaro, 
+          padding: designSystem.spacing['2xl'],
           textAlign: 'center',
-          borderRadius: '15px',
-          marginBottom: '30px',
-          boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
+          borderRadius: '20px',
+          marginBottom: designSystem.spacing['2xl'],
+          boxShadow: '0 8px 16px rgba(0,0,0,0.2)'
         }}>
           <h1 style={{ 
-            margin: '0 0 10px 0', 
-            fontSize: '2.8em',
-            ...estilos.titulo
+            margin: '0 0 16px 0', 
+            fontSize: designSystem.fontSizes['3xl'],
+            ...estilosBase.titulo
           }}>
             🍔 Jetro's Lanches
           </h1>
           <p style={{ 
-            margin: '0 0 10px 0', 
-            fontSize: '1.4em',
-            ...estilos.subtitulo
+            margin: '0 0 12px 0', 
+            fontSize: designSystem.fontSizes.xl,
+            ...estilosBase.subtitulo
           }}>
             Sistema do Garçom
           </p>
           <p style={{ 
             margin: '0', 
-            fontSize: '1.2em',
-            ...estilos.texto
+            fontSize: designSystem.fontSizes.lg,
+            ...estilosBase.texto
           }}>
             👨‍💼 Painel de Atendimento
           </p>
         </header>
 
         <div style={{ 
-          backgroundColor: 'white', 
-          padding: '40px', 
-          borderRadius: '15px',
-          maxWidth: '500px',
+          backgroundColor: designSystem.cores.card, 
+          padding: designSystem.spacing['3xl'], 
+          borderRadius: '20px',
+          maxWidth: '600px',
           margin: '0 auto',
           textAlign: 'center',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+          boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
+          border: `2px solid ${designSystem.cores.borda}`
         }}>
-          <div style={{ fontSize: '4em', marginBottom: '20px' }}>👨‍💼</div>
+          <div style={{ fontSize: '5em', marginBottom: designSystem.spacing.xl }}>👨‍💼</div>
           <h2 style={{ 
-            color: '#333', 
-            marginBottom: '15px',
-            ...estilos.titulo,
-            fontSize: '1.8em'
+            color: designSystem.cores.texto, 
+            marginBottom: designSystem.spacing.lg,
+            ...estilosBase.titulo,
+            fontSize: designSystem.fontSizes['2xl']
           }}>
             Identificação do Garçom
           </h2>
           <p style={{ 
             color: '#666', 
-            marginBottom: '30px',
-            ...estilos.texto,
-            fontSize: '1.2em'
+            marginBottom: designSystem.spacing['2xl'],
+            ...estilosBase.texto,
+            fontSize: designSystem.fontSizes.lg
           }}>
             Por favor, informe seu nome para começar
           </p>
@@ -404,16 +489,16 @@ function App() {
             type="text"
             value={garcomNome}
             onChange={(e) => setGarcomNome(e.target.value)}
-            placeholder="Digite seu nome"
+            placeholder="Digite seu nome completo"
             style={{
               width: '100%',
-              padding: '15px',
-              fontSize: '1.2em',
-              border: '2px solid #ddd',
-              borderRadius: '10px',
-              marginBottom: '20px',
+              padding: designSystem.spacing.lg,
+              fontSize: designSystem.fontSizes.lg,
+              border: `3px solid ${designSystem.cores.borda}`,
+              borderRadius: '12px',
+              marginBottom: designSystem.spacing.xl,
               textAlign: 'center',
-              ...estilos.texto
+              ...estilosBase.texto
             }}
             onKeyPress={(e) => e.key === 'Enter' && avancarParaMesas()}
           />
@@ -422,13 +507,13 @@ function App() {
             onClick={avancarParaMesas}
             disabled={!garcomNome.trim()}
             style={{
-              backgroundColor: garcomNome.trim() ? '#b71c1c' : '#ccc',
-              color: 'white',
+              backgroundColor: garcomNome.trim() ? designSystem.cores.primaria : '#ccc',
+              color: designSystem.cores.textoClaro,
               border: 'none',
-              padding: '16px 32px',
-              borderRadius: '10px',
-              fontSize: '1.2em',
-              ...estilos.botao,
+              padding: designSystem.spacing.lg,
+              borderRadius: '12px',
+              fontSize: designSystem.fontSizes.lg,
+              ...estilosBase.botao,
               cursor: garcomNome.trim() ? 'pointer' : 'not-allowed',
               width: '100%'
             }}
@@ -438,15 +523,15 @@ function App() {
         </div>
 
         <footer style={{ 
-          marginTop: '60px', 
+          marginTop: designSystem.spacing['4xl'], 
           textAlign: 'center', 
           color: '#666',
-          padding: '30px'
+          padding: designSystem.spacing['2xl']
         }}>
           <p style={{ 
             margin: '0', 
-            fontSize: '1.1em',
-            ...estilos.texto
+            fontSize: designSystem.fontSizes.lg,
+            ...estilosBase.texto
           }}>
             © 2025 Jetro's Lanches - Sistema Garçom
           </p>
@@ -459,67 +544,69 @@ function App() {
   if (etapa === 'selecao-mesa') {
     return (
       <div style={{ 
-        padding: '20px', 
+        padding: responsive.paddingContainer,
         minHeight: '100vh', 
-        backgroundColor: '#f5f5f5',
-        ...estilos.fontePrimaria
+        backgroundColor: designSystem.cores.fundo,
+        ...estilosBase.fontePrimaria
       }}>
         <header style={{ 
-          backgroundColor: '#b71c1c',
-          color: 'white', 
-          padding: '25px', 
+          backgroundColor: designSystem.cores.primaria,
+          color: designSystem.cores.textoClaro, 
+          padding: designSystem.spacing['2xl'],
           textAlign: 'center',
-          borderRadius: '15px',
-          marginBottom: '30px',
-          boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
+          borderRadius: '20px',
+          marginBottom: designSystem.spacing['2xl'],
+          boxShadow: '0 8px 16px rgba(0,0,0,0.2)'
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <button
               onClick={voltarParaGarcom}
               style={{
                 backgroundColor: 'transparent',
-                color: 'white',
-                border: '2px solid white',
-                padding: '8px 15px',
-                borderRadius: '20px',
+                color: designSystem.cores.textoClaro,
+                border: `2px solid ${designSystem.cores.textoClaro}`,
+                padding: designSystem.spacing.sm,
+                borderRadius: '25px',
                 cursor: 'pointer',
-                fontSize: '0.9em',
-                ...estilos.botao
+                fontSize: designSystem.fontSizes.sm,
+                ...estilosBase.botao,
+                minHeight: 'auto',
+                minWidth: 'auto'
               }}
             >
               ← Trocar Garçom
             </button>
             <h1 style={{ 
               margin: '0', 
-              fontSize: '2.2em',
-              ...estilos.titulo
+              fontSize: designSystem.fontSizes['2xl'],
+              ...estilosBase.titulo
             }}>
               🍔 Jetro's Lanches
             </h1>
             <div style={{ width: '100px' }}></div>
           </div>
           <p style={{ 
-            margin: '0 0 10px 0', 
-            fontSize: '1.3em',
-            ...estilos.subtitulo
+            margin: '0 0 12px 0', 
+            fontSize: designSystem.fontSizes.xl,
+            ...estilosBase.subtitulo
           }}>
             Garçom: {garcomNome}
           </p>
           <p style={{ 
             margin: '0', 
-            fontSize: '1.1em',
-            ...estilos.texto
+            fontSize: designSystem.fontSizes.lg,
+            ...estilosBase.texto
           }}>
             Selecione uma mesa para atender
           </p>
         </header>
 
-        <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+        <div style={{ textAlign: 'center', marginBottom: designSystem.spacing['2xl'] }}>
           <h2 style={{ 
-            color: '#333', 
-            marginBottom: '15px',
-            ...estilos.titulo,
-            fontSize: '1.8em'
+            color: designSystem.cores.texto, 
+            marginBottom: designSystem.spacing.lg,
+            ...estilosBase.titulo,
+            fontSize: designSystem.fontSizes['2xl']
           }}>
             Mesas Disponíveis
           </h2>
@@ -528,35 +615,41 @@ function App() {
         {erro ? (
           <div style={{ 
             textAlign: 'center', 
-            padding: '50px',
+            padding: designSystem.spacing['3xl'],
             backgroundColor: '#ffebee',
-            borderRadius: '10px',
-            margin: '20px'
+            borderRadius: '16px',
+            margin: designSystem.spacing.lg,
+            border: `2px solid #ffcdd2`
           }}>
-            <div style={{ fontSize: '3em', marginBottom: '20px' }}>😞</div>
-            <p style={{ color: '#b71c1c', marginBottom: '20px', fontSize: '1.3em' }}>
+            <div style={{ fontSize: '4em', marginBottom: designSystem.spacing.lg }}>😞</div>
+            <p style={{ 
+              color: designSystem.cores.perigo, 
+              marginBottom: designSystem.spacing.lg,
+              fontSize: designSystem.fontSizes.lg,
+              ...estilosBase.texto
+            }}>
               {erro}
             </p>
             <button
               onClick={() => window.location.reload()}
               style={{
-                backgroundColor: '#b71c1c',
-                color: 'white',
+                backgroundColor: designSystem.cores.primaria,
+                color: designSystem.cores.textoClaro,
                 border: 'none',
-                padding: '12px 24px',
-                borderRadius: '8px',
+                padding: designSystem.spacing.lg,
+                borderRadius: '12px',
                 cursor: 'pointer',
-                fontSize: '1.2em',
-                fontWeight: 'bold'
+                fontSize: designSystem.fontSizes.lg,
+                ...estilosBase.botao
               }}
             >
               Recarregar Página
             </button>
           </div>
         ) : carregando ? (
-          <div style={{ textAlign: 'center', padding: '50px' }}>
-            <div style={{ fontSize: '3em', marginBottom: '20px' }}>⏳</div>
-            <p style={{ fontSize: '1.3em' }}>Carregando mesas...</p>
+          <div style={{ textAlign: 'center', padding: designSystem.spacing['3xl'] }}>
+            <div style={{ fontSize: '4em', marginBottom: designSystem.spacing.lg }}>⏳</div>
+            <p style={{ ...estilosBase.texto, fontSize: designSystem.fontSizes.lg }}>Carregando mesas...</p>
           </div>
         ) : (
           <div>
@@ -564,50 +657,65 @@ function App() {
             <div style={{ 
               display: 'flex', 
               justifyContent: 'center', 
-              gap: '20px', 
-              marginBottom: '30px',
+              gap: designSystem.spacing.lg, 
+              marginBottom: designSystem.spacing['2xl'],
               flexWrap: 'wrap'
             }}>
               <div style={{ 
-                backgroundColor: '#2e7d32',
-                color: 'white', 
-                padding: '10px 20px', 
-                borderRadius: '20px',
-                ...estilos.botao
+                backgroundColor: designSystem.cores.sucesso,
+                color: designSystem.cores.textoClaro, 
+                padding: designSystem.spacing.md,
+                borderRadius: '25px',
+                fontSize: designSystem.fontSizes.lg,
+                ...estilosBase.botao,
+                minHeight: 'auto'
               }}>
-                ✅ Livres: {mesas.filter(m => m.status === 'livre' || m.status === 'disponivel').length}
+                ✅ Livres: {mesas.filter(m => m.status === 'livre').length}
               </div>
               <div style={{ 
-                backgroundColor: '#b71c1c',
-                color: 'white', 
-                padding: '10px 20px', 
-                borderRadius: '20px',
-                ...estilos.botao
+                backgroundColor: designSystem.cores.primaria,
+                color: designSystem.cores.textoClaro, 
+                padding: designSystem.spacing.md,
+                borderRadius: '25px',
+                fontSize: designSystem.fontSizes.lg,
+                ...estilosBase.botao,
+                minHeight: 'auto'
               }}>
                 🍽️ Ocupadas: {mesas.filter(m => m.status === 'ocupada').length}
+              </div>
+              <div style={{ 
+                backgroundColor: designSystem.cores.aviso,
+                color: designSystem.cores.textoClaro, 
+                padding: designSystem.spacing.md,
+                borderRadius: '25px',
+                fontSize: designSystem.fontSizes.lg,
+                ...estilosBase.botao,
+                minHeight: 'auto'
+              }}>
+                🧾 Fechadas: {mesas.filter(m => m.status === 'fechada').length}
               </div>
             </div>
 
             {/* MESAS */}
             <div style={{ 
               display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-              gap: '20px',
-              maxWidth: '800px',
+              gridTemplateColumns: responsive.gridColunasMesas,
+              gap: designSystem.spacing.lg,
+              maxWidth: '1200px',
               margin: '0 auto'
             }}>
               {mesas.map(mesa => {
                 const isOcupada = mesa.status === 'ocupada';
                 const isFechada = mesa.status_pagamento === 'fechada';
                 
-                let corMesa = '#2e7d32'; // Verde - Livre
+                let corMesa = designSystem.cores.sucesso; // Verde - Livre
                 let textoStatus = 'Livre';
                 
                 if (isOcupada && !isFechada) {
-                  corMesa = '#b71c1c'; // Vermelho - Ocupada
+                  corMesa = designSystem.cores.primaria; // Vermelho - Ocupada
                   textoStatus = 'Ocupada';
                 } else if (isFechada) {
-                  corMesa = '#ff9800'; // Laranja - Fechada
+                  corMesa = designSystem.cores.aviso; // Laranja - Fechada
                   textoStatus = 'Fechada';
                 }
 
@@ -617,22 +725,28 @@ function App() {
                       onClick={() => selecionarMesa(mesa)}
                       style={{
                         backgroundColor: corMesa,
-                        color: 'white',
+                        color: designSystem.cores.textoClaro,
                         border: 'none',
-                        padding: '25px 15px',
-                        borderRadius: '15px',
-                        fontSize: '1.6em',
-                        ...estilos.botao,
+                        padding: designSystem.spacing.lg,
+                        borderRadius: '20px',
+                        fontSize: responsive.fontSizeMesa,
+                        ...estilosBase.botao,
                         cursor: 'pointer',
-                        boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+                        boxShadow: '0 6px 12px rgba(0,0,0,0.2)',
                         transition: 'all 0.3s ease',
-                        minHeight: '100px',
-                        width: '100%'
+                        minHeight: responsive.tamanhoMesa,
+                        width: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center'
                       }}
                       onMouseOver={(e) => e.target.style.transform = 'scale(1.05)'}
                       onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
                     >
-                      Mesa {mesa.numero}
+                      <div style={{ fontSize: '1.2em', fontWeight: 'bold' }}>
+                        Mesa {mesa.numero}
+                      </div>
                       <div style={{
                         fontSize: '0.7em',
                         marginTop: '8px',
@@ -643,7 +757,7 @@ function App() {
                       {mesa.garcom_nome && (
                         <div style={{
                           fontSize: '0.6em',
-                          marginTop: '5px',
+                          marginTop: '4px',
                           opacity: 0.8
                         }}>
                           {mesa.garcom_nome}
@@ -658,29 +772,29 @@ function App() {
             {/* LEGENDA */}
             <div style={{ 
               textAlign: 'center', 
-              marginTop: '30px', 
+              marginTop: designSystem.spacing['2xl'], 
               color: '#666',
-              ...estilos.texto
+              ...estilosBase.texto
             }}>
-              <p>
-                <span style={{ color: '#2e7d32', fontWeight: 'bold' }}>Verde</span> = Livre • 
-                <span style={{ color: '#b71c1c', fontWeight: 'bold' }}> Vermelho</span> = Ocupada • 
-                <span style={{ color: '#ff9800', fontWeight: 'bold' }}> Laranja</span> = Fechada
+              <p style={{ fontSize: designSystem.fontSizes.lg }}>
+                <span style={{ color: designSystem.cores.sucesso, fontWeight: 'bold' }}>Verde</span> = Livre • 
+                <span style={{ color: designSystem.cores.primaria, fontWeight: 'bold' }}> Vermelho</span> = Ocupada • 
+                <span style={{ color: designSystem.cores.aviso, fontWeight: 'bold' }}> Laranja</span> = Fechada
               </p>
             </div>
           </div>
         )}
 
         <footer style={{ 
-          marginTop: '60px', 
+          marginTop: designSystem.spacing['4xl'], 
           textAlign: 'center', 
           color: '#666',
-          padding: '30px'
+          padding: designSystem.spacing['2xl']
         }}>
           <p style={{ 
             margin: '0', 
-            fontSize: '1.1em',
-            ...estilos.texto
+            fontSize: designSystem.fontSizes.lg,
+            ...estilosBase.texto
           }}>
             © 2025 Jetro's Lanches - Sistema Garçom
           </p>
@@ -698,43 +812,50 @@ function App() {
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: 'rgba(0,0,0,0.7)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 3000,
-        padding: '20px'
+        padding: responsive.paddingContainer
       }}>
         <div style={{
-          backgroundColor: 'white',
-          padding: '30px',
-          borderRadius: '15px',
+          backgroundColor: designSystem.cores.card,
+          padding: designSystem.spacing['2xl'],
+          borderRadius: '20px',
           maxWidth: '500px',
           width: '100%',
-          ...estilos.fontePrimaria
+          maxHeight: '90vh',
+          overflow: 'auto',
+          ...estilosBase.fontePrimaria,
+          border: `3px solid ${designSystem.cores.borda}`
         }}>
           <h3 style={{ 
             margin: '0 0 20px 0',
-            ...estilos.titulo,
-            textAlign: 'center'
+            ...estilosBase.titulo,
+            textAlign: 'center',
+            fontSize: designSystem.fontSizes.xl
           }}>
             {itemComObservacao.produto.nome}
           </h3>
           
           <p style={{ 
-            margin: '0 0 15px 0',
-            color: '#666',
-            ...estilos.texto
+            margin: '0 0 20px 0',
+            color: designSystem.cores.texto,
+            ...estilosBase.texto,
+            fontSize: designSystem.fontSizes.lg,
+            textAlign: 'center'
           }}>
             Preço: R$ {Number(itemComObservacao.produto.preco).toFixed(2)}
           </p>
 
-          <div style={{ marginBottom: '20px' }}>
+          <div style={{ marginBottom: designSystem.spacing.xl }}>
             <label style={{ 
               display: 'block', 
-              marginBottom: '8px',
+              marginBottom: designSystem.spacing.sm,
               fontWeight: '600',
-              ...estilos.subtitulo
+              ...estilosBase.subtitulo,
+              fontSize: designSystem.fontSizes.lg
             }}>
               Observações (opcional):
             </label>
@@ -747,36 +868,37 @@ function App() {
               placeholder="Ex: Cortar ao meio, sem cebola, sem maionese, etc."
               style={{
                 width: '100%',
-                padding: '12px',
-                border: '2px solid #ddd',
-                borderRadius: '8px',
-                minHeight: '100px',
+                padding: designSystem.spacing.lg,
+                border: `3px solid ${designSystem.cores.borda}`,
+                borderRadius: '12px',
+                minHeight: '120px',
                 resize: 'vertical',
-                ...estilos.texto
+                ...estilosBase.texto,
+                fontSize: designSystem.fontSizes.base
               }}
             />
             <div style={{ 
-              fontSize: '0.8em', 
+              fontSize: designSystem.fontSizes.sm, 
               color: '#666', 
-              marginTop: '5px',
-              ...estilos.texto
+              marginTop: designSystem.spacing.sm,
+              ...estilosBase.texto
             }}>
               💡 Dica: "Cortar ao meio", "Retirar [ingrediente]", "Adicionar [ingrediente]"
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: designSystem.spacing.md }}>
             <button
               onClick={() => setItemComObservacao(null)}
               style={{
                 backgroundColor: '#6c757d',
-                color: 'white',
+                color: designSystem.cores.textoClaro,
                 border: 'none',
-                padding: '12px 20px',
-                borderRadius: '8px',
+                padding: designSystem.spacing.lg,
+                borderRadius: '12px',
                 cursor: 'pointer',
                 flex: 1,
-                ...estilos.botao
+                ...estilosBase.botao
               }}
             >
               Cancelar
@@ -784,14 +906,14 @@ function App() {
             <button
               onClick={confirmarItemComObservacoes}
               style={{
-                backgroundColor: '#b71c1c',
-                color: 'white',
+                backgroundColor: designSystem.cores.primaria,
+                color: designSystem.cores.textoClaro,
                 border: 'none',
-                padding: '12px 20px',
-                borderRadius: '8px',
+                padding: designSystem.spacing.lg,
+                borderRadius: '12px',
                 cursor: 'pointer',
                 flex: 1,
-                ...estilos.botao
+                ...estilosBase.botao
               }}
             >
               Adicionar ao Pedido
@@ -806,83 +928,85 @@ function App() {
   if (etapa === 'confirmacao') {
     return (
       <div style={{ 
-        padding: '20px', 
+        padding: responsive.paddingContainer,
         minHeight: '100vh', 
-        backgroundColor: '#f5f5f5',
-        ...estilos.fontePrimaria
+        backgroundColor: designSystem.cores.fundo,
+        ...estilosBase.fontePrimaria
       }}>
         <header style={{ 
-          backgroundColor: '#2e7d32',
-          color: 'white', 
-          padding: '25px', 
+          backgroundColor: designSystem.cores.sucesso,
+          color: designSystem.cores.textoClaro, 
+          padding: designSystem.spacing['2xl'],
           textAlign: 'center',
-          borderRadius: '15px',
-          marginBottom: '30px',
-          boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
+          borderRadius: '20px',
+          marginBottom: designSystem.spacing['2xl'],
+          boxShadow: '0 8px 16px rgba(0,0,0,0.2)'
         }}>
           <h1 style={{ 
-            margin: '0 0 10px 0', 
-            fontSize: '2.3em',
-            ...estilos.titulo
+            margin: '0 0 16px 0', 
+            fontSize: designSystem.fontSizes['3xl'],
+            ...estilosBase.titulo
           }}>
             ✅ Pedido Enviado!
           </h1>
           <p style={{ 
             margin: '0', 
-            fontSize: '1.3em',
-            ...estilos.subtitulo
+            fontSize: designSystem.fontSizes.xl,
+            ...estilosBase.subtitulo
           }}>
             Mesa {mesaSelecionada.numero} - Garçom: {garcomNome}
           </p>
         </header>
 
         <div style={{ 
-          backgroundColor: 'white', 
-          padding: '30px', 
-          borderRadius: '15px',
-          maxWidth: '500px',
+          backgroundColor: designSystem.cores.card, 
+          padding: designSystem.spacing['3xl'], 
+          borderRadius: '20px',
+          maxWidth: '600px',
           margin: '0 auto',
           textAlign: 'center',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+          boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
+          border: `2px solid ${designSystem.cores.borda}`
         }}>
-          <div style={{ fontSize: '4em', marginBottom: '20px' }}>🎉</div>
+          <div style={{ fontSize: '5em', marginBottom: designSystem.spacing.xl }}>🎉</div>
           <h2 style={{ 
-            color: '#2e7d32', 
-            marginBottom: '15px',
-            ...estilos.titulo,
-            fontSize: '1.8em'
+            color: designSystem.cores.sucesso, 
+            marginBottom: designSystem.spacing.lg,
+            ...estilosBase.titulo,
+            fontSize: designSystem.fontSizes['2xl']
           }}>
             Pedido Recebido!
           </h2>
           <p style={{ 
             color: '#666', 
-            marginBottom: '10px',
-            ...estilos.texto,
-            fontSize: '1.1em'
+            marginBottom: designSystem.spacing.md,
+            ...estilosBase.texto,
+            fontSize: designSystem.fontSizes.lg
           }}>
             ✅ Pedido enviado para a cozinha com sucesso!
           </p>
           <p style={{ 
             color: '#666', 
-            marginBottom: '25px',
-            ...estilos.texto,
-            fontSize: '1.1em'
+            marginBottom: designSystem.spacing['2xl'],
+            ...estilosBase.texto,
+            fontSize: designSystem.fontSizes.lg
           }}>
             Aguarde a preparação.
           </p>
           
-          <div style={{ display: 'flex', gap: '15px', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', gap: designSystem.spacing.lg, flexDirection: windowWidth < 768 ? 'column' : 'row' }}>
             <button
               onClick={() => setEtapa('cardapio')}
               style={{
-                backgroundColor: '#b71c1c',
-                color: 'white',
+                backgroundColor: designSystem.cores.primaria,
+                color: designSystem.cores.textoClaro,
                 border: 'none',
-                padding: '15px 25px',
-                borderRadius: '10px',
-                fontSize: '1.1em',
-                ...estilos.botao,
-                cursor: 'pointer'
+                padding: designSystem.spacing.lg,
+                borderRadius: '12px',
+                fontSize: designSystem.fontSizes.lg,
+                ...estilosBase.botao,
+                cursor: 'pointer',
+                flex: 1
               }}
             >
               Continuar com Mesa {mesaSelecionada.numero}
@@ -892,13 +1016,14 @@ function App() {
               onClick={voltarParaMesas}
               style={{
                 backgroundColor: '#6c757d',
-                color: 'white',
+                color: designSystem.cores.textoClaro,
                 border: 'none',
-                padding: '15px 25px',
-                borderRadius: '10px',
-                fontSize: '1.1em',
-                ...estilos.botao,
-                cursor: 'pointer'
+                padding: designSystem.spacing.lg,
+                borderRadius: '12px',
+                fontSize: designSystem.fontSizes.lg,
+                ...estilosBase.botao,
+                cursor: 'pointer',
+                flex: 1
               }}
             >
               Voltar para Mesas
@@ -913,50 +1038,52 @@ function App() {
   if (etapa === 'conta-fechada') {
     return (
       <div style={{ 
-        padding: '20px', 
+        padding: responsive.paddingContainer,
         minHeight: '100vh', 
-        backgroundColor: '#f5f5f5',
-        ...estilos.fontePrimaria
+        backgroundColor: designSystem.cores.fundo,
+        ...estilosBase.fontePrimaria
       }}>
         <header style={{ 
-          backgroundColor: '#ff9800', 
-          color: 'white', 
-          padding: '25px', 
+          backgroundColor: designSystem.cores.aviso, 
+          color: designSystem.cores.textoClaro, 
+          padding: designSystem.spacing['2xl'],
           textAlign: 'center',
-          borderRadius: '15px',
-          marginBottom: '30px',
-          boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
+          borderRadius: '20px',
+          marginBottom: designSystem.spacing['2xl'],
+          boxShadow: '0 8px 16px rgba(0,0,0,0.2)'
         }}>
           <h1 style={{ 
-            margin: '0 0 10px 0', 
-            fontSize: '2.3em',
-            ...estilos.titulo
+            margin: '0 0 16px 0', 
+            fontSize: designSystem.fontSizes['3xl'],
+            ...estilosBase.titulo
           }}>
             🧾 Conta Fechada!
           </h1>
           <p style={{ 
             margin: '0', 
-            fontSize: '1.3em',
-            ...estilos.subtitulo
+            fontSize: designSystem.fontSizes.xl,
+            ...estilosBase.subtitulo
           }}>
             Mesa {mesaSelecionada.numero} - Garçom: {garcomNome}
           </p>
         </header>
 
         <div style={{ 
-          backgroundColor: 'white', 
-          padding: '30px', 
-          borderRadius: '15px',
-          maxWidth: '600px',
+          backgroundColor: designSystem.cores.card, 
+          padding: designSystem.spacing['2xl'], 
+          borderRadius: '20px',
+          maxWidth: '700px',
           margin: '0 auto',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+          boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
+          border: `2px solid ${designSystem.cores.borda}`
         }}>
-          <div style={{ textAlign: 'center', marginBottom: '25px' }}>
-            <div style={{ fontSize: '4em', marginBottom: '15px' }}>💰</div>
+          <div style={{ textAlign: 'center', marginBottom: designSystem.spacing.xl }}>
+            <div style={{ fontSize: '4em', marginBottom: designSystem.spacing.lg }}>💰</div>
             <h2 style={{ 
-              color: '#ff9800', 
-              marginBottom: '10px',
-              ...estilos.titulo
+              color: designSystem.cores.aviso, 
+              marginBottom: designSystem.spacing.sm,
+              ...estilosBase.titulo,
+              fontSize: designSystem.fontSizes['2xl']
             }}>
               Resumo da Conta
             </h2>
@@ -966,58 +1093,60 @@ function App() {
             <>
               <div style={{ 
                 backgroundColor: '#fff3cd', 
-                padding: '20px', 
-                borderRadius: '10px',
-                marginBottom: '25px',
-                border: '2px solid #ffeaa7'
+                padding: designSystem.spacing.xl, 
+                borderRadius: '16px',
+                marginBottom: designSystem.spacing.xl,
+                border: `3px solid #ffeaa7`
               }}>
                 <h3 style={{ 
                   color: '#856404', 
-                  marginBottom: '15px',
+                  marginBottom: designSystem.spacing.lg,
                   textAlign: 'center',
-                  ...estilos.subtitulo
+                  ...estilosBase.subtitulo,
+                  fontSize: designSystem.fontSizes.xl
                 }}>
                   Total a Pagar
                 </h3>
                 <div style={{
                   textAlign: 'center',
-                  fontSize: '2.5em',
+                  fontSize: designSystem.fontSizes['4xl'],
                   fontWeight: 'bold',
-                  color: '#2e7d32'
+                  color: designSystem.cores.sucesso
                 }}>
                   R$ {Number(resumoConta.total_conta).toFixed(2)}
                 </div>
               </div>
 
-              <div style={{ marginBottom: '25px' }}>
+              <div style={{ marginBottom: designSystem.spacing.xl }}>
                 <h3 style={{ 
-                  color: '#333', 
-                  marginBottom: '15px',
-                  ...estilos.subtitulo
+                  color: designSystem.cores.texto, 
+                  marginBottom: designSystem.spacing.lg,
+                  ...estilosBase.subtitulo,
+                  fontSize: designSystem.fontSizes.xl
                 }}>
                   Pedidos da Mesa
                 </h3>
                 {resumoConta.pedidos && resumoConta.pedidos.map(pedido => (
                   <div key={pedido.id} style={{
-                    backgroundColor: '#f8f9fa',
-                    padding: '15px',
-                    borderRadius: '8px',
-                    marginBottom: '10px',
-                    border: '1px solid #e9ecef'
+                    backgroundColor: designSystem.cores.fundo,
+                    padding: designSystem.spacing.lg,
+                    borderRadius: '12px',
+                    marginBottom: designSystem.spacing.md,
+                    border: `2px solid ${designSystem.cores.borda}`
                   }}>
                     <div style={{
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      marginBottom: '8px'
+                      marginBottom: designSystem.spacing.sm
                     }}>
-                      <span style={{ fontWeight: 'bold' }}>Pedido #{pedido.id}</span>
+                      <span style={{ fontWeight: 'bold', fontSize: designSystem.fontSizes.lg }}>Pedido #{pedido.id}</span>
                       <span style={{ 
                         backgroundColor: '#007bff',
-                        color: 'white',
-                        padding: '4px 8px',
-                        borderRadius: '12px',
-                        fontSize: '0.8em'
+                        color: designSystem.cores.textoClaro,
+                        padding: '6px 12px',
+                        borderRadius: '15px',
+                        fontSize: designSystem.fontSizes.sm
                       }}>
                         {pedido.status}
                       </span>
@@ -1026,7 +1155,7 @@ function App() {
                       display: 'flex',
                       justifyContent: 'space-between',
                       color: '#666',
-                      fontSize: '0.9em'
+                      fontSize: designSystem.fontSizes.base
                     }}>
                       <span>{new Date(pedido.created_at).toLocaleString('pt-BR')}</span>
                       <span style={{ fontWeight: 'bold' }}>R$ {Number(pedido.total).toFixed(2)}</span>
@@ -1037,18 +1166,19 @@ function App() {
             </>
           )}
 
-          <div style={{ display: 'flex', gap: '10px', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', gap: designSystem.spacing.md, flexDirection: windowWidth < 768 ? 'column' : 'row' }}>
             <button
               onClick={pagarConta}
               style={{
-                backgroundColor: '#2e7d32',
-                color: 'white',
+                backgroundColor: designSystem.cores.sucesso,
+                color: designSystem.cores.textoClaro,
                 border: 'none',
-                padding: '16px 32px',
-                borderRadius: '10px',
-                fontSize: '1.1em',
-                ...estilos.botao,
-                cursor: 'pointer'
+                padding: designSystem.spacing.lg,
+                borderRadius: '12px',
+                fontSize: designSystem.fontSizes.lg,
+                ...estilosBase.botao,
+                cursor: 'pointer',
+                flex: 1
               }}
             >
               ✅ Pagar Conta
@@ -1057,14 +1187,15 @@ function App() {
             <button
               onClick={voltarParaMesas}
               style={{
-                backgroundColor: '#b71c1c',
-                color: 'white',
+                backgroundColor: designSystem.cores.primaria,
+                color: designSystem.cores.textoClaro,
                 border: 'none',
-                padding: '16px 32px',
-                borderRadius: '10px',
-                fontSize: '1.1em',
-                ...estilos.botao,
-                cursor: 'pointer'
+                padding: designSystem.spacing.lg,
+                borderRadius: '12px',
+                fontSize: designSystem.fontSizes.lg,
+                ...estilosBase.botao,
+                cursor: 'pointer',
+                flex: 1
               }}
             >
               Voltar para Mesas
@@ -1078,42 +1209,44 @@ function App() {
   // 🔥 TELA DO CARDÁPIO (etapa === 'cardapio')
   return (
     <div style={{ 
-      padding: '20px', 
+      padding: responsive.paddingContainer,
       minHeight: '100vh', 
-      backgroundColor: '#f5f5f5', 
-      paddingBottom: '100px',
-      ...estilos.fontePrimaria
+      backgroundColor: designSystem.cores.fundo, 
+      paddingBottom: '120px',
+      ...estilosBase.fontePrimaria
     }}>
       {/* HEADER */}
       <header style={{ 
-        backgroundColor: '#b71c1c', 
-        color: 'white', 
-        padding: '25px', 
+        backgroundColor: designSystem.cores.primaria, 
+        color: designSystem.cores.textoClaro, 
+        padding: designSystem.spacing.xl,
         textAlign: 'center',
-        borderRadius: '15px',
-        marginBottom: '30px',
-        boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
+        borderRadius: '20px',
+        marginBottom: designSystem.spacing.xl,
+        boxShadow: '0 8px 16px rgba(0,0,0,0.2)'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
           <button
             onClick={voltarParaMesas}
             style={{
               backgroundColor: 'transparent',
-              color: 'white',
-              border: '2px solid white',
-              padding: '10px 20px',
-              borderRadius: '20px',
+              color: designSystem.cores.textoClaro,
+              border: `2px solid ${designSystem.cores.textoClaro}`,
+              padding: designSystem.spacing.sm,
+              borderRadius: '25px',
               cursor: 'pointer',
-              ...estilos.botao,
-              fontSize: '0.9em'
+              ...estilosBase.botao,
+              fontSize: designSystem.fontSizes.sm,
+              minHeight: 'auto',
+              minWidth: 'auto'
             }}
           >
             ← Trocar Mesa
           </button>
           <h1 style={{ 
             margin: '0', 
-            fontSize: '1.8em',
-            ...estilos.titulo
+            fontSize: designSystem.fontSizes.xl,
+            ...estilosBase.titulo
           }}>
             🍔 Jetro's Lanches
           </h1>
@@ -1121,8 +1254,8 @@ function App() {
         </div>
         <p style={{ 
           margin: '0', 
-          fontSize: '1.2em',
-          ...estilos.subtitulo
+          fontSize: designSystem.fontSizes.lg,
+          ...estilosBase.subtitulo
         }}>
           Mesa {mesaSelecionada.numero} - Garçom: {garcomNome}
         </p>
@@ -1134,40 +1267,42 @@ function App() {
           position: 'fixed',
           bottom: '20px',
           right: '20px',
-          backgroundColor: '#2e7d32',
-          color: 'white',
-          padding: '16px 24px',
+          backgroundColor: designSystem.cores.sucesso,
+          color: designSystem.cores.textoClaro,
+          padding: designSystem.spacing.lg,
           borderRadius: '50px',
-          boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+          boxShadow: '0 8px 20px rgba(0,0,0,0.3)',
           cursor: 'pointer',
           zIndex: 1000,
           display: 'flex',
           alignItems: 'center',
-          gap: '12px',
-          ...estilos.botao
+          gap: designSystem.spacing.md,
+          ...estilosBase.botao,
+          minWidth: '200px',
+          fontSize: designSystem.fontSizes.lg
         }}
         onClick={() => setEtapa('carrinho')}
         >
-          <span style={{ fontSize: '1.3em' }}>🛒</span>
+          <span style={{ fontSize: '1.5em' }}>🛒</span>
           <span>{carrinho.reduce((total, item) => total + item.quantidade, 0)} itens</span>
           <span>R$ {calcularTotal().toFixed(2)}</span>
         </div>
       )}
 
       {/* BOTÃO FECHAR CONTA NO CARDÁPIO */}
-      <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+      <div style={{ textAlign: 'center', marginBottom: designSystem.spacing.xl }}>
         <button
           onClick={fecharConta}
           style={{
-            backgroundColor: '#ff9800',
-            color: 'white',
+            backgroundColor: designSystem.cores.aviso,
+            color: designSystem.cores.textoClaro,
             border: 'none',
-            padding: '15px 30px',
-            borderRadius: '10px',
-            fontSize: '1.1em',
-            ...estilos.botao,
+            padding: designSystem.spacing.lg,
+            borderRadius: '12px',
+            fontSize: designSystem.fontSizes.lg,
+            ...estilosBase.botao,
             cursor: 'pointer',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+            boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
           }}
         >
           🧾 Fechar Conta
@@ -1177,19 +1312,20 @@ function App() {
       {/* LISTA DE CATEGORIAS E PRODUTOS */}
       {categorias.map(categoria => (
         <div key={categoria.id} style={{ 
-          marginBottom: '40px',
-          backgroundColor: 'white',
-          borderRadius: '15px',
-          padding: '25px',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+          marginBottom: designSystem.spacing.xl,
+          backgroundColor: designSystem.cores.card,
+          borderRadius: '20px',
+          padding: designSystem.spacing.xl,
+          boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+          border: `2px solid ${designSystem.cores.borda}`
         }}>
           <h3 style={{ 
-            color: '#b71c1c', 
-            borderBottom: '3px solid #b71c1c',
-            paddingBottom: '15px',
-            marginBottom: '20px',
-            fontSize: '1.6em',
-            ...estilos.titulo
+            color: designSystem.cores.primaria, 
+            borderBottom: `3px solid ${designSystem.cores.primaria}`,
+            paddingBottom: designSystem.spacing.lg,
+            marginBottom: designSystem.spacing.lg,
+            fontSize: designSystem.fontSizes.xl,
+            ...estilosBase.titulo
           }}>
             {categoria.nome}
           </h3>
@@ -1198,33 +1334,34 @@ function App() {
             <p style={{ 
               color: '#666', 
               fontStyle: 'italic', 
-              fontSize: '1.1em',
-              marginBottom: '25px',
-              ...estilos.texto
+              fontSize: designSystem.fontSizes.lg,
+              marginBottom: designSystem.spacing.lg,
+              ...estilosBase.texto
             }}>
               {categoria.descricao}
             </p>
           )}
 
           {/* PRODUTOS DESTA CATEGORIA */}
-          <div style={{ display: 'grid', gap: '20px' }}>
+          <div style={{ display: 'grid', gap: designSystem.spacing.lg }}>
             {categoria.produtos && categoria.produtos.map(produto => (
               <div key={produto.id} style={{
-                backgroundColor: '#f9f9f9',
-                padding: '20px',
-                borderRadius: '10px',
-                border: '2px solid #eee',
+                backgroundColor: designSystem.cores.fundo,
+                padding: designSystem.spacing.lg,
+                borderRadius: '16px',
+                border: `2px solid ${designSystem.cores.borda}`,
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                gap: '15px'
+                gap: designSystem.spacing.lg,
+                minHeight: '120px'
               }}>
                 <div style={{ flex: 1 }}>
                   <h4 style={{ 
                     margin: '0 0 8px 0', 
-                    color: '#333',
-                    fontSize: '1.2em',
-                    ...estilos.subtitulo
+                    color: designSystem.cores.texto,
+                    fontSize: designSystem.fontSizes.lg,
+                    ...estilosBase.subtitulo
                   }}>
                     {produto.nome}
                   </h4>
@@ -1232,25 +1369,26 @@ function App() {
                     <p style={{ 
                       margin: '0', 
                       color: '#666', 
-                      fontSize: '1em',
+                      fontSize: designSystem.fontSizes.base,
                       lineHeight: '1.4',
-                      ...estilos.texto
+                      ...estilosBase.texto
                     }}>
                       {produto.descricao}
                     </p>
                   )}
                 </div>
                 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: designSystem.spacing.lg }}>
                   <span style={{ 
-                    backgroundColor: '#2e7d32', 
-                    color: 'white', 
-                    padding: '8px 16px', 
+                    backgroundColor: designSystem.cores.sucesso, 
+                    color: designSystem.cores.textoClaro, 
+                    padding: designSystem.spacing.md,
                     borderRadius: '25px',
-                    ...estilos.botao,
-                    fontSize: '1em',
-                    minWidth: '90px',
-                    textAlign: 'center'
+                    ...estilosBase.botao,
+                    fontSize: designSystem.fontSizes.base,
+                    minWidth: '100px',
+                    textAlign: 'center',
+                    minHeight: 'auto'
                   }}>
                     R$ {Number(produto.preco).toFixed(2)}
                   </span>
@@ -1258,15 +1396,19 @@ function App() {
                   <button
                     onClick={() => adicionarAoCarrinho(produto)}
                     style={{
-                      backgroundColor: '#b71c1c',
-                      color: 'white',
+                      backgroundColor: designSystem.cores.primaria,
+                      color: designSystem.cores.textoClaro,
                       border: 'none',
-                      padding: '12px 16px',
-                      borderRadius: '8px',
+                      padding: designSystem.spacing.lg,
+                      borderRadius: '12px',
                       cursor: 'pointer',
-                      ...estilos.botao,
-                      fontSize: '1.1em',
-                      minWidth: '50px'
+                      ...estilosBase.botao,
+                      fontSize: designSystem.fontSizes.xl,
+                      minWidth: '60px',
+                      minHeight: '60px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
                     }}
                   >
                     +
@@ -1286,28 +1428,30 @@ function App() {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
+          backgroundColor: 'rgba(0,0,0,0.7)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 2000,
-          padding: '20px'
+          padding: responsive.paddingContainer
         }}>
           <div style={{
-            backgroundColor: 'white',
-            padding: '30px',
-            borderRadius: '15px',
-            maxWidth: '500px',
+            backgroundColor: designSystem.cores.card,
+            padding: designSystem.spacing['2xl'],
+            borderRadius: '20px',
+            maxWidth: '600px',
             width: '100%',
             maxHeight: '80vh',
             overflow: 'auto',
-            ...estilos.fontePrimaria
+            ...estilosBase.fontePrimaria,
+            border: `3px solid ${designSystem.cores.borda}`
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: designSystem.spacing.xl }}>
               <h2 style={{ 
                 margin: 0, 
-                color: '#333',
-                ...estilos.titulo
+                color: designSystem.cores.texto,
+                ...estilosBase.titulo,
+                fontSize: designSystem.fontSizes.xl
               }}>
                 Seu Pedido - Mesa {mesaSelecionada.numero}
               </h2>
@@ -1316,7 +1460,7 @@ function App() {
                 style={{
                   backgroundColor: 'transparent',
                   border: 'none',
-                  fontSize: '1.5em',
+                  fontSize: designSystem.fontSizes['2xl'],
                   cursor: 'pointer',
                   color: '#666'
                 }}
@@ -1329,71 +1473,79 @@ function App() {
               <p style={{ 
                 textAlign: 'center', 
                 color: '#666', 
-                padding: '40px',
-                ...estilos.texto
+                padding: designSystem.spacing['3xl'],
+                ...estilosBase.texto,
+                fontSize: designSystem.fontSizes.lg
               }}>
                 Seu carrinho está vazio
               </p>
             ) : (
               <>
-                <div style={{ marginBottom: '20px' }}>
+                <div style={{ marginBottom: designSystem.spacing.xl }}>
                   {carrinho.map((item, index) => (
                     <div key={index} style={{
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      padding: '15px 0',
-                      borderBottom: '1px solid #eee'
+                      padding: designSystem.spacing.lg,
+                      borderBottom: `2px solid ${designSystem.cores.borda}`,
+                      backgroundColor: designSystem.cores.fundo,
+                      borderRadius: '12px',
+                      marginBottom: designSystem.spacing.md
                     }}>
                       <div style={{ flex: 1 }}>
                         <div style={{ 
                           fontWeight: '600', 
-                          marginBottom: '5px',
-                          ...estilos.subtitulo
+                          marginBottom: designSystem.spacing.xs,
+                          ...estilosBase.subtitulo,
+                          fontSize: designSystem.fontSizes.lg
                         }}>
                           {item.nome}
                         </div>
                         {item.observacoes && (
                           <div style={{ 
                             color: '#666', 
-                            fontSize: '0.85em',
+                            fontSize: designSystem.fontSizes.sm,
                             fontStyle: 'italic',
-                            marginBottom: '5px',
-                            ...estilos.texto
+                            marginBottom: designSystem.spacing.xs,
+                            ...estilosBase.texto
                           }}>
                             📝 {item.observacoes}
                           </div>
                         )}
                         <div style={{ 
                           color: '#666', 
-                          fontSize: '0.95em',
-                          ...estilos.texto
+                          fontSize: designSystem.fontSizes.base,
+                          ...estilosBase.texto
                         }}>
                           R$ {Number(item.preco).toFixed(2)} cada
                         </div>
                       </div>
                       
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: designSystem.spacing.sm }}>
                         <button
                           onClick={() => atualizarQuantidade(item.produto_id, item.quantidade - 1, item.observacoes)}
                           style={{
-                            backgroundColor: '#f5f5f5',
-                            border: '1px solid #ddd',
-                            padding: '8px 12px',
-                            borderRadius: '5px',
+                            backgroundColor: designSystem.cores.fundo,
+                            border: `2px solid ${designSystem.cores.borda}`,
+                            padding: designSystem.spacing.sm,
+                            borderRadius: '8px',
                             cursor: 'pointer',
-                            ...estilos.botao,
-                            fontSize: '0.9em'
+                            ...estilosBase.botao,
+                            fontSize: designSystem.fontSizes.lg,
+                            minHeight: '40px',
+                            minWidth: '40px'
                           }}
                         >
                           -
                         </button>
                         
                         <span style={{ 
-                          minWidth: '30px', 
+                          minWidth: '40px', 
                           textAlign: 'center',
-                          ...estilos.texto,
-                          fontWeight: '600'
+                          ...estilosBase.texto,
+                          fontWeight: '600',
+                          fontSize: designSystem.fontSizes.lg
                         }}>
                           {item.quantidade}
                         </span>
@@ -1401,13 +1553,15 @@ function App() {
                         <button
                           onClick={() => atualizarQuantidade(item.produto_id, item.quantidade + 1, item.observacoes)}
                           style={{
-                            backgroundColor: '#f5f5f5',
-                            border: '1px solid #ddd',
-                            padding: '8px 12px',
-                            borderRadius: '5px',
+                            backgroundColor: designSystem.cores.fundo,
+                            border: `2px solid ${designSystem.cores.borda}`,
+                            padding: designSystem.spacing.sm,
+                            borderRadius: '8px',
                             cursor: 'pointer',
-                            ...estilos.botao,
-                            fontSize: '0.9em'
+                            ...estilosBase.botao,
+                            fontSize: designSystem.fontSizes.lg,
+                            minHeight: '40px',
+                            minWidth: '40px'
                           }}
                         >
                           +
@@ -1417,14 +1571,16 @@ function App() {
                           onClick={() => removerDoCarrinho(item.produto_id, item.observacoes)}
                           style={{
                             backgroundColor: '#ffebee',
-                            color: '#b71c1c',
+                            color: designSystem.cores.perigo,
                             border: 'none',
-                            padding: '8px 12px',
-                            borderRadius: '5px',
+                            padding: designSystem.spacing.sm,
+                            borderRadius: '8px',
                             cursor: 'pointer',
-                            marginLeft: '10px',
-                            ...estilos.botao,
-                            fontSize: '0.9em'
+                            marginLeft: designSystem.spacing.sm,
+                            ...estilosBase.botao,
+                            fontSize: designSystem.fontSizes.base,
+                            minHeight: '40px',
+                            minWidth: '40px'
                           }}
                         >
                           🗑️
@@ -1435,32 +1591,32 @@ function App() {
                 </div>
 
                 <div style={{
-                  borderTop: '2px solid #eee',
-                  paddingTop: '20px',
-                  marginBottom: '25px'
+                  borderTop: `3px solid ${designSystem.cores.borda}`,
+                  paddingTop: designSystem.spacing.xl,
+                  marginBottom: designSystem.spacing.xl
                 }}>
                   <div style={{
                     display: 'flex',
                     justifyContent: 'space-between',
-                    ...estilos.titulo,
-                    fontSize: '1.2em'
+                    ...estilosBase.titulo,
+                    fontSize: designSystem.fontSizes.xl
                   }}>
                     <span>Total:</span>
                     <span>R$ {calcularTotal().toFixed(2)}</span>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ display: 'flex', gap: designSystem.spacing.md, flexDirection: windowWidth < 768 ? 'column' : 'row' }}>
                   <button
                     onClick={() => setEtapa('cardapio')}
                     style={{
                       backgroundColor: '#6c757d',
-                      color: 'white',
+                      color: designSystem.cores.textoClaro,
                       border: 'none',
-                      padding: '15px',
-                      borderRadius: '10px',
-                      fontSize: '1.1em',
-                      ...estilos.botao,
+                      padding: designSystem.spacing.lg,
+                      borderRadius: '12px',
+                      fontSize: designSystem.fontSizes.lg,
+                      ...estilosBase.botao,
                       cursor: 'pointer',
                       flex: 1
                     }}
@@ -1472,13 +1628,13 @@ function App() {
                     onClick={finalizarPedido}
                     disabled={enviandoPedido}
                     style={{
-                      backgroundColor: enviandoPedido ? '#ccc' : '#2e7d32',
-                      color: 'white',
+                      backgroundColor: enviandoPedido ? '#ccc' : designSystem.cores.sucesso,
+                      color: designSystem.cores.textoClaro,
                       border: 'none',
-                      padding: '15px',
-                      borderRadius: '10px',
-                      fontSize: '1.1em',
-                      ...estilos.botao,
+                      padding: designSystem.spacing.lg,
+                      borderRadius: '12px',
+                      fontSize: designSystem.fontSizes.lg,
+                      ...estilosBase.botao,
                       cursor: enviandoPedido ? 'not-allowed' : 'pointer',
                       flex: 1
                     }}
@@ -1494,15 +1650,15 @@ function App() {
 
       {/* FOOTER */}
       <footer style={{ 
-        marginTop: '60px', 
+        marginTop: designSystem.spacing['4xl'], 
         textAlign: 'center', 
         color: '#666',
-        padding: '30px'
+        padding: designSystem.spacing['2xl']
       }}>
         <p style={{ 
           margin: '0', 
-          fontSize: '1.1em',
-          ...estilos.texto
+          fontSize: designSystem.fontSizes.lg,
+          ...estilosBase.texto
         }}>
           © 2025 Jetro's Lanches - Sistema Garçom
         </p>
