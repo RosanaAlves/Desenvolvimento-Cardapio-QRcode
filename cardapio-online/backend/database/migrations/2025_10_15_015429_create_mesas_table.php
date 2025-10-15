@@ -10,13 +10,11 @@ return new class extends Migration
         Schema::create('mesas', function (Blueprint $table) {
             $table->id();
             $table->integer('numero')->unique();
-<<<<<<< Updated upstream:cardapio-online/backend/database/migrations/2025_10_04_020502_create_mesas_table.php
+            $table->integer('capacidade')->default(4);
             $table->enum('status', ['livre', 'ocupada'])->default('livre');
-=======
-            $table->enum('status', ['livre', 'ocupada', 'reservada'])->default('livre');
-            $table->string('cliente_nome')->nullable();
-            $table->enum('status_pagamento', ['aberta', 'fechada', 'paga'])->default('fechada');
->>>>>>> Stashed changes:cardapio-online/backend/database/migrations/2025_10_14_145503_create_mesas_table.php
+            $table->enum('status_pagamento', ['aberta', 'fechada', 'paga'])->default('aberta');
+            $table->string('garcom_nome')->nullable();
+            $table->boolean('disponivel')->default(true);
             $table->timestamps();
         });
     }

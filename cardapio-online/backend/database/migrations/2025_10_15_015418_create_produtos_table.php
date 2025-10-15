@@ -12,9 +12,9 @@ return new class extends Migration
             $table->string('nome');
             $table->text('descricao')->nullable();
             $table->decimal('preco', 8, 2);
+            $table->foreignId('categoria_id')->constrained()->onDelete('cascade');
             $table->boolean('disponivel')->default(true);
             $table->string('imagem')->nullable();
-            $table->foreignId('categoria_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });
     }

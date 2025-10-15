@@ -1,5 +1,5 @@
 <?php
-
+// app/Models/Mesa.php
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -9,35 +9,33 @@ class Mesa extends Model
 {
     use HasFactory;
 
-<<<<<<< Updated upstream
-    protected $fillable = ['numero', 'status'];
-=======
     protected $fillable = [
         'numero',
-        'capacidade',
+        'capacidade', 
         'status',
-        'disponivel',
+        'status_pagamento',
         'garcom_nome',
-        'status_pagamento'
+        'disponivel'
     ];
 
     protected $casts = [
-        'disponivel' => 'boolean'
+        'disponivel' => 'boolean',
+        'capacidade' => 'integer'
     ];
->>>>>>> Stashed changes
 
-    // ✅ ADICIONAR: Relacionamento com pedidos
+    // 🔥 RELACIONAMENTOS
     public function pedidos()
     {
         return $this->hasMany(Pedido::class);
     }
 
-<<<<<<< Updated upstream
-    public function pedidoAtivo()
+    public function pedidosAtivos()
     {
-        return $this->hasOne(Pedido::class)->whereIn('status', ['pendente', 'preparando']);
-=======
-    // Métodos úteis
+        return $this->hasMany(Pedido::class)
+                    ->whereIn('status', ['pendente', 'preparando', 'pronto']);
+    }
+
+    // 🔥 MÉTODOS ÚTEIS
     public function estaLivre()
     {
         return $this->status === 'livre';
@@ -46,6 +44,56 @@ class Mesa extends Model
     public function estaOcupada()
     {
         return $this->status === 'ocupada';
->>>>>>> Stashed changes
+    }
+
+    public function contaAberta()
+    {
+        return $this->status_pagamento === 'aberta';
+    }
+
+    public function contaFechada()
+    {
+        return $this->status_pagamento === 'fechada';
+    }
+
+    public function contaPaga()
+    {
+        return $this->status_pagamento === 'paga';
+    }
+
+    // 🔥 SCOPES
+    public function scopeLivres($query)
+    {
+        return $query->where('status', 'livre')->where('disponivel', true);
+    }
+
+    public function scopeOcupadas($query)
+    {
+        return $query->where('status', 'ocupada');
+    }
+
+    public function scopeDisponiveis($query)
+    {
+        return $query->where('disponivel', true);
+    }
+
+    // 🔥 ATRIBUTOS CALCULADOS
+    public function getStatusFormatadoAttribute()
+    {
+        return match($this->status) {
+            'livre' => '🟢 Livre',
+            'ocupada' => '🔴 Ocupada',
+            default => $this->status
+        };
+    }
+
+    public function getStatusPagamentoFormatadoAttribute()
+    {
+        return match($this->status_pagamento) {
+            'aberta' => '💰 Aberta',
+            'fechada' => '🧾 Fechada', 
+            'paga' => '✅ Paga',
+            default => $this->status_pagamento
+        };
     }
 }

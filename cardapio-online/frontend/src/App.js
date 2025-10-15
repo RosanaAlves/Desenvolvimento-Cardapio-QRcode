@@ -1,27 +1,21 @@
 ﻿import React, { useState, useEffect } from 'react';
 
-<<<<<<< Updated upstream
 // Configuração da API
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-=======
 
-// 🔥 CORREÇÃO: URL base da API - use localhost:8000 diretamente
-const API_BASE_URL = 'http://localhost:8000';
->>>>>>> Stashed changes
 
 // Função para fetch com tratamento de erro
 const fetchWithErrorHandling = async (url, options = {}) => {
   try {
     const response = await fetch(`${API_BASE_URL}${url}`, {
       credentials: 'include',
-<<<<<<< Updated upstream
-=======
+
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         ...options.headers
       },
->>>>>>> Stashed changes
+
       ...options
     });
 
@@ -43,14 +37,14 @@ const fetchWithErrorHandling = async (url, options = {}) => {
 };
 
 function App() {
-<<<<<<< Updated upstream
+
   // Estados do sistema
   const [etapa, setEtapa] = useState('selecao-mesa');
-=======
+
   // Estados do sistema - ATUALIZADOS
   const [etapa, setEtapa] = useState('coletar-garcom');
   const [garcomNome, setGarcomNome] = useState('');
->>>>>>> Stashed changes
+
   const [mesas, setMesas] = useState([]);
   const [mesaSelecionada, setMesaSelecionada] = useState(null);
   const [categorias, setCategorias] = useState([]);
@@ -59,11 +53,10 @@ function App() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(null);
   const [enviandoPedido, setEnviandoPedido] = useState(false);
-<<<<<<< Updated upstream
-=======
+
   const [resumoConta, setResumoConta] = useState(null);
   const [itemComObservacao, setItemComObservacao] = useState(null);
->>>>>>> Stashed changes
+
 
   // Carregar dados iniciais
   useEffect(() => {
@@ -72,7 +65,7 @@ function App() {
         setCarregando(true);
         setErro(null);
 
-<<<<<<< Updated upstream
+
         const [dadosMesas, dadosCategorias, dadosProdutos] = await Promise.all([
           fetchWithErrorHandling('/api/mesas'),
           fetchWithErrorHandling('/api/categorias'),
@@ -87,7 +80,7 @@ function App() {
         setMesas(dadosMesas);
         setCategorias(dadosCategorias);
         setProdutos(dadosProdutos);
-=======
+
         // ✅ CORREÇÃO: Carregar mesas e categorias separadamente
         const dadosMesas = await fetchWithErrorHandling('/api/garcom/mesas/status');
         const dadosCategorias = await fetchWithErrorHandling('/api/garcom/cardapio/categorias');
@@ -111,7 +104,7 @@ function App() {
 
         setMesas(mesasFormatadas);
         setCategorias(categoriasFormatadas);
->>>>>>> Stashed changes
+ Stashed changes
         
       } catch (erro) {
         console.error('❌ Erro ao carregar dados:', erro);

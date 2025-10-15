@@ -1,38 +1,41 @@
 <?php
-
+// database/seeders/MesasSeeder.php
 namespace Database\Seeders;
 
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 use App\Models\Mesa;
 
 class MesasSeeder extends Seeder
 {
     public function run(): void
     {
-        // Verificar se já existem mesas
-        if (Mesa::count() > 0) {
-            $this->command->info('Mesas já existem no banco de dados. Pulando criação.');
-            return;
+        $mesas = [
+            // Mesas pequenas (2-4 pessoas)
+            ['numero' => 1, 'capacidade' => 2, 'status' => 'livre', 'status_pagamento' => 'aberta'],
+            ['numero' => 2, 'capacidade' => 4, 'status' => 'livre', 'status_pagamento' => 'aberta'],
+            ['numero' => 3, 'capacidade' => 4, 'status' => 'livre', 'status_pagamento' => 'aberta'],
+            ['numero' => 4, 'capacidade' => 2, 'status' => 'livre', 'status_pagamento' => 'aberta'],
+            
+            // Mesas médias (4-6 pessoas)  
+            ['numero' => 5, 'capacidade' => 6, 'status' => 'livre', 'status_pagamento' => 'aberta'],
+            ['numero' => 6, 'capacidade' => 4, 'status' => 'livre', 'status_pagamento' => 'aberta'],
+            ['numero' => 7, 'capacidade' => 6, 'status' => 'livre', 'status_pagamento' => 'aberta'],
+            
+            // Mesas grandes (6-8 pessoas)
+            ['numero' => 8, 'capacidade' => 8, 'status' => 'livre', 'status_pagamento' => 'aberta'],
+            ['numero' => 9, 'capacidade' => 6, 'status' => 'livre', 'status_pagamento' => 'aberta'],
+            ['numero' => 10, 'capacidade' => 8, 'status' => 'livre', 'status_pagamento' => 'aberta'],
+            
+            // Mesas extras (se precisar)
+            ['numero' => 11, 'capacidade' => 4, 'status' => 'livre', 'status_pagamento' => 'aberta', 'disponivel' => false], // Mesa não disponível
+            ['numero' => 12, 'capacidade' => 4, 'status' => 'livre', 'status_pagamento' => 'aberta'],
+        ];
+
+        foreach ($mesas as $mesa) {
+            Mesa::create($mesa);
         }
 
-        // Criar 20 mesas
-        $mesas = [];
-        for ($i = 1; $i <= 20; $i++) {
-            $mesas[] = [
-                'numero' => $i,
-                'capacidade' => 4,
-                'status' => 'livre',
-                'disponivel' => true,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
-        }
-
-        // Inserir todas as mesas de uma vez
-        Mesa::insert($mesas);
-        
-        $this->command->info('20 mesas criadas com sucesso!');
+        $this->command->info('🎯 ' . count($mesas) . ' mesas criadas com sucesso!');
     }
 }

@@ -11,21 +11,21 @@ class Configuracao extends Model
     protected $table = 'configuracoes';
 
     protected $fillable = [
-        'total_mesas',
+        'nome_estabelecimento',
+        'telefone', 
+        'numero_mesas',
         'expediente_aberto',
-        'data_expediente',
-        'faturamento_dia'
+        'taxa_servico'
     ];
 
     protected $casts = [
         'expediente_aberto' => 'boolean',
-        'data_expediente' => 'date',
-        'faturamento_dia' => 'decimal:2'
+        'taxa_servico' => 'decimal:2'
     ];
 
     public static function getConfig()
     {
-        return self::first() ?? self::create(['total_mesas' => 10]);
+        return self::first() ?? self::create(['numero_mesas' => 10]);
     }
 
     // 🔥 MÉTODOS ÚTEIS
@@ -34,8 +34,9 @@ class Configuracao extends Model
         return $this->expediente_aberto;
     }
 
-    public function getFaturamentoDiaFormatadoAttribute()
+    // Método para compatibilidade (se precisar)
+    public function getTotalMesasAttribute()
     {
-        return 'R$ ' . number_format($this->faturamento_dia, 2, ',', '.');
+        return $this->numero_mesas;
     }
 }
