@@ -1,17 +1,12 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
-
-// IMPORTS DOS MODELS
-use App\Models\Categoria;
-use App\Models\Produto;
-use App\Models\Mesa;
-use App\Models\Pedido;
-use App\Models\PedidoItem;
+use App\Http\Controllers\Api\Garcom\CardapioController;
+use App\Http\Controllers\Api\Garcom\CategoriaController;
+use App\Http\Controllers\Api\Garcom\DashboardController;
+use App\Http\Controllers\Api\Garcom\MesaController;
+use App\Http\Controllers\Api\Garcom\PedidoController;
+use App\Http\Controllers\Api\Garcom\ProdutoController;
 
 /*
 |--------------------------------------------------------------------------
@@ -31,9 +26,10 @@ Route::get('/test', function() {
 // =========================================================================
 // ROTAS PÚBLICAS - CARDÁPIO DO CLIENTE
 // =========================================================================
+
 Route::get('/cliente/cardapio', function() {
     try {
-        $categorias = Categoria::where('disponivel', true)
+        $categorias = \App\Models\Categoria::where('disponivel', true)
             ->with(['produtos' => function($query) {
                 $query->where('disponivel', true);
             }])
@@ -44,315 +40,98 @@ Route::get('/cliente/cardapio', function() {
             'data' => $categorias
         ]);
     } catch (\Exception $e) {
-        Log::error('Erro em /cliente/cardapio: ' . $e->getMessage());
+        \Illuminate\Support\Facades\Log::error('Erro em /cliente/cardapio: ' . $e->getMessage());
         return response()->json(['error' => 'Erro ao carregar cardápio'], 500);
     }
 });
 
 Route::get('/cliente/categorias', function() {
     try {
-        $categorias = Categoria::where('disponivel', true)->get();
+        $categorias = \App\Models\Categoria::where('disponivel', true)->get();
         return response()->json($categorias);
     } catch (\Exception $e) {
-        Log::error('Erro em /cliente/categorias: ' . $e->getMessage());
+        \Illuminate\Support\Facades\Log::error('Erro em /cliente/categorias: ' . $e->getMessage());
         return response()->json(['error' => 'Erro ao carregar categorias'], 500);
     }
 });
 
 Route::get('/cliente/produtos', function() {
     try {
-        $produtos = Produto::with('categoria')
+        $produtos = \App\Models\Produto::with('categoria')
             ->where('disponivel', true)
             ->get();
         return response()->json($produtos);
     } catch (\Exception $e) {
-        Log::error('Erro em /cliente/produtos: ' . $e->getMessage());
-        return response()->json(['error' => 'Erro ao carregar produtos'], 500);
-    }
-});
-
-Route::get('/cliente/categorias/{id}/produtos', function($id) {
-    try {
-        $produtos = Produto::where('categoria_id', $id)
-            ->where('disponivel', true)
-            ->get();
-        return response()->json($produtos);
-    } catch (\Exception $e) {
-        Log::error('Erro em /cliente/categorias/{id}/produtos: ' . $e->getMessage());
+        \Illuminate\Support\Facades\Log::error('Erro em /cliente/produtos: ' . $e->getMessage());
         return response()->json(['error' => 'Erro ao carregar produtos'], 500);
     }
 });
 
 // =========================================================================
-// ROTAS DO GARÇOM
+// ROTAS DO GARÇOM (USANDO CONTROLLERS)
 // =========================================================================
 
-// MESAS - GARÇOM
-Route::get('/garcom/mesas', function() {
-    try {
-        $mesas = Mesa::all();
-        return response()->json([
-            'success' => true,
-            'data' => $mesas
-        ]);
-    } catch (\Exception $e) {
-        Log::error('Erro em /garcom/mesas: ' . $e->getMessage());
-        return response()->json(['error' => 'Erro ao carregar mesas'], 500);
-    }
-});
-
-Route::get('/garcom/mesas/status', function() {
-    try {
-        $mesas = Mesa::with(['pedidos' => function($query) {
-            $query->whereIn('status', ['pendente', 'preparando', 'pronto']);
-        }])->get();
-
-        $mesasComStatus = $mesas->map(function($mesa) {
-            $pedidoAtivo = $mesa->pedidos->first();
-            
-            $status = 'livre';
-            if ($pedidoAtivo) {
-                $status = 'ocupada';
-            } elseif ($mesa->status_pagamento === 'fechada') {
-                $status = 'fechada';
-            } elseif ($mesa->status_pagamento === 'paga') {
-                $status = 'paga';
-            }
-
-            return [
-                'id' => $mesa->id,
-                'numero' => $mesa->numero,
-                'status' => $status,
-                'garcom_nome' => $mesa->garcom_nome,
-                'status_pagamento' => $mesa->status_pagamento,
-                'pedido_id' => $pedidoAtivo ? $pedidoAtivo->id : null,
-                'total_pedido' => $pedidoAtivo ? $pedidoAtivo->total : null,
-                'created_at' => $mesa->created_at,
-                'updated_at' => $mesa->updated_at
-            ];
-        });
-
-        return response()->json([
-            'success' => true,
-            'data' => $mesasComStatus
-        ]);
-    } catch (\Exception $e) {
-        Log::error('Erro em /garcom/mesas/status: ' . $e->getMessage());
-        return response()->json(['error' => 'Erro ao carregar status das mesas'], 500);
-    }
-});
-
-Route::post('/garcom/mesas/{id}/ocupar', function(Request $request, $id) {
-    try {
-        $request->validate([
-            'garcom_nome' => 'required|string|max:255'
-        ]);
-
-        $mesa = Mesa::find($id);
-        if (!$mesa) {
-            return response()->json(['error' => 'Mesa não encontrada'], 404);
-        }
-
-        $mesa->update([
-            'status' => 'ocupada',
-            'garcom_nome' => $request->garcom_nome,
-            'status_pagamento' => 'aberta'
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Mesa ocupada com sucesso',
-            'data' => $mesa
-        ]);
-    } catch (\Exception $e) {
-        Log::error('Erro em /garcom/mesas/{id}/ocupar: ' . $e->getMessage());
-        return response()->json(['error' => 'Erro ao ocupar mesa'], 500);
-    }
-});
-
-Route::post('/garcom/mesas/{id}/liberar', function($id) {
-    try {
-        $mesa = Mesa::find($id);
-        if (!$mesa) {
-            return response()->json(['error' => 'Mesa não encontrada'], 404);
-        }
-
-        $mesa->update([
-            'status' => 'livre',
-            'garcom_nome' => null,
-            'status_pagamento' => 'aberta'
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Mesa liberada com sucesso',
-            'data' => $mesa
-        ]);
-    } catch (\Exception $e) {
-        Log::error('Erro em /garcom/mesas/{id}/liberar: ' . $e->getMessage());
-        return response()->json(['error' => 'Erro ao liberar mesa'], 500);
-    }
-});
-
-// PEDIDOS - GARÇOM
-Route::post('/garcom/pedidos', function(Request $request) {
-    try {
-        Log::info('Recebendo pedido do garçom:', $request->all());
-
-        $validated = $request->validate([
-            'mesa_id' => 'required|exists:mesas,id',
-            'garcom_nome' => 'required|string|max:255',
-            'itens' => 'required|array|min:1',
-            'itens.*.produto_id' => 'required|exists:produtos,id',
-            'itens.*.quantidade' => 'required|integer|min:1',
-            'itens.*.observacoes' => 'nullable|string'
-        ]);
-
-        DB::beginTransaction();
-
-        // Atualizar mesa
-        $mesa = Mesa::find($request->mesa_id);
-        $mesa->update([
-            'status' => 'ocupada',
-            'garcom_nome' => $request->garcom_nome,
-            'status_pagamento' => 'aberta'
-        ]);
-
-        // Criar pedido
-        $pedido = Pedido::create([
-            'mesa_id' => $request->mesa_id,
-            'garcom_nome' => $request->garcom_nome,
-            'status' => 'pendente',
-            'total' => 0
-        ]);
-
-        $total = 0;
-
-        // Adicionar itens
-        foreach ($request->itens as $item) {
-            $produto = Produto::find($item['produto_id']);
-            $itemTotal = $item['quantidade'] * $produto->preco;
-            $total += $itemTotal;
-
-            PedidoItem::create([
-                'pedido_id' => $pedido->id,
-                'produto_id' => $item['produto_id'],
-                'quantidade' => $item['quantidade'],
-                'preco_unitario' => $produto->preco,
-                'observacoes' => $item['observacoes'] ?? null
-            ]);
-        }
-
-        // Atualizar total
-        $pedido->update(['total' => $total]);
-        $pedido->load(['itens.produto', 'mesa']);
-
-        DB::commit();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Pedido realizado com sucesso!',
-            'data' => $pedido
-        ], 201);
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Erro ao criar pedido: ' . $e->getMessage());
-        return response()->json(['error' => 'Erro ao processar pedido'], 500);
-    }
-});
-
-// FECHAR CONTA
-Route::post('/garcom/mesas/{id}/fechar-conta', function($id) {
-    try {
-        DB::beginTransaction();
-
-        $mesa = Mesa::find($id);
-        if (!$mesa) {
-            return response()->json(['error' => 'Mesa não encontrada'], 404);
-        }
-
-        $pedidos = Pedido::where('mesa_id', $id)
-            ->where('status', '!=', 'cancelado')
-            ->with('itens.produto')
-            ->get();
-
-        // VALIDAÇÃO: Verifica se há pedidos
-        if ($pedidos->isEmpty()) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Sem pedidos realizados!'
-            ], 422);
-        }
-
-        $totalConta = $pedidos->sum('total');
-
-        $mesa->update(['status_pagamento' => 'fechada']);
-
-        DB::commit();
-
-        return response()->json([
-            'success' => true,
-            'total_conta' => $totalConta,
-            'pedidos' => $pedidos,
-            'mesa' => $mesa
-        ]);
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Erro ao fechar conta: ' . $e->getMessage());
-        return response()->json(['error' => 'Erro ao fechar conta'], 500);
-    }
-});
-
-// PAGAR CONTA
-Route::post('/garcom/mesas/{id}/pagar-conta', function($id) {
-    try {
-        $mesa = Mesa::find($id);
-        if (!$mesa) {
-            return response()->json(['error' => 'Mesa não encontrada'], 404);
-        }
-
-        $mesa->update([
-            'status' => 'livre',
-            'status_pagamento' => 'paga',
-            'garcom_nome' => null
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Conta paga com sucesso'
-        ]);
-
-    } catch (\Exception $e) {
-        Log::error('Erro ao pagar conta: ' . $e->getMessage());
-        return response()->json(['error' => 'Erro ao processar pagamento'], 500);
-    }
+Route::prefix('garcom')->group(function () {
+    
+    // 🔥 CARDÁPIO - GARÇOM
+    Route::get('/cardapio/categorias', [CardapioController::class, 'categorias']);
+    Route::get('/cardapio', [CardapioController::class, 'index']);
+    Route::get('/cardapio/produtos', [CardapioController::class, 'produtos']);
+    Route::get('/cardapio/categorias/{categoriaId}/produtos', [CardapioController::class, 'produtosPorCategoria']);
+    Route::get('/cardapio/buscar/{termo}', [CardapioController::class, 'buscarProdutos']);
+    
+    // 🔥 MESAS - GARÇOM
+    Route::get('/mesas', [MesaController::class, 'index']);
+    Route::get('/mesas/status', [MesaController::class, 'status']);
+    Route::get('/mesas/{mesaId}/pedidos', [MesaController::class, 'pedidos']);
+    Route::post('/mesas/{id}/ocupar', [MesaController::class, 'ocupar']);
+    Route::post('/mesas/{id}/liberar', [MesaController::class, 'liberar']);
+    Route::post('/mesas/{id}/fechar-conta', [MesaController::class, 'fecharConta']);
+    Route::post('/mesas/{id}/pagar-conta', [MesaController::class, 'pagarConta']);
+    
+    // 🔥 PEDIDOS - GARÇOM
+    Route::post('/pedidos', [PedidoController::class, 'store']);
+    Route::get('/pedidos/{id}', [PedidoController::class, 'show']);
+    Route::post('/pedidos/{id}/cancelar', [PedidoController::class, 'cancelar']);
+    Route::get('/pedidos/garcom/{garcomNome}', [PedidoController::class, 'meusPedidos']);
+    
+    // 🔥 CATEGORIAS - GARÇOM
+    Route::get('/categorias', [CategoriaController::class, 'index']);
+    Route::get('/categorias/admin', [CategoriaController::class, 'indexAdmin']);
+    Route::get('/categorias/{id}/produtos', [CategoriaController::class, 'produtosPorCategoria']);
+    
+    // 🔥 PRODUTOS - GARÇOM
+    Route::get('/produtos', [ProdutoController::class, 'index']);
+    Route::get('/produtos/admin', [ProdutoController::class, 'indexAdmin']);
+    Route::get('/produtos/{id}', [ProdutoController::class, 'show']);
+    
+    // 🔥 DASHBOARD - GARÇOM
+    Route::get('/dashboard', [DashboardController::class, 'index']);
 });
 
 // =========================================================================
-// ROTAS DO ADMIN
+// ROTAS DO ADMIN (MANTIDAS COMO CLOSURES PARA COMPATIBILIDADE)
 // =========================================================================
 
 // DASHBOARD
 Route::get('/admin/dashboard', function() {
     try {
-        $mesasOcupadas = Mesa::whereHas('pedidos', function($query) {
+        $mesasOcupadas = \App\Models\Mesa::whereHas('pedidos', function($query) {
             $query->whereIn('status', ['pendente', 'preparando', 'pronto']);
         })->count();
         
         $stats = [
-            'total_mesas' => Mesa::count(),
+            'total_mesas' => \App\Models\Mesa::count(),
             'mesas_ocupadas' => $mesasOcupadas,
-            'mesas_livres' => Mesa::count() - $mesasOcupadas,
-            'total_pedidos' => Pedido::count(),
-            'pedidos_pendentes' => Pedido::where('status', 'pendente')->count(),
-            'pedidos_preparando' => Pedido::where('status', 'preparando')->count(),
-            'pedidos_prontos' => Pedido::where('status', 'pronto')->count(),
-            'pedidos_entregues' => Pedido::where('status', 'entregue')->count(),
-            'pedidos_hoje' => Pedido::whereDate('created_at', today())->count(),
-            'total_produtos' => Produto::count(),
-            'total_categorias' => Categoria::count(),
+            'mesas_livres' => \App\Models\Mesa::count() - $mesasOcupadas,
+            'total_pedidos' => \App\Models\Pedido::count(),
+            'pedidos_pendentes' => \App\Models\Pedido::where('status', 'pendente')->count(),
+            'pedidos_preparando' => \App\Models\Pedido::where('status', 'preparando')->count(),
+            'pedidos_prontos' => \App\Models\Pedido::where('status', 'pronto')->count(),
+            'pedidos_entregues' => \App\Models\Pedido::where('status', 'entregue')->count(),
+            'pedidos_hoje' => \App\Models\Pedido::whereDate('created_at', today())->count(),
+            'total_produtos' => \App\Models\Produto::count(),
+            'total_categorias' => \App\Models\Categoria::count(),
         ];
         
         return response()->json([
@@ -360,7 +139,7 @@ Route::get('/admin/dashboard', function() {
             'data' => $stats
         ]);
     } catch (\Exception $e) {
-        Log::error('Erro em /admin/dashboard: ' . $e->getMessage());
+        \Illuminate\Support\Facades\Log::error('Erro em /admin/dashboard: ' . $e->getMessage());
         return response()->json(['error' => 'Erro ao carregar dashboard'], 500);
     }
 });
@@ -368,7 +147,7 @@ Route::get('/admin/dashboard', function() {
 // PEDIDOS - ADMIN
 Route::get('/admin/pedidos', function() {
     try {
-        $pedidos = Pedido::with(['itens.produto', 'mesa'])
+        $pedidos = \App\Models\Pedido::with(['itens.produto', 'mesa'])
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function($pedido) {
@@ -393,19 +172,19 @@ Route::get('/admin/pedidos', function() {
         
         return response()->json($pedidos);
     } catch (\Exception $e) {
-        Log::error('Erro em /admin/pedidos: ' . $e->getMessage());
+        \Illuminate\Support\Facades\Log::error('Erro em /admin/pedidos: ' . $e->getMessage());
         return response()->json(['error' => 'Erro ao carregar pedidos'], 500);
     }
 });
 
 // ATUALIZAR STATUS DO PEDIDO - ADMIN
-Route::put('/admin/pedidos/{id}/status', function(Request $request, $id) {
+Route::put('/admin/pedidos/{id}/status', function(\Illuminate\Http\Request $request, $id) {
     try {
         $validated = $request->validate([
             'status' => 'required|in:pending,pendente,preparando,pronto,entregue,cancelado'
         ]);
 
-        $pedido = Pedido::find($id);
+        $pedido = \App\Models\Pedido::find($id);
         if (!$pedido) {
             return response()->json(['error' => 'Pedido não encontrado'], 404);
         }
@@ -422,7 +201,7 @@ Route::put('/admin/pedidos/{id}/status', function(Request $request, $id) {
         ]);
 
     } catch (\Exception $e) {
-        Log::error('Erro ao atualizar status: ' . $e->getMessage());
+        \Illuminate\Support\Facades\Log::error('Erro ao atualizar status: ' . $e->getMessage());
         return response()->json(['error' => 'Erro ao atualizar status'], 500);
     }
 });
@@ -430,7 +209,7 @@ Route::put('/admin/pedidos/{id}/status', function(Request $request, $id) {
 // CANCELAR PEDIDO - ADMIN
 Route::post('/admin/pedidos/{id}/cancelar', function($id) {
     try {
-        $pedido = Pedido::find($id);
+        $pedido = \App\Models\Pedido::find($id);
         if (!$pedido) {
             return response()->json(['error' => 'Pedido não encontrado'], 404);
         }
@@ -451,15 +230,15 @@ Route::post('/admin/pedidos/{id}/cancelar', function($id) {
         ]);
 
     } catch (\Exception $e) {
-        Log::error('Erro ao cancelar pedido: ' . $e->getMessage());
+        \Illuminate\Support\Facades\Log::error('Erro ao cancelar pedido: ' . $e->getMessage());
         return response()->json(['error' => 'Erro ao cancelar pedido'], 500);
     }
 });
 
-// PRODUTOS - ADMIN (CRUD COMPLETO)
+// PRODUTOS - ADMIN
 Route::get('/admin/produtos', function() {
     try {
-        $produtos = Produto::with('categoria')->get()->map(function($produto) {
+        $produtos = \App\Models\Produto::with('categoria')->get()->map(function($produto) {
             return [
                 'id' => $produto->id,
                 'nome' => $produto->nome,
@@ -474,13 +253,13 @@ Route::get('/admin/produtos', function() {
         
         return response()->json($produtos);
     } catch (\Exception $e) {
-        Log::error('Erro em /admin/produtos: ' . $e->getMessage());
+        \Illuminate\Support\Facades\Log::error('Erro em /admin/produtos: ' . $e->getMessage());
         return response()->json(['error' => 'Erro ao carregar produtos'], 500);
     }
 });
 
 // CRIAR PRODUTO
-Route::post('/admin/produtos', function(Request $request) {
+Route::post('/admin/produtos', function(\Illuminate\Http\Request $request) {
     try {
         $validated = $request->validate([
             'nome' => 'required|string|max:255',
@@ -491,7 +270,7 @@ Route::post('/admin/produtos', function(Request $request) {
             'imagem' => 'nullable|url'
         ]);
 
-        $produto = Produto::create($validated);
+        $produto = \App\Models\Produto::create($validated);
 
         return response()->json([
             'success' => true,
@@ -500,15 +279,15 @@ Route::post('/admin/produtos', function(Request $request) {
         ], 201);
 
     } catch (\Exception $e) {
-        Log::error('Erro ao criar produto: ' . $e->getMessage());
+        \Illuminate\Support\Facades\Log::error('Erro ao criar produto: ' . $e->getMessage());
         return response()->json(['error' => 'Erro ao criar produto'], 500);
     }
 });
 
 // ATUALIZAR PRODUTO
-Route::put('/admin/produtos/{id}', function(Request $request, $id) {
+Route::put('/admin/produtos/{id}', function(\Illuminate\Http\Request $request, $id) {
     try {
-        $produto = Produto::find($id);
+        $produto = \App\Models\Produto::find($id);
         if (!$produto) {
             return response()->json(['error' => 'Produto não encontrado'], 404);
         }
@@ -531,7 +310,7 @@ Route::put('/admin/produtos/{id}', function(Request $request, $id) {
         ]);
 
     } catch (\Exception $e) {
-        Log::error('Erro ao atualizar produto: ' . $e->getMessage());
+        \Illuminate\Support\Facades\Log::error('Erro ao atualizar produto: ' . $e->getMessage());
         return response()->json(['error' => 'Erro ao atualizar produto'], 500);
     }
 });
@@ -539,7 +318,7 @@ Route::put('/admin/produtos/{id}', function(Request $request, $id) {
 // EXCLUIR PRODUTO
 Route::delete('/admin/produtos/{id}', function($id) {
     try {
-        $produto = Produto::find($id);
+        $produto = \App\Models\Produto::find($id);
         if (!$produto) {
             return response()->json(['error' => 'Produto não encontrado'], 404);
         }
@@ -552,7 +331,7 @@ Route::delete('/admin/produtos/{id}', function($id) {
         ]);
 
     } catch (\Exception $e) {
-        Log::error('Erro ao excluir produto: ' . $e->getMessage());
+        \Illuminate\Support\Facades\Log::error('Erro ao excluir produto: ' . $e->getMessage());
         return response()->json(['error' => 'Erro ao excluir produto'], 500);
     }
 });
@@ -560,16 +339,16 @@ Route::delete('/admin/produtos/{id}', function($id) {
 // CATEGORIAS - ADMIN
 Route::get('/admin/categorias', function() {
     try {
-        $categorias = Categoria::withCount('produtos')->get();
+        $categorias = \App\Models\Categoria::withCount('produtos')->get();
         return response()->json($categorias);
     } catch (\Exception $e) {
-        Log::error('Erro em /admin/categorias: ' . $e->getMessage());
+        \Illuminate\Support\Facades\Log::error('Erro em /admin/categorias: ' . $e->getMessage());
         return response()->json(['error' => 'Erro ao carregar categorias'], 500);
     }
 });
 
 // CRIAR CATEGORIA
-Route::post('/admin/categorias', function(Request $request) {
+Route::post('/admin/categorias', function(\Illuminate\Http\Request $request) {
     try {
         $validated = $request->validate([
             'nome' => 'required|string|max:255',
@@ -577,7 +356,7 @@ Route::post('/admin/categorias', function(Request $request) {
             'disponivel' => 'boolean'
         ]);
 
-        $categoria = Categoria::create($validated);
+        $categoria = \App\Models\Categoria::create($validated);
 
         return response()->json([
             'success' => true,
@@ -586,15 +365,15 @@ Route::post('/admin/categorias', function(Request $request) {
         ], 201);
 
     } catch (\Exception $e) {
-        Log::error('Erro ao criar categoria: ' . $e->getMessage());
+        \Illuminate\Support\Facades\Log::error('Erro ao criar categoria: ' . $e->getMessage());
         return response()->json(['error' => 'Erro ao criar categoria'], 500);
     }
 });
 
 // ATUALIZAR CATEGORIA
-Route::put('/admin/categorias/{id}', function(Request $request, $id) {
+Route::put('/admin/categorias/{id}', function(\Illuminate\Http\Request $request, $id) {
     try {
-        $categoria = Categoria::find($id);
+        $categoria = \App\Models\Categoria::find($id);
         if (!$categoria) {
             return response()->json(['error' => 'Categoria não encontrada'], 404);
         }
@@ -614,7 +393,7 @@ Route::put('/admin/categorias/{id}', function(Request $request, $id) {
         ]);
 
     } catch (\Exception $e) {
-        Log::error('Erro ao atualizar categoria: ' . $e->getMessage());
+        \Illuminate\Support\Facades\Log::error('Erro ao atualizar categoria: ' . $e->getMessage());
         return response()->json(['error' => 'Erro ao atualizar categoria'], 500);
     }
 });
@@ -622,7 +401,7 @@ Route::put('/admin/categorias/{id}', function(Request $request, $id) {
 // EXCLUIR CATEGORIA
 Route::delete('/admin/categorias/{id}', function($id) {
     try {
-        $categoria = Categoria::find($id);
+        $categoria = \App\Models\Categoria::find($id);
         if (!$categoria) {
             return response()->json(['error' => 'Categoria não encontrada'], 404);
         }
@@ -635,7 +414,7 @@ Route::delete('/admin/categorias/{id}', function($id) {
         ]);
 
     } catch (\Exception $e) {
-        Log::error('Erro ao excluir categoria: ' . $e->getMessage());
+        \Illuminate\Support\Facades\Log::error('Erro ao excluir categoria: ' . $e->getMessage());
         return response()->json(['error' => 'Erro ao excluir categoria'], 500);
     }
 });
@@ -643,13 +422,13 @@ Route::delete('/admin/categorias/{id}', function($id) {
 // MESAS - ADMIN
 Route::get('/admin/mesas', function() {
     try {
-        $mesas = Mesa::with(['pedidos' => function($query) {
+        $mesas = \App\Models\Mesa::with(['pedidos' => function($query) {
             $query->whereIn('status', ['pendente', 'preparando', 'pronto']);
         }])->get();
 
         return response()->json($mesas);
     } catch (\Exception $e) {
-        Log::error('Erro em /admin/mesas: ' . $e->getMessage());
+        \Illuminate\Support\Facades\Log::error('Erro em /admin/mesas: ' . $e->getMessage());
         return response()->json(['error' => 'Erro ao carregar mesas'], 500);
     }
 });
@@ -661,46 +440,46 @@ Route::get('/admin/mesas', function() {
 // Rotas públicas (mantidas para compatibilidade)
 Route::get('/categorias', function() {
     try {
-        $categorias = Categoria::where('disponivel', true)->get();
+        $categorias = \App\Models\Categoria::where('disponivel', true)->get();
         return response()->json($categorias);
     } catch (\Exception $e) {
-        Log::error('Erro em /categorias: ' . $e->getMessage());
+        \Illuminate\Support\Facades\Log::error('Erro em /categorias: ' . $e->getMessage());
         return response()->json(['error' => 'Erro ao carregar categorias'], 500);
     }
 });
 
 Route::get('/produtos', function() {
     try {
-        $produtos = Produto::with('categoria')
+        $produtos = \App\Models\Produto::with('categoria')
             ->where('disponivel', true)
             ->get();
         return response()->json($produtos);
     } catch (\Exception $e) {
-        Log::error('Erro em /produtos: ' . $e->getMessage());
+        \Illuminate\Support\Facades\Log::error('Erro em /produtos: ' . $e->getMessage());
         return response()->json(['error' => 'Erro ao carregar produtos'], 500);
     }
 });
 
 Route::get('/mesas', function() {
     try {
-        $mesas = Mesa::all();
+        $mesas = \App\Models\Mesa::all();
         return response()->json($mesas);
     } catch (\Exception $e) {
-        Log::error('Erro em /mesas: ' . $e->getMessage());
+        \Illuminate\Support\Facades\Log::error('Erro em /mesas: ' . $e->getMessage());
         return response()->json(['error' => 'Erro ao carregar mesas'], 500);
     }
 });
 
 Route::get('/mesas/{id}/pedidos', function($id) {
     try {
-        $pedidos = Pedido::where('mesa_id', $id)
+        $pedidos = \App\Models\Pedido::where('mesa_id', $id)
             ->where('status', '!=', 'cancelado')
             ->with(['itens.produto', 'mesa'])
             ->get();
 
         return response()->json($pedidos);
     } catch (\Exception $e) {
-        Log::error('Erro em /mesas/{id}/pedidos: ' . $e->getMessage());
+        \Illuminate\Support\Facades\Log::error('Erro em /mesas/{id}/pedidos: ' . $e->getMessage());
         return response()->json(['error' => 'Erro ao carregar pedidos'], 500);
     }
 });

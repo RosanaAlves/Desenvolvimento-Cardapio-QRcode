@@ -8,25 +8,16 @@ class Pedido extends Model
 {
     use HasFactory;
 
-<<<<<<< Updated upstream
-    protected $fillable = ['mesa_id', 'status', 'total', 'observacoes'];
-
-=======
     protected $fillable = [
         'mesa_id',
-        'cliente_nome',
         'garcom_nome',
         'status',
         'total',
-        'observacoes',
-        'cancelado_por',
-        'motivo_cancelamento',
-        'cancelado_em'
+        'observacoes'
     ];
 
     protected $casts = [
-        'total' => 'decimal:2',
-        'cancelado_em' => 'datetime'
+        'total' => 'decimal:2'
     ];
 
     protected $attributes = [
@@ -34,7 +25,7 @@ class Pedido extends Model
         'total' => 0.00,
     ];
 
-    // 🔥 STATUS DISPONÍVEIS
+    // 🔥 STATUS DISPONÍVEIS (baseado no ENUM da migration)
     public const STATUS_DISPONIVEIS = [
         'pendente',
         'preparando', 
@@ -43,13 +34,13 @@ class Pedido extends Model
         'cancelado'
     ];
 
+    // 🔥 STATUS QUE PODEM SER CANCELADOS
     public const STATUS_CANCELAVEIS = [
         'pendente',
         'preparando'
     ];
 
     // RELACIONAMENTOS
->>>>>>> Stashed changes
     public function mesa()
     {
         return $this->belongsTo(Mesa::class);
@@ -58,10 +49,6 @@ class Pedido extends Model
     public function itens()
     {
         return $this->hasMany(PedidoItem::class);
-<<<<<<< Updated upstream
-    }
-
-=======
     }
 
     // 🔥 ESCOPOS
@@ -145,23 +132,17 @@ class Pedido extends Model
     public function marcarComoCancelado($motivo = null, $canceladoPor = null)
     {
         return $this->update([
-            'status' => 'cancelado',
-            'motivo_cancelamento' => $motivo,
-            'cancelado_por' => $canceladoPor,
-            'cancelado_em' => now()
+            'status' => 'cancelado'
         ]);
     }
 
     // 🔥 MÉTODOS DE CÁLCULO
->>>>>>> Stashed changes
     public function calcularTotal()
     {
         return $this->itens->sum(function($item) {
             return $item->quantidade * $item->preco_unitario;
         });
     }
-<<<<<<< Updated upstream
-=======
 
     public function atualizarTotal()
     {
@@ -192,22 +173,28 @@ class Pedido extends Model
         return $this->created_at->diffForHumans();
     }
 
+    public function getQuantidadeItensAttribute()
+    {
+        return $this->itens->sum('quantidade');
+    }
+
+    // 🔥 MÉTODO PARA RESPOSTA DA API
     public function toArrayResumido()
     {
         return [
             'id' => $this->id,
+            'mesa_id' => $this->mesa_id,
             'mesa_numero' => $this->mesa->numero ?? 'N/A',
-            'cliente_nome' => $this->cliente_nome,
             'garcom_nome' => $this->garcom_nome,
             'status' => $this->status,
             'status_formatado' => $this->status_formatado,
             'total' => $this->total,
             'total_formatado' => $this->total_formatado,
-            'quantidade_itens' => $this->itens->sum('quantidade'),
+            'quantidade_itens' => $this->quantidade_itens,
             'tempo_espera' => $this->tempo_espera,
+            'observacoes' => $this->observacoes,
             'created_at' => $this->created_at->format('d/m/Y H:i'),
             'pode_cancelar' => $this->podeSerCancelado()
         ];
     }
->>>>>>> Stashed changes
 }

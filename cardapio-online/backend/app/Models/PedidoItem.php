@@ -8,10 +8,8 @@ class PedidoItem extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['pedido_id', 'produto_id', 'quantidade', 'preco_unitario', 'observacoes'];
+    protected $table = 'pedido_itens';
 
-<<<<<<< Updated upstream
-=======
     protected $fillable = [
         'pedido_id',
         'produto_id',
@@ -25,7 +23,7 @@ class PedidoItem extends Model
         'quantidade' => 'integer'
     ];
 
->>>>>>> Stashed changes
+    // RELACIONAMENTOS
     public function pedido()
     {
         return $this->belongsTo(Pedido::class);
@@ -34,8 +32,6 @@ class PedidoItem extends Model
     public function produto()
     {
         return $this->belongsTo(Produto::class);
-<<<<<<< Updated upstream
-=======
     }
 
     // 🔥 ATRIBUTOS CALCULADOS
@@ -52,6 +48,21 @@ class PedidoItem extends Model
     public function getPrecoUnitarioFormatadoAttribute()
     {
         return 'R$ ' . number_format($this->preco_unitario, 2, ',', '.');
->>>>>>> Stashed changes
+    }
+
+    // 🔥 MÉTODO PARA RESPOSTA DA API
+    public function toArrayDetalhado()
+    {
+        return [
+            'id' => $this->id,
+            'produto_id' => $this->produto_id,
+            'produto_nome' => $this->produto->nome ?? 'Produto não encontrado',
+            'quantidade' => $this->quantidade,
+            'preco_unitario' => $this->preco_unitario,
+            'preco_unitario_formatado' => $this->preco_unitario_formatado,
+            'total' => $this->total,
+            'total_formatado' => $this->total_formatado,
+            'observacoes' => $this->observacoes
+        ];
     }
 }

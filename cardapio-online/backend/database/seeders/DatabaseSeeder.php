@@ -10,7 +10,6 @@ class DatabaseSeeder extends Seeder
     {
         // ✅ ORDEM CORRETA:
         $this->call([
-            UserSeeder::class,           // 1º - Não depende de ninguém
             CategoriasSeeder::class,     // 2º - Não depende de ninguém  
             ProdutoSeeder::class,        // 3º - Depende de Categorias
             ConfiguracaoSeeder::class,   // 4º - Não depende de ninguém

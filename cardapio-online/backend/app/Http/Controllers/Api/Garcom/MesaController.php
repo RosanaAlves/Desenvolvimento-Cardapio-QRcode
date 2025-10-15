@@ -11,23 +11,7 @@ use Illuminate\Support\Facades\Log;
 
 class MesaController extends Controller
 {
-    // ✅ ADICIONAR: Métodos de resposta padrão
-    private function success($data, $message = null, $code = 200)
-    {
-        return response()->json([
-            'success' => true,
-            'data' => $data,
-            'message' => $message
-        ], $code);
-    }
-
-    private function error($message, $code = 500)
-    {
-        return response()->json([
-            'success' => false,
-            'message' => $message
-        ], $code);
-    }
+    // ✅ CORREÇÃO: Use os métodos do Controller pai ou remova estes métodos
 
     // Listar TODAS as mesas para o garçom
     public function index()
@@ -35,11 +19,17 @@ class MesaController extends Controller
         try {
             $mesas = Mesa::all();
             
-            return $this->success($mesas);
+            return response()->json([
+                'success' => true,
+                'data' => $mesas
+            ]);
             
         } catch (\Exception $e) {
             Log::error('Erro em MesaController::index: ' . $e->getMessage());
-            return $this->error('Erro ao carregar mesas');
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao carregar mesas'
+            ], 500);
         }
     }
 
@@ -47,7 +37,7 @@ class MesaController extends Controller
     public function status()
     {
         try {
-            // ✅ CORRIGIDO: Agora usa 'pedidos' (plural) que foi corrigido no model
+            // ✅ CORREÇÃO: Agora usa 'pedidos' (plural) que foi corrigido no model
             $mesas = Mesa::with(['pedidos' => function($query) {
                 $query->whereIn('status', ['pendente', 'preparando', 'pronto']);
             }])->get();
@@ -77,11 +67,17 @@ class MesaController extends Controller
                 ];
             });
 
-            return $this->success($mesasComStatus);
+            return response()->json([
+                'success' => true,
+                'data' => $mesasComStatus
+            ]);
 
         } catch (\Exception $e) {
             Log::error('Erro em MesaController::status: ' . $e->getMessage());
-            return $this->error('Erro ao buscar status das mesas: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao buscar status das mesas: ' . $e->getMessage()
+            ], 500);
         }
     }
 
@@ -263,7 +259,4 @@ class MesaController extends Controller
             ], 500);
         }
     }
-
-    // ✅ REMOVIDO: Métodos success() e error() privados
-    // Usamos response()->json() diretamente em todos os lugares
 }
