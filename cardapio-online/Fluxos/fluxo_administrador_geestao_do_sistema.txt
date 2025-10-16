@@ -1,0 +1,13 @@
+ADMIN LOGADO
+         │
+         ▼
+┌───────────────────┐
+│ Dashboard         │ ←─── API: /api/admin/dashboard
+│ com Estatísticas  │
+└───────────────────┘
+         │
+         ▼
+┌───────────────────┐
+│ Configurações     │ ←─── API: /api/admin/configuracoes
+│ do Sistema        │
+└───────────────────┘

@@ -1,0 +1,16 @@
+┌───────────────────┐
+│ Visualiza Contas  │
+│ Fechadas          │
+└───────────────────┘
+         │
+         ▼
+┌───────────────────┐
+│ Confirma          │ ←─── API: /api/garcom/mesas/{id}/pagar-conta
+│ Pagamento         │
+└───────────────────┘
+         │
+         ▼
+┌───────────────────┐
+│ Libera Mesa       │
+│ Automaticamente   │
+└───────────────────┘

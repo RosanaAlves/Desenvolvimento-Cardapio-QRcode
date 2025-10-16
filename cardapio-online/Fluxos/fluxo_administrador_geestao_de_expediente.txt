@@ -1,0 +1,10 @@
+┌───────────────────┐
+│ Abre/Fecha        │ ←─── API: /api/admin/expediente/abrir|fechar
+│ Expediente        │
+└───────────────────┘
+         │
+         ▼
+┌───────────────────┐
+│ Gera Relatórios   │ ←─── API: /api/admin/relatorios/...
+│ de Vendas         │
+└───────────────────┘

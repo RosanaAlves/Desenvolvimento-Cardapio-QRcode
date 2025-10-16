@@ -2,95 +2,126 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Pedido;
-use App\Models\Produto;
 use App\Models\Categoria;
-use App\Models\Mesa;
-use App\Models\Configuracao;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
-class DashboardController extends Controller
+class CategoriaController extends Controller
 {
+    // ✅ LISTAR CATEGORIAS
     public function index()
     {
         try {
-            $config = Configuracao::getConfig();
-            
-            $stats = [
-                // Mesas
-                'total_mesas' => Mesa::count(),
-                'mesas_ocupadas' => Mesa::where('status', 'ocupada')->count(),
-                'mesas_livres' => Mesa::where('status', 'livre')->count(),
-                
-                // Pedidos
-                'total_pedidos' => Pedido::count(),
-                'pedidos_pendentes' => Pedido::pendentes()->count(),
-                'pedidos_preparando' => Pedido::preparando()->count(),
-                'pedidos_prontos' => Pedido::prontos()->count(),
-                'pedidos_entregues' => Pedido::where('status', 'entregue')->count(),
-                'pedidos_hoje' => Pedido::deHoje()->count(),
-                
-                // Financeiro
-                'faturamento_hoje' => Pedido::deHoje()->where('status', 'entregue')->sum('total'),
-                'faturamento_mes' => Pedido::whereMonth('created_at', now()->month)
-                                        ->where('status', 'entregue')
-                                        ->sum('total'),
-                'faturamento_total' => Pedido::where('status', 'entregue')->sum('total'),
-                
-                // Produtos
-                'total_produtos' => Produto::count(),
-                'produtos_disponiveis' => Produto::where('disponivel', true)->count(),
-                'total_categorias' => Categoria::count(),
-                
-                // Configurações
-                'expediente_aberto' => $config->expediente_aberto,
-                'faturamento_dia' => $config->faturamento_dia
-            ];
+            $categorias = Categoria::withCount('produtos')->get();
 
-            // Pedidos recentes (últimos 10)
-            $pedidosRecentes = Pedido::with(['mesa', 'itens.produto'])
-                ->orderBy('created_at', 'desc')
-                ->limit(10)
-                ->get()
-                ->map(function($pedido) {
-                    return [
-                        'id' => $pedido->id,
-                        'mesa_numero' => $pedido->mesa->numero,
-                        'cliente_nome' => $pedido->cliente_nome,
-                        'garcom_nome' => $pedido->garcom_nome,
-                        'status' => $pedido->status,
-                        'status_formatado' => $pedido->status_formatado,
-                        'total' => $pedido->total,
-                        'total_formatado' => $pedido->total_formatado,
-                        'created_at' => $pedido->created_at->format('d/m/Y H:i'),
-                        'itens_count' => $pedido->itens->count()
-                    ];
-                });
+            return response()->json([
+                'success' => true,
+                'data' => $categorias
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Erro em Admin CategoriaController::index: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao carregar categorias'
+            ], 500);
+        }
+    }
 
-            // Produtos mais vendidos
-            $produtosMaisVendidos = DB::table('pedido_itens')
-                ->join('produtos', 'pedido_itens.produto_id', '=', 'produtos.id')
-                ->select(
-                    'produtos.id',
-                    'produtos.nome',
-                    DB::raw('SUM(pedido_itens.quantidade) as total_vendido'),
-                    DB::raw('SUM(pedido_itens.quantidade * pedido_itens.preco_unitario) as total_faturado')
-                )
-                ->groupBy('produtos.id', 'produtos.nome')
-                ->orderByDesc('total_vendido')
-                ->limit(10)
-                ->get();
+    // ✅ CRIAR CATEGORIA
+    public function store(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'nome' => 'required|string|max:255',
+                'descricao' => 'nullable|string',
+                'disponivel' => 'boolean'
+            ]);
 
-            return $this->success([
-                'estatisticas' => $stats,
-                'pedidos_recentes' => $pedidosRecentes,
-                'produtos_mais_vendidos' => $produtosMaisVendidos,
-                'atualizado_em' => now()->format('d/m/Y H:i:s')
+            $categoria = Categoria::create($validated);
+
+            return response()->json([
+                'success' => true,
+                'data' => $categoria,
+                'message' => 'Categoria criada com sucesso!'
+            ], 201);
+
+        } catch (\Exception $e) {
+            Log::error('Erro em Admin CategoriaController::store: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao criar categoria'
+            ], 500);
+        }
+    }
+
+    // ✅ ATUALIZAR CATEGORIA
+    public function update(Request $request, $id)
+    {
+        try {
+            $categoria = Categoria::find($id);
+            if (!$categoria) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Categoria não encontrada'
+                ], 404);
+            }
+
+            $validated = $request->validate([
+                'nome' => 'sometimes|required|string|max:255',
+                'descricao' => 'nullable|string',
+                'disponivel' => 'boolean'
+            ]);
+
+            $categoria->update($validated);
+
+            return response()->json([
+                'success' => true,
+                'data' => $categoria,
+                'message' => 'Categoria atualizada com sucesso!'
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('Erro Admin/Dashboard: ' . $e->getMessage());
-            return $this->error('Erro ao carregar dashboard', 500);
+            Log::error('Erro em Admin CategoriaController::update: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao atualizar categoria'
+            ], 500);
+        }
+    }
+
+    // ✅ EXCLUIR CATEGORIA
+    public function destroy($id)
+    {
+        try {
+            $categoria = Categoria::find($id);
+            if (!$categoria) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Categoria não encontrada'
+                ], 404);
+            }
+
+            // Verificar se existem produtos nesta categoria
+            if ($categoria->produtos()->count() > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Não é possível excluir categoria com produtos vinculados'
+                ], 422);
+            }
+
+            $categoria->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Categoria excluída com sucesso!'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erro em Admin CategoriaController::destroy: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao excluir categoria'
+            ], 500);
         }
     }
 }

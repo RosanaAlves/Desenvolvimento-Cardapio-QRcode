@@ -1,0 +1,31 @@
+CLIENTE SOLICITA CONTA
+         │
+         ▼
+┌───────────────────┐
+│ Garçom Fecha      │ ←─── API: /api/garcom/mesas/{id}/fechar-conta
+│ Conta             │
+└───────────────────┘
+         │
+         ├─────────── ERRO ───────┐
+         ▼                        ▼
+┌─────────────────┐       ┌─────────────────┐
+│ Conta Fechada   │       │ Sem Pedidos?    │
+│ com Sucesso     │       │ Exibe Erro      │
+└─────────────────┘       └─────────────────┘
+         │
+         ▼
+┌───────────────────┐
+│ Cliente paga      │
+│ no CAIXA          │
+└───────────────────┘
+         │
+         ▼
+┌───────────────────┐
+│ ADMIN confirma    │ ←─── API: /api/garcom/mesas/{id}/pagar-conta
+│ pagamento         │
+└───────────────────┘
+         │
+         ▼
+┌───────────────────┐
+│ Mesa Liberada     │
+└───────────────────┘

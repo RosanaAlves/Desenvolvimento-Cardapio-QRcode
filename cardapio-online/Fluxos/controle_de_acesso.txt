@@ -1,0 +1,14 @@
+GARÇOM:
+✓ Visualizar Mesas
+✓ Ocupar/Liberar Mesas  
+✓ Fazer Pedidos
+✓ Fechar Contas
+✓ Reabrir Contas
+✗ Confirmar Pagamentos
+
+ADMIN:
+✓ Todas funções Garçom
+✓ Confirmar Pagamentos
+✓ Gestão Completa
+✓ Relatórios
+✓ Configurações

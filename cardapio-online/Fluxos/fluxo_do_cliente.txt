@@ -1,0 +1,17 @@
+CLIENTE ABRE CARDÁPIO
+         │
+         ▼
+┌───────────────────┐
+│ Carrega Categorias│ ←─── API: /api/cliente/categorias
+└───────────────────┘
+         │
+         ▼
+┌───────────────────┐
+│ Visualiza Produtos│ ←─── API: /api/cliente/produtos
+└───────────────────┘
+         │
+         ▼
+┌───────────────────┐
+│ Filtra por        │ ←─── API: /api/cliente/categorias/{id}/produtos
+│ Categoria         │
+└───────────────────┘

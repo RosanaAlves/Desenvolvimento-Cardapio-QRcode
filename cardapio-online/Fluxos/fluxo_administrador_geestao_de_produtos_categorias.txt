@@ -1,0 +1,13 @@
+┌───────────────────┐
+│ CRUD de Produtos  │ ←─── API: /api/admin/produtos
+└───────────────────┘
+         │
+         ▼
+┌───────────────────┐
+│ CRUD de Categorias│ ←─── API: /api/admin/categorias
+└───────────────────┘
+         │
+         ▼
+┌───────────────────┐
+│ Gerencia Mesas    │ ←─── API: /api/admin/mesas
+└───────────────────┘

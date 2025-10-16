@@ -1,0 +1,16 @@
+┌───────────────────┐
+│ Visualiza Todos   │ ←─── API: /api/admin/pedidos
+│ os Pedidos        │
+└───────────────────┘
+         │
+         ▼
+┌───────────────────┐
+│ Altera Status     │ ←─── API: /api/admin/pedidos/{id}/status
+│ dos Pedidos       │
+└───────────────────┘
+         │
+         ▼
+┌───────────────────┐
+│ Cancela Pedidos   │ ←─── API: /api/admin/pedidos/{id}/cancelar
+│ se Necessário     │
+└───────────────────┘

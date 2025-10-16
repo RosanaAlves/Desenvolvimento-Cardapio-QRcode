@@ -44,12 +44,18 @@ function App() {
   const [mesas, setMesas] = useState([]);
   const [carregando, setCarregando] = useState(false);
   const [pedidoSelecionado, setPedidoSelecionado] = useState(null);
+  
+  // 🔥 NOVOS ESTADOS
+  const [configuracoes, setConfiguracoes] = useState(null);
+  const [expedienteStatus, setExpedienteStatus] = useState(null);
+  const [mostrarModalConfig, setMostrarModalConfig] = useState(false);
+  const [mostrarModalExpediente, setMostrarModalExpediente] = useState(false);
 
   // ✅ CORREÇÃO: Carregar dados do dashboard
   const carregarDashboard = async () => {
     try {
       setCarregando(true);
-      const data = await fetchAPI('/admin/estatisticas');
+      const data = await fetchAPI('/admin/dashboard');
       setDashboardData(data.data || data); // ✅ Compatível com ambas as estruturas
     } catch (erro) {
       console.error('Erro ao carregar dashboard:', erro);
@@ -101,6 +107,104 @@ function App() {
     }
   };
 
+  // 🔥 NOVO: Carregar configurações
+  const carregarConfiguracoes = async () => {
+    try {
+      const data = await fetchAPI('/admin/configuracoes');
+      setConfiguracoes(data.data);
+    } catch (erro) {
+      console.error('Erro ao carregar configurações:', erro);
+      // Configurações padrão caso não consiga carregar
+      setConfiguracoes({
+        nome_estabelecimento: "Jetro's Lanches",
+        numero_mesas: 10,
+        taxa_servico: 0,
+        expediente_aberto: false
+      });
+    }
+  };
+
+  // 🔥 NOVO: Carregar status do expediente
+  const carregarExpedienteStatus = async () => {
+    try {
+      const data = await fetchAPI('/admin/expediente/status');
+      setExpedienteStatus(data.data);
+    } catch (erro) {
+      console.error('Erro ao carregar status do expediente:', erro);
+    }
+  };
+
+  // 🔥 NOVO: Atualizar configurações
+  const atualizarConfiguracoes = async (novasConfigs) => {
+    try {
+      const data = await fetchAPI('/admin/configuracoes', {
+        method: 'PUT',
+        body: JSON.stringify(novasConfigs)
+      });
+      
+      setConfiguracoes(data.data);
+      alert('Configurações atualizadas com sucesso!');
+      setMostrarModalConfig(false);
+    } catch (erro) {
+      console.error('Erro ao atualizar configurações:', erro);
+      alert('Erro ao atualizar configurações');
+    }
+  };
+
+  // 🔥 NOVO: Abrir expediente
+  const abrirExpediente = async () => {
+    try {
+      await fetchAPI('/admin/expediente/abrir', {
+        method: 'POST'
+      });
+      
+      alert('Expediente aberto com sucesso!');
+      carregarExpedienteStatus();
+      carregarDashboard();
+    } catch (erro) {
+      console.error('Erro ao abrir expediente:', erro);
+      alert(erro.message || 'Erro ao abrir expediente');
+    }
+  };
+
+  // 🔥 NOVO: Fechar expediente
+  const fecharExpediente = async () => {
+    try {
+      const data = await fetchAPI('/admin/expediente/fechar', {
+        method: 'POST'
+      });
+      
+      alert('Expediente fechado com sucesso!');
+      setMostrarModalExpediente(true);
+      carregarExpedienteStatus();
+      carregarDashboard();
+    } catch (erro) {
+      console.error('Erro ao fechar expediente:', erro);
+      alert(erro.message || 'Erro ao fechar expediente');
+    }
+  };
+
+  // 🔥 NOVO: Reiniciar sistema
+  const reiniciarSistema = async () => {
+    if (!window.confirm('⚠️ ATENÇÃO!\n\nIsso irá reiniciar todo o sistema:\n- Liberar todas as mesas\n- Cancelar pedidos em aberto\n- Zerar estatísticas do dia\n\nContinuar?')) {
+      return;
+    }
+
+    try {
+      await fetchAPI('/admin/configuracoes/reiniciar-sistema', {
+        method: 'POST'
+      });
+      
+      alert('✅ Sistema reiniciado com sucesso!');
+      carregarDashboard();
+      carregarMesas();
+      carregarPedidos();
+    } catch (erro) {
+      console.error('Erro ao reiniciar sistema:', erro);
+      alert('Erro ao reiniciar sistema');
+    }
+  };
+
   // ✅ CORREÇÃO: Atualizar status do pedido
   const atualizarStatusPedido = async (pedidoId, novoStatus) => {
     try {
@@ -139,6 +243,8 @@ function App() {
       case 'dashboard':
         carregarDashboard();
         carregarMesas();
+        carregarExpedienteStatus();
+        carregarConfiguracoes();
         break;
       case 'pedidos':
         carregarPedidos();
@@ -168,7 +274,8 @@ function App() {
     nav: {
       display: 'flex',
       gap: '10px',
-      marginTop: '15px'
+      marginTop: '15px',
+      flexWrap: 'wrap'
     },
     navButton: {
       backgroundColor: 'transparent',
@@ -254,7 +361,265 @@ function App() {
     buttonPrimary: { backgroundColor: '#007bff', color: 'white' },
     buttonSuccess: { backgroundColor: '#28a745', color: 'white' },
     buttonWarning: { backgroundColor: '#ffc107', color: '#212529' },
-    buttonDanger: { backgroundColor: '#dc3545', color: 'white' }
+    buttonDanger: { backgroundColor: '#dc3545', color: 'white' },
+    buttonInfo: { backgroundColor: '#17a2b8', color: 'white' }
+  };
+
+  // 🔥 NOVO: Componente de Controle de Expediente
+  const ControleExpediente = () => {
+    if (!expedienteStatus) return null;
+
+    return (
+      <div style={estilos.card}>
+        <h3 style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          🕒 Controle de Expediente
+          <span style={{
+            ...estilos.badge,
+            ...(expedienteStatus.expediente_aberto ? estilos.badgeSuccess : estilos.badgeDanger)
+          }}>
+            {expedienteStatus.expediente_aberto ? '🟢 ABERTO' : '🔴 FECHADO'}
+          </span>
+        </h3>
+        
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          {!expedienteStatus.expediente_aberto ? (
+            <button
+              onClick={abrirExpediente}
+              style={{ ...estilos.button, ...estilos.buttonSuccess, padding: '10px 20px' }}
+            >
+              🟢 Iniciar Expediente
+            </button>
+          ) : (
+            <button
+              onClick={fecharExpediente}
+              style={{ ...estilos.button, ...estilos.buttonDanger, padding: '10px 20px' }}
+            >
+              🔴 Fechar Expediente
+            </button>
+          )}
+          
+          <button
+            onClick={() => setMostrarModalConfig(true)}
+            style={{ ...estilos.button, ...estilos.buttonPrimary, padding: '10px 20px' }}
+          >
+            ⚙️ Configurações
+          </button>
+          
+          <button
+            onClick={reiniciarSistema}
+            style={{ ...estilos.button, ...estilos.buttonWarning, padding: '10px 20px' }}
+          >
+            🔄 Reiniciar Sistema
+          </button>
+        </div>
+
+        {expedienteStatus.expediente_aberto && (
+          <div style={{ marginTop: '15px', padding: '15px', backgroundColor: '#e8f5e8', borderRadius: '5px' }}>
+            <p style={{ margin: '0', fontWeight: 'bold', color: '#155724' }}>
+              📊 Hoje: {expedienteStatus.pedidos_hoje || 0} pedidos • 
+              R$ {Number(expedienteStatus.vendas_hoje || 0).toFixed(2)} em vendas
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // 🔥 NOVO: Modal de Configurações
+  const ModalConfiguracoes = () => {
+    const [formData, setFormData] = useState(configuracoes || {});
+
+    useEffect(() => {
+      setFormData(configuracoes || {});
+    }, [configuracoes]);
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      atualizarConfiguracoes(formData);
+    };
+
+    if (!mostrarModalConfig) return null;
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000
+      }}>
+        <div style={{
+          backgroundColor: 'white',
+          padding: '30px',
+          borderRadius: '8px',
+          maxWidth: '500px',
+          width: '90%',
+          maxHeight: '80vh',
+          overflow: 'auto'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h3>⚙️ Configurações do Sistema</h3>
+            <button
+              onClick={() => setMostrarModalConfig(false)}
+              style={{ backgroundColor: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer' }}
+            >
+              ✕
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit}>
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                Nome do Estabelecimento:
+              </label>
+              <input
+                type="text"
+                value={formData.nome_estabelecimento || ''}
+                onChange={(e) => setFormData({...formData, nome_estabelecimento: e.target.value})}
+                style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+                required
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                Número de Mesas:
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="50"
+                value={formData.numero_mesas || 10}
+                onChange={(e) => setFormData({...formData, numero_mesas: parseInt(e.target.value)})}
+                style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+                required
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                Taxa de Serviço (%):
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="20"
+                step="0.1"
+                value={formData.taxa_servico || 0}
+                onChange={(e) => setFormData({...formData, taxa_servico: parseFloat(e.target.value)})}
+                style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                Telefone:
+              </label>
+              <input
+                type="text"
+                value={formData.telefone || ''}
+                onChange={(e) => setFormData({...formData, telefone: e.target.value})}
+                style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+                placeholder="(11) 99999-9999"
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+              <button
+                type="submit"
+                style={{ ...estilos.button, ...estilos.buttonSuccess, padding: '10px 20px' }}
+              >
+                💾 Salvar Configurações
+              </button>
+              <button
+                type="button"
+                onClick={() => setMostrarModalConfig(false)}
+                style={{ ...estilos.button, backgroundColor: '#6c757d', color: 'white', padding: '10px 20px' }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
+  // 🔥 NOVO: Modal de Relatório do Dia
+  const ModalRelatorioDia = () => {
+    if (!mostrarModalExpediente || !expedienteStatus) return null;
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000
+      }}>
+        <div style={{
+          backgroundColor: 'white',
+          padding: '30px',
+          borderRadius: '8px',
+          maxWidth: '600px',
+          width: '90%',
+          maxHeight: '80vh',
+          overflow: 'auto'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h3>📊 Relatório do Expediente</h3>
+            <button
+              onClick={() => setMostrarModalExpediente(false)}
+              style={{ backgroundColor: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer' }}
+            >
+              ✕
+            </button>
+          </div>
+
+          <div style={estilos.grid}>
+            <div style={estilos.statCard}>
+              <h4>🛒 Pedidos Hoje</h4>
+              <p style={{ fontSize: '2em', fontWeight: 'bold', margin: '10px 0', color: '#007bff' }}>
+                {expedienteStatus.pedidos_hoje || 0}
+              </p>
+            </div>
+            
+            <div style={estilos.statCard}>
+              <h4>💰 Vendas Hoje</h4>
+              <p style={{ fontSize: '2em', fontWeight: 'bold', margin: '10px 0', color: '#28a745' }}>
+                R$ {Number(expedienteStatus.vendas_hoje || 0).toFixed(2)}
+              </p>
+            </div>
+          </div>
+
+          <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '5px' }}>
+            <h4 style={{ marginBottom: '10px' }}>✅ Expediente Encerrado</h4>
+            <p style={{ margin: 0, color: '#666' }}>
+              O expediente foi fechado com sucesso. Todos os dados do dia foram registrados.
+            </p>
+          </div>
+
+          <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
+            <button
+              onClick={() => setMostrarModalExpediente(false)}
+              style={{ ...estilos.button, ...estilos.buttonPrimary, padding: '10px 20px' }}
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   // ✅ CORREÇÃO: Componente do Dashboard
@@ -267,6 +632,9 @@ function App() {
     return (
       <div>
         <h2 style={{ marginBottom: '20px', color: '#333' }}>📊 Dashboard</h2>
+        
+        {/* 🔥 NOVO: Controle de Expediente */}
+        <ControleExpediente />
         
         <div style={estilos.grid}>
           <div style={estilos.statCard}>
@@ -669,6 +1037,10 @@ function App() {
           </>
         )}
       </main>
+
+      {/* 🔥 NOVOS MODAIS */}
+      <ModalConfiguracoes />
+      <ModalRelatorioDia />
     </div>
   );
 }

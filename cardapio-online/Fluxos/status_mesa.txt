@@ -1,0 +1,4 @@
+LIVRE → OCUPADA → FECHADA → PAGA → LIVRE
+    ↓         ↓         ↓
+  Pedidos   Pedidos   Aguardando
+  Ativos    Ativos    Pagamento

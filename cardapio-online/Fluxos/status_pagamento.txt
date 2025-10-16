@@ -1,0 +1,4 @@
+ABERTA → FECHADA → PAGA
+   ↓        ↑        ↓
+ Pedidos  Reabrir  Mesa Libre
+ Ativos   Conta   para Uso

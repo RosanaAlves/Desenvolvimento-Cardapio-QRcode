@@ -1,98 +1,33 @@
 <?php
-
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Produto;
-use App\Models\Categoria;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
 
 class ProdutoController extends Controller
 {
-    /**
-     * Listar produtos (público - apenas disponíveis)
-     */
+    // ✅ LISTAR PRODUTOS
     public function index()
     {
         try {
-            Log::info('Acessando lista de produtos');
+            $produtos = Produto::with('categoria')->get();
             
-            $query = Produto::with(['categoria' => function($query) {
-                $query->select('id', 'nome');
-            }]);
-            
-            // Filtra apenas produtos disponíveis
-            $query->where('disponivel', true);
-            
-            $produtos = $query->get(['id', 'nome', 'descricao', 'preco', 'categoria_id', 'disponivel']);
-            
-            Log::info('Produtos encontrados: ' . $produtos->count());
-            
-            return $this->success($produtos);
-            
+            return response()->json([
+                'success' => true,
+                'data' => $produtos
+            ]);
         } catch (\Exception $e) {
-            Log::error('Erro em ProdutoController@index: ' . $e->getMessage());
-            return $this->error('Erro ao carregar produtos: ' . $e->getMessage(), 500);
+            Log::error('Erro em Admin ProdutoController::index: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao carregar produtos'
+            ], 500);
         }
     }
 
-    /**
-     * Listar produtos para admin (todos os produtos)
-     */
-    public function indexAdmin()
-    {
-        try {
-            $produtos = Produto::with(['categoria' => function($query) {
-                $query->select('id', 'nome');
-            }])->get();
-            
-            $produtosFormatados = $produtos->map(function($produto) {
-                return [
-                    'id' => $produto->id,
-                    'nome' => $produto->nome,
-                    'descricao' => $produto->descricao,
-                    'preco' => (float) $produto->preco,
-                    'categoria_id' => $produto->categoria_id,
-                    'categoria_nome' => $produto->categoria->nome ?? 'Sem categoria',
-                    'disponivel' => (bool) $produto->disponivel
-                ];
-            });
-            
-            return $this->success($produtosFormatados);
-            
-        } catch (\Exception $e) {
-            Log::error('Erro em ProdutoController@indexAdmin: ' . $e->getMessage());
-            return $this->error('Erro ao carregar produtos: ' . $e->getMessage(), 500);
-        }
-    }
-
-    /**
-     * Mostrar produto específico
-     */
-    public function show($id)
-    {
-        try {
-            $produto = Produto::with(['categoria' => function($query) {
-                $query->select('id', 'nome');
-            }])->find($id);
-            
-            if (!$produto) {
-                return $this->error('Produto não encontrado', 404);
-            }
-
-            return $this->success($produto);
-            
-        } catch (\Exception $e) {
-            Log::error('Erro em ProdutoController@show: ' . $e->getMessage());
-            return $this->error('Erro ao carregar produto: ' . $e->getMessage(), 500);
-        }
-    }
-
-    /**
-     * Criar novo produto
-     */
+    // ✅ CRIAR PRODUTO
     public function store(Request $request)
     {
         try {
@@ -107,84 +42,86 @@ class ProdutoController extends Controller
 
             $produto = Produto::create($validated);
 
-            return $this->success($produto, 'Produto criado com sucesso!', 201);
-            
+            return response()->json([
+                'success' => true,
+                'data' => $produto,
+                'message' => 'Produto criado com sucesso!'
+            ], 201);
+
         } catch (\Exception $e) {
-            Log::error('Erro em ProdutoController@store: ' . $e->getMessage());
-            return $this->error('Erro ao criar produto: ' . $e->getMessage(), 500);
+            Log::error('Erro em Admin ProdutoController::store: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao criar produto'
+            ], 500);
         }
     }
 
-    /**
-     * Atualizar produto
-     */
+    // ✅ ATUALIZAR PRODUTO
     public function update(Request $request, $id)
     {
         try {
             $produto = Produto::find($id);
             
             if (!$produto) {
-                return $this->error('Produto não encontrado', 404);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Produto não encontrado'
+                ], 404);
             }
 
             $validated = $request->validate([
-                'nome' => 'sometimes|string|max:255',
+                'nome' => 'sometimes|required|string|max:255',
                 'descricao' => 'nullable|string',
-                'preco' => 'sometimes|numeric|min:0',
-                'categoria_id' => 'sometimes|exists:categorias,id',
-                'disponivel' => 'boolean'
+                'preco' => 'sometimes|required|numeric|min:0',
+                'categoria_id' => 'sometimes|required|exists:categorias,id',
+                'disponivel' => 'boolean',
+                'imagem' => 'nullable|url'
             ]);
 
             $produto->update($validated);
 
-            return $this->success($produto, 'Produto atualizado com sucesso!');
-            
+            return response()->json([
+                'success' => true,
+                'data' => $produto,
+                'message' => 'Produto atualizado com sucesso!'
+            ]);
+
         } catch (\Exception $e) {
-            Log::error('Erro em ProdutoController@update: ' . $e->getMessage());
-            return $this->error('Erro ao atualizar produto: ' . $e->getMessage(), 500);
+            Log::error('Erro em Admin ProdutoController::update: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao atualizar produto'
+            ], 500);
         }
     }
 
-    /**
-     * Excluir produto
-     */
+    // ✅ EXCLUIR PRODUTO
     public function destroy($id)
     {
         try {
             $produto = Produto::find($id);
             
             if (!$produto) {
-                return $this->error('Produto não encontrado', 404);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Produto não encontrado'
+                ], 404);
             }
 
             $produto->delete();
 
-            return $this->success(null, 'Produto excluído com sucesso!');
-            
-        } catch (\Exception $e) {
-            Log::error('Erro em ProdutoController@destroy: ' . $e->getMessage());
-            return $this->error('Erro ao excluir produto: ' . $e->getMessage(), 500);
-        }
-    }
+            return response()->json([
+                'success' => true,
+                'message' => 'Produto excluído com sucesso!'
+            ]);
 
-    /**
-     * Produtos por categoria
-     */
-    public function porCategoria($categoriaId)
-    {
-        try {
-            $produtos = Produto::with(['categoria' => function($query) {
-                $query->select('id', 'nome');
-            }])
-            ->where('categoria_id', $categoriaId)
-            ->where('disponivel', true)
-            ->get(['id', 'nome', 'descricao', 'preco', 'categoria_id', 'disponivel']);
-
-            return $this->success($produtos);
-            
         } catch (\Exception $e) {
-            Log::error('Erro em ProdutoController@porCategoria: ' . $e->getMessage());
-            return $this->error('Erro ao carregar produtos: ' . $e->getMessage(), 500);
+            Log::error('Erro em Admin ProdutoController::destroy: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao excluir produto'
+            ], 500);
         }
     }
 }

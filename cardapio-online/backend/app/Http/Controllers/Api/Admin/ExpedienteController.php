@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Configuracao;
 use App\Models\Pedido;
+use App\Models\Mesa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -40,7 +41,7 @@ class ExpedienteController extends Controller
         }
     }
 
-    // ✅ ABRIR EXPEDIENTE
+    // ✅ ABRIR EXPEDIENTE (COM RESET)
     public function abrirExpediente()
     {
         DB::beginTransaction();
@@ -54,16 +55,27 @@ class ExpedienteController extends Controller
                 ], 422);
             }
 
-            $config->update(['expediente_aberto' => true]);
+            // 🔄 RESETAR AO ABRIR EXPEDIENTE
+            Mesa::query()->update([
+                'status' => 'livre',
+                'garcom_nome' => null,
+                'status_pagamento' => 'aberta'
+            ]);
 
-            // Criar log de abertura
-            // LogExpediente::create(['tipo' => 'abertura', 'user_id' => auth()->id()]);
+            // 🔄 CANCELAR PEDIDOS PENDENTES DO DIA ANTERIOR
+            $hoje = now()->format('Y-m-d');
+            Pedido::whereDate('created_at', $hoje)
+                 ->where('status', '!=', 'entregue')
+                 ->update(['status' => 'cancelado']);
+
+            // ✅ ABRIR EXPEDIENTE
+            $config->update(['expediente_aberto' => true]);
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Expediente aberto com sucesso!'
+                'message' => 'Expediente aberto com sucesso! Sistema reiniciado.'
             ]);
 
         } catch (\Exception $e) {
@@ -97,19 +109,12 @@ class ExpedienteController extends Controller
             // Fechar expediente
             $config->update(['expediente_aberto' => false]);
 
-            // Criar log de fechamento
-            // LogExpediente::create([
-            //     'tipo' => 'fechamento', 
-            //     'user_id' => auth()->id(),
-            //     'dados' => json_encode($relatorio)
-            // ]);
-
             DB::commit();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Expediente fechado com sucesso!',
-                'relatorio' => $relatorio
+                'data' => $relatorio
             ]);
 
         } catch (\Exception $e) {

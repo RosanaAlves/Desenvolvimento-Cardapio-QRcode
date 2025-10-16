@@ -1,0 +1,41 @@
+GARÇOM NO CARDÁPIO
+         │
+         ▼
+┌───────────────────┐
+│ Navega Categorias │ ←─── API: /api/garcom/cardapio/categorias
+└───────────────────┘
+         │
+         ▼
+┌───────────────────┐
+│ Seleciona Produto │
+└───────────────────┘
+         │
+         ▼
+┌───────────────────┐
+│ Adiciona          │
+│ Observações?      │
+└───────────────────┘
+         │
+         ├───────────── SIM ───────┐
+         ▼                         ▼
+┌─────────────────┐        ┌─────────────────┐
+│ Digita          │        │ Vai direto para │
+│ Observações     │        │ Carrinho        │
+└─────────────────┘        └─────────────────┘
+         │                         │
+         ▼                         ▼
+┌─────────────────┐        ┌─────────────────┐
+│ Confirma Item   │        │ Atualiza        │
+│ no Carrinho     │        │ Quantidades     │
+└─────────────────┘        └─────────────────┘
+         │
+         ▼
+┌───────────────────┐
+│ Finaliza Pedido   │ ←─── API: /api/garcom/pedidos (POST)
+└───────────────────┘
+         │
+         ▼
+┌───────────────────┐
+│ Pedido vai para   │
+│ COZINHA           │
+└───────────────────┘

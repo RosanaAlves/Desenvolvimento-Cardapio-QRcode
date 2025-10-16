@@ -1,0 +1,19 @@
+CONTA FECHADA
+         │
+         ▼
+┌───────────────────┐
+│ Necessidade de    │
+│ Reabrir?          │
+└───────────────────┘
+         │
+         ▼
+┌───────────────────┐
+│ Garçom Reabre     │ ←─── API: /api/garcom/mesas/{id}/reabrir-conta
+│ Conta             │
+└───────────────────┘
+         │
+         ▼
+┌───────────────────┐
+│ Retorna para      │
+│ Cardápio          │
+└───────────────────┘
