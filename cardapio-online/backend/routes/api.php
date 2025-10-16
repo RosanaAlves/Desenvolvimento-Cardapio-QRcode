@@ -51,45 +51,44 @@ Route::prefix('cliente')->group(function () {
 
 Route::prefix('garcom')->group(function () {
     
-    // 🔥 CARDÁPIO - GARÇOM
+    // 🔥 CARDÁPIO
     Route::get('/cardapio/categorias', [CardapioController::class, 'categorias']);
     Route::get('/cardapio', [CardapioController::class, 'index']);
     Route::get('/cardapio/produtos', [CardapioController::class, 'produtos']);
     Route::get('/cardapio/categorias/{categoriaId}/produtos', [CardapioController::class, 'produtosPorCategoria']);
     Route::get('/cardapio/buscar/{termo}', [CardapioController::class, 'buscarProdutos']);
     
-    // 🔥 MESAS - GARÇOM
+    // 🔥 MESAS
     Route::get('/mesas', [MesaController::class, 'index']);
     Route::get('/mesas/status', [MesaController::class, 'status']);
     Route::get('/mesas/{mesaId}/pedidos', [MesaController::class, 'pedidos']);
     Route::post('/mesas/{id}/ocupar', [MesaController::class, 'ocupar']);
     Route::post('/mesas/{id}/liberar', [MesaController::class, 'liberar']);
     Route::post('/mesas/{id}/fechar-conta', [MesaController::class, 'fecharConta']);
-    Route::post('/mesas/{id}/pagar-conta', [MesaController::class, 'pagarConta']);
+    // Route::post('/mesas/{id}/pagar-conta', [MesaController::class, 'pagarConta']);
+    Route::post('/mesas/{id}/reabrir-conta', [MesaController::class, 'reabrirConta']);
     Route::get('/mesas/{id}/status-conta', [MesaController::class, 'statusConta']);
     
-    // 🔥 PEDIDOS - GARÇOM
+    // 🔥 PEDIDOS
     Route::post('/pedidos', [PedidoController::class, 'store']);
     Route::get('/pedidos/{id}', [PedidoController::class, 'show']);
     Route::post('/pedidos/{id}/cancelar', [PedidoController::class, 'cancelar']);
     Route::get('/pedidos/garcom/{garcomNome}', [PedidoController::class, 'meusPedidos']);
     
-    // 🔥 CATEGORIAS - GARÇOM
+    // 🔥 CATEGORIAS
     Route::get('/categorias', [CategoriaController::class, 'index']);
-    Route::get('/categorias/admin', [CategoriaController::class, 'indexAdmin']);
     Route::get('/categorias/{id}/produtos', [CategoriaController::class, 'produtosPorCategoria']);
     
-    // 🔥 PRODUTOS - GARÇOM
+    // 🔥 PRODUTOS
     Route::get('/produtos', [ProdutoController::class, 'index']);
-    Route::get('/produtos/admin', [ProdutoController::class, 'indexAdmin']);
     Route::get('/produtos/{id}', [ProdutoController::class, 'show']);
     
-    // 🔥 DASHBOARD - GARÇOM
+    // 🔥 DASHBOARD
     Route::get('/dashboard', [DashboardController::class, 'index']);
 });
 
 // =========================================================================
-// ROTAS DO ADMIN (COM TODOS OS CONTROLLERS IMPLEMENTADOS)
+// ROTAS DO ADMIN (CORRIGIDAS - USANDO OS CONTROLLERS CORRETOS)
 // =========================================================================
 
 Route::prefix('admin')->group(function () {
@@ -112,25 +111,26 @@ Route::prefix('admin')->group(function () {
     // 🔥 DASHBOARD - ADMIN
     Route::get('/dashboard', [ConfiguracaoController::class, 'dashboard']);
 
-    // 🔥 PEDIDOS - ADMIN (COM CONTROLLER)
+    // 🔥 PEDIDOS - ADMIN (USANDO OS CONTROLLERS DO ADMIN)
     Route::get('/pedidos', [AdminPedidoController::class, 'index']);
     Route::put('/pedidos/{id}/status', [AdminPedidoController::class, 'updateStatus']);
     Route::post('/pedidos/{id}/cancelar', [AdminPedidoController::class, 'cancelar']);
 
-    // 🔥 PRODUTOS - ADMIN (COM CONTROLLER)
+    // 🔥 PRODUTOS - ADMIN (USANDO OS CONTROLLERS DO ADMIN)
     Route::get('/produtos', [AdminProdutoController::class, 'index']);
     Route::post('/produtos', [AdminProdutoController::class, 'store']);
     Route::put('/produtos/{id}', [AdminProdutoController::class, 'update']);
     Route::delete('/produtos/{id}', [AdminProdutoController::class, 'destroy']);
 
-    // 🔥 CATEGORIAS - ADMIN (COM CONTROLLER)
+    // 🔥 CATEGORIAS - ADMIN (USANDO OS CONTROLLERS DO ADMIN)
     Route::get('/categorias', [AdminCategoriaController::class, 'index']);
     Route::post('/categorias', [AdminCategoriaController::class, 'store']);
     Route::put('/categorias/{id}', [AdminCategoriaController::class, 'update']);
     Route::delete('/categorias/{id}', [AdminCategoriaController::class, 'destroy']);
 
-    // 🔥 MESAS - ADMIN (COM CONTROLLER)
+    // 🔥 MESAS - ADMIN (USANDO OS CONTROLLERS DO ADMIN + NOVA ROTA PAGAR CONTA)
     Route::get('/mesas', [AdminMesaController::class, 'index']);
+    Route::post('/mesas/{id}/pagar-conta', [AdminMesaController::class, 'pagarConta']); // ✅ NOVA ROTA
 });
 
 // =========================================================================

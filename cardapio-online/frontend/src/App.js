@@ -502,7 +502,7 @@ function App() {
     }
   };
 
-  // Reabrir conta
+  // Reabrir conta - ATUALIZADA
   const reabrirConta = async () => {
     try {
       const resultado = await fetchWithErrorHandling(`/api/garcom/mesas/${mesaSelecionada.id}/reabrir-conta`, {
@@ -511,11 +511,24 @@ function App() {
 
       if (resultado.success) {
         alert('Conta reaberta com sucesso!');
+        
+        // ✅ ATUALIZA O STATUS LOCALMENTE
+        setMesaSelecionada({
+          ...mesaSelecionada,
+          status_pagamento: 'aberta'
+        });
+        
         setEtapa('cardapio');
       }
     } catch (erro) {
       console.error('Erro ao reabrir conta:', erro);
-      alert('Erro ao reabrir conta.');
+      
+      // ✅ MELHOR MENSAGEM DE ERRO
+      if (erro.message.includes('fechadas')) {
+        alert('❌ Só é possível reabrir contas que estão fechadas!');
+      } else {
+        alert('Erro ao reabrir conta: ' + erro.message);
+      }
     }
   };
 
