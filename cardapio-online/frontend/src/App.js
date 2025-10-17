@@ -436,38 +436,36 @@ function App() {
     }
   };
 
-  // ✅ Fechar conta (ATUALIZADA - com melhor tratamento de erro)
-  const fecharConta = async () => {
-    try {
-      const resultado = await fetchWithErrorHandling(`/api/garcom/mesas/${mesaSelecionada.id}/fechar-conta`, {
-        method: 'POST'
+// ✅ CORRIGIDO: Fechar conta com melhor tratamento de erro
+const fecharConta = async () => {
+  try {
+    const resultado = await fetchWithErrorHandling(`/api/garcom/mesas/${mesaSelecionada.id}/fechar-conta`, {
+      method: 'POST'
+    });
+    
+    if (resultado.success) {
+      setResumoConta(resultado);
+      setEtapa('conta-fechada');
+      
+      // Atualizar status local
+      setMesaSelecionada({
+        ...mesaSelecionada,
+        status_pagamento: 'fechada'
       });
-      
-      if (resultado.success) {
-        setResumoConta(resultado);
-        setEtapa('conta-fechada');
-        
-        // Atualizar status local
-        setMesaSelecionada({
-          ...mesaSelecionada,
-          status_pagamento: 'fechada'
-        });
-      }
-    } catch (erro) {
-      console.error('Erro ao fechar conta:', erro);
-      
-      // ✅ MELHOR TRATAMENTO DE ERRO - AVISO VISUAL
-      if (erro.message.includes('Sem pedidos')) {
-        alert('❌ Não é possível fechar a conta!\n\nNenhum pedido foi realizado nesta mesa.');
-      } else if (erro.message.includes('já foi fechada')) {
-        alert('ℹ️ Esta conta já está fechada!\n\nAguarde o pagamento no caixa.');
-      } else if (erro.message.includes('já foi paga')) {
-        alert('✅ Esta conta já foi paga!\n\nA mesa está liberada.');
-      } else {
-        alert('❌ Erro ao fechar conta: ' + erro.message);
-      }
     }
-  };
+  } catch (erro) {
+    console.error('Erro ao fechar conta:', erro);
+    
+    // ✅ CORREÇÃO: Tratamento específico para erro 422 (Sem pedidos)
+    if (erro.message.includes('422')) {
+      alert('❌ Não é possível fechar a conta!\n\nNenhum pedido foi realizado nesta mesa.');
+    } else if (erro.message.includes('Sem pedidos')) {
+      alert('❌ Não é possível fechar a conta!\n\nNenhum pedido foi realizado nesta mesa.');
+    } else {
+      alert('❌ Erro ao fechar conta: ' + erro.message);
+    }
+  }
+};
 
   // ✅ Ver resumo da conta
   const verResumoConta = async () => {
@@ -489,35 +487,37 @@ function App() {
     }
   };
 
-  // ✅ Reabrir conta (ATUALIZADA)
-  const reabrirConta = async () => {
-    try {
-      const resultado = await fetchWithErrorHandling(`/api/garcom/mesas/${mesaSelecionada.id}/reabrir-conta`, {
-        method: 'POST'
-      });
+  // ✅ CORRIGIDO: Reabrir conta com melhor tratamento de erro
+const reabrirConta = async () => {
+  try {
+    const resultado = await fetchWithErrorHandling(`/api/garcom/mesas/${mesaSelecionada.id}/reabrir-conta`, {
+      method: 'POST'
+    });
 
-      if (resultado.success) {
-        alert('✅ Conta reaberta com sucesso!');
-        
-        // ✅ ATUALIZA O STATUS LOCALMENTE
-        setMesaSelecionada({
-          ...mesaSelecionada,
-          status_pagamento: 'aberta'
-        });
-        
-        setEtapa('cardapio');
-      }
-    } catch (erro) {
-      console.error('Erro ao reabrir conta:', erro);
+    if (resultado.success) {
+      alert('✅ Conta reaberta com sucesso!');
       
-      // ✅ MELHOR MENSAGEM DE ERRO
-      if (erro.message.includes('fechadas')) {
-        alert('❌ Só é possível reabrir contas que estão fechadas!');
-      } else {
-        alert('❌ Erro ao reabrir conta: ' + erro.message);
-      }
+      // Atualizar status local
+      setMesaSelecionada({
+        ...mesaSelecionada,
+        status_pagamento: 'aberta'
+      });
+      
+      setEtapa('cardapio');
     }
-  };
+  } catch (erro) {
+    console.error('Erro ao reabrir conta:', erro);
+    
+    // ✅ CORREÇÃO: Tratamento específico para erro 422
+    if (erro.message.includes('422')) {
+      alert('❌ Só é possível reabrir contas que estão fechadas!');
+    } else if (erro.message.includes('fechadas')) {
+      alert('❌ Só é possível reabrir contas que estão fechadas!');
+    } else {
+      alert('❌ Erro ao reabrir conta: ' + erro.message);
+    }
+  }
+};
 
   // Voltar para seleção de mesa
   const voltarParaMesas = () => {

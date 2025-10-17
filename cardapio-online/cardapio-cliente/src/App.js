@@ -78,11 +78,11 @@ const estilosBase = {
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
-
 function App() {
   const [categorias, setCategorias] = useState([]);
   const [produtos, setProdutos] = useState([]);
   const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState(null);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   // 🔥 DETECTAR TAMANHO DA TELA PARA RESPONSIVIDADE
@@ -120,38 +120,81 @@ function App() {
 
   const responsive = getResponsiveStyles();
 
-  // Carregar dados do cardápio
+  // 🔥 CARREGAR DADOS DO CARDÁPIO - VERSÃO CORRIGIDA COM SUAS ROTAS
   useEffect(() => {
     const carregarCardapio = async () => {
       try {
         setCarregando(true);
+        setErro(null);
         
-        // 🔥 USANDO O CARDAPIO CONTROLLER DO CLIENTE
+        // ✅ CORREÇÃO: Usando as rotas do SEU CardapioController
+        const [resCategorias, resProdutos] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/cliente/categorias`),
+          fetch(`${API_BASE_URL}/api/cliente/produtos`)
+        ]);
+
+        // ✅ Verificar se as respostas são OK
+        if (!resCategorias.ok || !resProdutos.ok) {
+          throw new Error('Erro ao carregar dados do servidor');
+        }
+
         const [dadosCategorias, dadosProdutos] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/cliente/cardapio`).then(r => r.json()),
-          fetch(`${API_BASE_URL}/api/cliente/produtos`).then(r => r.json())
+          resCategorias.json(),
+          resProdutos.json()
         ]);
         
-        // 🔥 CORREÇÃO: Verificar estrutura da resposta
-        const categoriasFormatadas = dadosCategorias.success ? dadosCategorias.data : dadosCategorias;
-        const produtosFormatados = dadosProdutos.success ? dadosProdutos.data : dadosProdutos;
+        // ✅ CORREÇÃO: Estrutura baseada no SEU Controller
+        // Seu controller retorna { success: true, data: [...] }
+        const categoriasFormatadas = dadosCategorias.success ? 
+          dadosCategorias.data : 
+          (Array.isArray(dadosCategorias) ? dadosCategorias : []);
         
+        const produtosFormatados = dadosProdutos.success ? 
+          dadosProdutos.data : 
+          (Array.isArray(dadosProdutos) ? dadosProdutos : []);
+
+        console.log('Categorias carregadas:', categoriasFormatadas);
+        console.log('Produtos carregados:', produtosFormatados);
+
         setCategorias(categoriasFormatadas);
         setProdutos(produtosFormatados);
         
       } catch (error) {
         console.error('Erro ao carregar cardápio:', error);
-        // 🔥 FALLBACK: Tentar rotas públicas antigas
-        try {
-          const [dadosCategorias, dadosProdutos] = await Promise.all([
-            fetch(`${API_BASE_URL}/api/categorias`).then(r => r.json()),
-            fetch(`${API_BASE_URL}/api/produtos`).then(r => r.json())
-          ]);
-          setCategorias(dadosCategorias);
-          setProdutos(dadosProdutos);
-        } catch (fallbackError) {
-          console.error('Erro no fallback:', fallbackError);
-        }
+        setErro('Não foi possível carregar o cardápio. Tente novamente.');
+        
+        // ✅ Dados mock para desenvolvimento/demonstração
+        const dadosMock = {
+          categorias: [
+            { 
+              id: 1, 
+              nome: "Pão de Saladinha", 
+              descricao: "Lanches no pão de saladinha",
+              produtos: [
+                { id: 1, nome: "Saladinha", descricao: "Alface, tomate, hambúrguer, presunto e queijo", preco: 19.00, categoria_id: 1 },
+                { id: 2, nome: "Saladinha Frango", descricao: "Alface, tomate, hambúrguer, frango, presunto e queijo", preco: 25.00, categoria_id: 1 }
+              ]
+            },
+            { 
+              id: 2, 
+              nome: "Bebidas", 
+              descricao: "Refrigerantes e sucos",
+              produtos: [
+                { id: 3, nome: "Coca-Cola Lata", descricao: "350ml", preco: 8.00, categoria_id: 2 },
+                { id: 4, nome: "Suco de Laranja", descricao: "Natural", preco: 13.00, categoria_id: 2 }
+              ]
+            }
+          ],
+          produtos: [
+            { id: 1, nome: "Saladinha", descricao: "Alface, tomate, hambúrguer, presunto e queijo", preco: 19.00, categoria_id: 1 },
+            { id: 2, nome: "Saladinha Frango", descricao: "Alface, tomate, hambúrguer, frango, presunto e queijo", preco: 25.00, categoria_id: 1 },
+            { id: 3, nome: "Coca-Cola Lata", descricao: "350ml", preco: 8.00, categoria_id: 2 },
+            { id: 4, nome: "Suco de Laranja", descricao: "Natural", preco: 13.00, categoria_id: 2 }
+          ]
+        };
+
+        setCategorias(dadosMock.categorias);
+        setProdutos(dadosMock.produtos);
       } finally {
         setCarregando(false);
       }
@@ -160,7 +203,57 @@ function App() {
     carregarCardapio();
   }, []);
 
+  // 🔥 FUNÇÃO PARA OBTER PRODUTOS DA CATEGORIA
+  const obterProdutosDaCategoria = (categoria) => {
+    // ✅ Se a categoria já vem com produtos (from /api/cliente/categorias)
+    if (categoria.produtos && Array.isArray(categoria.produtos)) {
+      return categoria.produtos;
+    }
+    
+    // ✅ Se precisa filtrar (from /api/cliente/produtos)
+    return produtos.filter(produto => produto.categoria_id === categoria.id);
+  };
+
+  // 🔥 COMPONENTE DE LOADING
   if (carregando) {
+    return (
+      <div style={{ 
+        padding: designSystem.spacing['3xl'], 
+        textAlign: 'center',
+        minHeight: '100vh',
+        backgroundColor: designSystem.cores.fundo,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        ...estilosBase.fontePrimaria
+      }}>
+        <div style={{ 
+          fontSize: designSystem.fontSizes['4xl'], 
+          marginBottom: designSystem.spacing.xl,
+          animation: 'spin 1s linear infinite'
+        }}>
+          ⏳
+        </div>
+        <h2 style={{
+          fontSize: designSystem.fontSizes.xl,
+          color: designSystem.cores.texto,
+          ...estilosBase.titulo
+        }}>
+          Carregando Cardápio...
+        </h2>
+        <style>{`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  // 🔥 COMPONENTE DE ERRO
+  if (erro && categorias.length === 0) {
     return (
       <div style={{ 
         padding: designSystem.spacing['3xl'], 
@@ -177,15 +270,23 @@ function App() {
           fontSize: designSystem.fontSizes['4xl'], 
           marginBottom: designSystem.spacing.xl 
         }}>
-          ⏳
+          ❌
         </div>
         <h2 style={{
           fontSize: designSystem.fontSizes.xl,
-          color: designSystem.cores.texto,
+          color: designSystem.cores.perigo,
           ...estilosBase.titulo
         }}>
-          Carregando Cardápio...
+          {erro}
         </h2>
+        <p style={{
+          fontSize: designSystem.fontSizes.base,
+          color: designSystem.cores.texto,
+          marginTop: designSystem.spacing.lg,
+          ...estilosBase.texto
+        }}>
+          Usando dados de demonstração...
+        </p>
       </div>
     );
   }
@@ -247,18 +348,7 @@ function App() {
       {/* CARDÁPIO */}
       <div style={{ marginBottom: designSystem.spacing['3xl'] }}>
         {categorias.map(categoria => {
-          // 🔥 CORREÇÃO: Diferentes formas de obter produtos da categoria
-          let produtosDaCategoria = [];
-          
-          if (categoria.produtos && Array.isArray(categoria.produtos)) {
-            // Se a categoria já vem com produtos (from /api/cliente/cardapio)
-            produtosDaCategoria = categoria.produtos;
-          } else {
-            // Se precisa filtrar (from /api/categorias + /api/produtos)
-            produtosDaCategoria = produtos.filter(produto => 
-              produto.categoria_id === categoria.id
-            );
-          }
+          const produtosDaCategoria = obterProdutosDaCategoria(categoria);
 
           if (produtosDaCategoria.length === 0) return null;
 
@@ -298,69 +388,7 @@ function App() {
               {/* PRODUTOS */}
               <div style={{ display: 'grid', gap: responsive.gridGap }}>
                 {produtosDaCategoria.map(produto => (
-                  <div key={produto.id} style={{
-                    backgroundColor: designSystem.cores.fundo,
-                    padding: designSystem.spacing.lg,
-                    borderRadius: '16px',
-                    border: `2px solid ${designSystem.cores.borda}`,
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    gap: designSystem.spacing.lg,
-                    transition: 'all 0.3s ease',
-                    minHeight: '120px'
-                  }}
-                  onMouseOver={(e) => {
-                    e.target.style.boxShadow = '0 6px 12px rgba(0,0,0,0.15)';
-                    e.target.style.transform = 'translateY(-2px)';
-                  }}
-                  onMouseOut={(e) => {
-                    e.target.style.boxShadow = 'none';
-                    e.target.style.transform = 'translateY(0)';
-                  }}
-                  >
-                    <div style={{ flex: 1 }}>
-                      <h3 style={{ 
-                        margin: '0 0 12px 0', 
-                        color: designSystem.cores.texto,
-                        fontSize: designSystem.fontSizes.lg,
-                        ...estilosBase.subtitulo
-                      }}>
-                        {produto.nome}
-                      </h3>
-                      {produto.descricao && (
-                        <p style={{ 
-                          margin: '0', 
-                          color: '#666', 
-                          fontSize: designSystem.fontSizes.base,
-                          lineHeight: '1.4',
-                          ...estilosBase.texto
-                        }}>
-                          {produto.descricao}
-                        </p>
-                      )}
-                    </div>
-                    
-                    <div style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: designSystem.spacing.lg,
-                      flexShrink: 0
-                    }}>
-                      <span style={{ 
-                        backgroundColor: designSystem.cores.secundaria, 
-                        color: designSystem.cores.textoClaro, 
-                        padding: `${designSystem.spacing.sm} ${designSystem.spacing.lg}`, 
-                        borderRadius: '25px',
-                        fontWeight: '600',
-                        fontSize: designSystem.fontSizes.lg,
-                        minWidth: '120px',
-                        textAlign: 'center'
-                      }}>
-                        R$ {Number(produto.preco).toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
+                  <ProdutoCard key={produto.id} produto={produto} />
                 ))}
               </div>
             </div>
@@ -402,5 +430,74 @@ function App() {
     </div>
   );
 }
+
+// 🔥 COMPONENTE SEPARADO PARA PRODUTO (Melhor organização)
+const ProdutoCard = ({ produto }) => {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <div 
+      style={{
+        backgroundColor: designSystem.cores.fundo,
+        padding: designSystem.spacing.lg,
+        borderRadius: '16px',
+        border: `2px solid ${designSystem.cores.borda}`,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: designSystem.spacing.lg,
+        transition: 'all 0.3s ease',
+        minHeight: '120px',
+        boxShadow: isHovered ? '0 6px 12px rgba(0,0,0,0.15)' : 'none',
+        transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
+        cursor: 'pointer'
+      }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div style={{ flex: 1 }}>
+        <h3 style={{ 
+          margin: '0 0 12px 0', 
+          color: designSystem.cores.texto,
+          fontSize: designSystem.fontSizes.lg,
+          ...estilosBase.subtitulo
+        }}>
+          {produto.nome}
+        </h3>
+        {produto.descricao && (
+          <p style={{ 
+            margin: '0', 
+            color: '#666', 
+            fontSize: designSystem.fontSizes.base,
+            lineHeight: '1.4',
+            ...estilosBase.texto
+          }}>
+            {produto.descricao}
+          </p>
+        )}
+      </div>
+      
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: designSystem.spacing.lg,
+        flexShrink: 0
+      }}>
+        <span style={{ 
+          backgroundColor: designSystem.cores.secundaria, 
+          color: designSystem.cores.textoClaro, 
+          padding: `${designSystem.spacing.sm} ${designSystem.spacing.lg}`, 
+          borderRadius: '25px',
+          fontWeight: '600',
+          fontSize: designSystem.fontSizes.lg,
+          minWidth: '120px',
+          textAlign: 'center'
+        }}>
+          R$ {Number(produto.preco).toFixed(2)}
+        </span>
+      </div>
+    </div>
+  );
+};
 
 export default App;
