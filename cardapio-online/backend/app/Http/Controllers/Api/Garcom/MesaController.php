@@ -177,6 +177,35 @@ class MesaController extends Controller
     }
 
     // ... outros métodos ...
+    public function statusConta($id)
+    {
+        try {
+            $mesa = Mesa::find($id);
+            if (!$mesa) {
+                return response()->json(['success' => false, 'message' => 'Mesa não encontrada'], 404);
+            }
+
+            $pedidos = Pedido::where('mesa_id', $id)
+                            ->where('status', '!=', 'cancelado')
+                            ->with('itens.produto')
+                            ->get();
+
+            $totalConta = $pedidos->sum('total');
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'total_conta' => $totalConta,
+                    'pedidos' => $pedidos,
+                    'mesa' => $mesa
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erro em MesaController::statusConta: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Erro ao carregar status da conta'], 500);
+        }
+    }
 
     // ✅ FECHAR CONTA - Com validação de status
     public function fecharConta($id)

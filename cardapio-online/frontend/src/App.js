@@ -436,44 +436,52 @@ function App() {
     }
   };
 
-// ✅ CORRIGIDO: Fechar conta com melhor tratamento de erro
-const fecharConta = async () => {
-  try {
-    const resultado = await fetchWithErrorHandling(`/api/garcom/mesas/${mesaSelecionada.id}/fechar-conta`, {
-      method: 'POST'
-    });
-    
-    if (resultado.success) {
-      setResumoConta(resultado);
-      setEtapa('conta-fechada');
-      
-      // Atualizar status local
-      setMesaSelecionada({
-        ...mesaSelecionada,
-        status_pagamento: 'fechada'
+  // ✅ CORRIGIDO: Fechar conta com estrutura padronizada
+  const fecharConta = async () => {
+    try {
+      const resultado = await fetchWithErrorHandling(`/api/garcom/mesas/${mesaSelecionada.id}/fechar-conta`, {
+        method: 'POST'
       });
+      
+      if (resultado.success) {
+        // ✅ CORREÇÃO: Padronizar estrutura do resumoConta
+        const resumoPadronizado = {
+          total_conta: resultado.total_conta,
+          pedidos: resultado.pedidos,
+          mesa: resultado.mesa
+        };
+        
+        setResumoConta(resumoPadronizado);
+        setEtapa('conta-fechada');
+        
+        // Atualizar status local
+        setMesaSelecionada({
+          ...mesaSelecionada,
+          status_pagamento: 'fechada'
+        });
+      }
+    } catch (erro) {
+      console.error('Erro ao fechar conta:', erro);
+      
+      // ✅ CORREÇÃO: Tratamento específico para erro 422 (Sem pedidos)
+      if (erro.message.includes('422')) {
+        alert('❌ Não é possível fechar a conta!\n\nNenhum pedido foi realizado nesta mesa.');
+      } else if (erro.message.includes('Sem pedidos')) {
+        alert('❌ Não é possível fechar a conta!\n\nNenhum pedido foi realizado nesta mesa.');
+      } else {
+        alert('❌ Erro ao fechar conta: ' + erro.message);
+      }
     }
-  } catch (erro) {
-    console.error('Erro ao fechar conta:', erro);
-    
-    // ✅ CORREÇÃO: Tratamento específico para erro 422 (Sem pedidos)
-    if (erro.message.includes('422')) {
-      alert('❌ Não é possível fechar a conta!\n\nNenhum pedido foi realizado nesta mesa.');
-    } else if (erro.message.includes('Sem pedidos')) {
-      alert('❌ Não é possível fechar a conta!\n\nNenhum pedido foi realizado nesta mesa.');
-    } else {
-      alert('❌ Erro ao fechar conta: ' + erro.message);
-    }
-  }
-};
+  };
 
-  // ✅ Ver resumo da conta
+  // ✅ CORRIGIDO: Ver resumo da conta com estrutura padronizada
   const verResumoConta = async () => {
     try {
       setCarregandoResumo(true);
       const resultado = await fetchWithErrorHandling(`/api/garcom/mesas/${mesaSelecionada.id}/status-conta`);
       
       if (resultado.success) {
+        // ✅ CORREÇÃO: Usar estrutura padronizada
         setResumoConta(resultado.data);
         setEtapa('conta-fechada');
       } else {
@@ -488,36 +496,36 @@ const fecharConta = async () => {
   };
 
   // ✅ CORRIGIDO: Reabrir conta com melhor tratamento de erro
-const reabrirConta = async () => {
-  try {
-    const resultado = await fetchWithErrorHandling(`/api/garcom/mesas/${mesaSelecionada.id}/reabrir-conta`, {
-      method: 'POST'
-    });
-
-    if (resultado.success) {
-      alert('✅ Conta reaberta com sucesso!');
-      
-      // Atualizar status local
-      setMesaSelecionada({
-        ...mesaSelecionada,
-        status_pagamento: 'aberta'
+  const reabrirConta = async () => {
+    try {
+      const resultado = await fetchWithErrorHandling(`/api/garcom/mesas/${mesaSelecionada.id}/reabrir-conta`, {
+        method: 'POST'
       });
+
+      if (resultado.success) {
+        alert('✅ Conta reaberta com sucesso!');
+        
+        // Atualizar status local
+        setMesaSelecionada({
+          ...mesaSelecionada,
+          status_pagamento: 'aberta'
+        });
+        
+        setEtapa('cardapio');
+      }
+    } catch (erro) {
+      console.error('Erro ao reabrir conta:', erro);
       
-      setEtapa('cardapio');
+      // ✅ CORREÇÃO: Tratamento específico para erro 422
+      if (erro.message.includes('422')) {
+        alert('❌ Só é possível reabrir contas que estão fechadas!');
+      } else if (erro.message.includes('fechadas')) {
+        alert('❌ Só é possível reabrir contas que estão fechadas!');
+      } else {
+        alert('❌ Erro ao reabrir conta: ' + erro.message);
+      }
     }
-  } catch (erro) {
-    console.error('Erro ao reabrir conta:', erro);
-    
-    // ✅ CORREÇÃO: Tratamento específico para erro 422
-    if (erro.message.includes('422')) {
-      alert('❌ Só é possível reabrir contas que estão fechadas!');
-    } else if (erro.message.includes('fechadas')) {
-      alert('❌ Só é possível reabrir contas que estão fechadas!');
-    } else {
-      alert('❌ Erro ao reabrir conta: ' + erro.message);
-    }
-  }
-};
+  };
 
   // Voltar para seleção de mesa
   const voltarParaMesas = () => {
@@ -1152,7 +1160,7 @@ const reabrirConta = async () => {
     );
   }
 
-  // 🔥 TELA CONTA FECHADA (ATUALIZADA - SEM BOTÃO DE PAGAMENTO)
+  // 🔥 TELA CONTA FECHADA (CORRIGIDA - COM ESTRUTURA PADRONIZADA)
   if (etapa === 'conta-fechada') {
     return (
       <div style={{ 
@@ -1241,7 +1249,12 @@ const reabrirConta = async () => {
                   fontWeight: 'bold',
                   color: designSystem.cores.sucesso
                 }}>
-                  R$ {Number(resumoConta.total_conta || resumoConta.total).toFixed(2)}
+                  {/* ✅ CORREÇÃO: Verificação segura com fallback */}
+                  R$ {Number(
+                    resumoConta?.total_conta || 
+                    resumoConta?.total || 
+                    0
+                  ).toFixed(2)}
                 </div>
                 <p style={{
                   textAlign: 'center',
@@ -1253,7 +1266,8 @@ const reabrirConta = async () => {
                 </p>
               </div>
 
-              {resumoConta.pedidos && resumoConta.pedidos.length > 0 && (
+              {/* ✅ CORREÇÃO: Verificação segura antes de mapear pedidos */}
+              {resumoConta?.pedidos && resumoConta.pedidos.length > 0 ? (
                 <div style={{ marginBottom: designSystem.spacing.xl }}>
                   <h3 style={{ 
                     color: designSystem.cores.texto, 
@@ -1319,6 +1333,10 @@ const reabrirConta = async () => {
                     </div>
                   ))}
                 </div>
+              ) : (
+                <p style={{ textAlign: 'center', color: '#666', marginBottom: designSystem.spacing.xl }}>
+                  Nenhum pedido encontrado para esta mesa.
+                </p>
               )}
             </>
           ) : (
