@@ -33,10 +33,12 @@ class ConfiguracaoController extends Controller
         }
     }
 
-    // ✅ ATUALIZAR CONFIGURAÇÕES
+    // ✅ ATUALIZAR CONFIGURAÇÕES - VERSÃO SIMPLIFICADA (NO CONTROLLER)
     public function update(Request $request)
     {
         try {
+            \Log::info('📥 Recebendo atualização de configurações:', $request->all());
+
             $request->validate([
                 'nome_estabelecimento' => 'sometimes|string|max:255',
                 'telefone' => 'sometimes|string|max:20',
@@ -44,8 +46,41 @@ class ConfiguracaoController extends Controller
                 'taxa_servico' => 'sometimes|numeric|min:0'
             ]);
 
-            $config = Configuracao::getConfig();
-            $config->update($request->all());
+            \Log::info('✅ Validação passou');
+
+            // 🔥 ALTERNATIVA SIMPLES - Atualização direta
+            $config = \App\Models\Configuracao::first();
+            
+            if (!$config) {
+                \Log::error('❌ Configuração não encontrada');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Configuração não encontrada'
+                ], 404);
+            }
+
+            \Log::info('📋 Configuração encontrada:', ['id' => $config->id]);
+
+            // Atualizar campos individualmente
+            if ($request->has('nome_estabelecimento')) {
+                $config->nome_estabelecimento = $request->nome_estabelecimento;
+            }
+            
+            if ($request->has('telefone')) {
+                $config->telefone = $request->telefone;
+            }
+            
+            if ($request->has('numero_mesas')) {
+                $config->numero_mesas = $request->numero_mesas;
+            }
+            
+            if ($request->has('taxa_servico')) {
+                $config->taxa_servico = $request->taxa_servico;
+            }
+
+            \Log::info('💾 Salvando configuração...');
+            $config->save();
+            \Log::info('✅ Configuração salva com sucesso');
 
             return response()->json([
                 'success' => true,
@@ -54,10 +89,13 @@ class ConfiguracaoController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Erro em ConfiguracaoController::update: ' . $e->getMessage());
+            \Log::error('❌ Erro em ConfiguracaoController::update: ' . $e->getMessage());
+            \Log::error('❌ Stack trace: ' . $e->getTraceAsString());
+            
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao atualizar configurações'
+                'message' => 'Erro ao atualizar configurações: ' . $e->getMessage(),
+                'debug' => 'Verifique os logs do servidor'
             ], 500);
         }
     }
