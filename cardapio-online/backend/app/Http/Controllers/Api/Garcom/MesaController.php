@@ -290,45 +290,4 @@ class MesaController extends Controller
             ], 500);
         }
     }  
-
-
-    // // ✅ OBTER STATUS DA CONTA (nova função)
-    // public function statusConta($id)
-    // {
-    //     try {
-    //         $mesa = Mesa::find($id);
-            
-    //         if (!$mesa) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'message' => 'Mesa não encontrada'
-    //             ], 404);
-    //         }
-
-    //         $pedidos = Pedido::where('mesa_id', $id)
-    //                         ->where('status', '!=', 'cancelado')
-    //                         ->with('itens.produto')
-    //                         ->get();
-
-    //         $totalConta = $pedidos->sum('total');
-
-    //         return response()->json([
-    //             'success' => true,
-    //             'data' => [
-    //                 'mesa' => $mesa,
-    //                 'total_conta' => $totalConta,
-    //                 'pedidos' => $pedidos,
-    //                 'status_pagamento' => $mesa->status_pagamento,
-    //                 'pode_fechar' => $mesa->status_pagamento === 'aberta' && $pedidos->count() > 0
-    //             ]
-    //         ]);
-
-    //     } catch (\Exception $e) {
-    //         Log::error('Erro em MesaController::statusConta: ' . $e->getMessage());
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Erro ao verificar status da conta'
-    //         ], 500);
-    //     }
-    // }
 }

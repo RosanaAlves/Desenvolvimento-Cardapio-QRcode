@@ -158,24 +158,50 @@ function App() {
     }
   };
 
-  const atualizarConfiguracoes = async (novasConfigs) => {
-    try {
-      console.log('🔄 Atualizando configurações:', novasConfigs);
-      const data = await fetchAPI('/admin/configuracoes', {
-        method: 'PUT',
-        body: JSON.stringify(novasConfigs)
-      });
-      
-      console.log('✅ Configurações atualizadas:', data);
-      setConfiguracoes(data.data);
-      alert('✅ Configurações atualizadas com sucesso!');
-      setMostrarModalConfig(false);
-      
-    } catch (erro) {
-      console.error('❌ Erro ao atualizar configurações:', erro);
-      alert('❌ Erro ao atualizar configurações: ' + erro.message);
+  // ✅ ATUALIZAR CONFIGURAÇÕES - CORRIGIDO
+const atualizarConfiguracoes = async (novasConfigs) => {
+  try {
+    console.log('🔄 Atualizando configurações:', novasConfigs);
+    
+    // Garantir que os dados estejam no formato correto
+    const configParaEnviar = {
+      nome_estabelecimento: novasConfigs.nome_estabelecimento || '',
+      telefone: novasConfigs.telefone || '',
+      numero_mesas: parseInt(novasConfigs.numero_mesas) || 1,
+      taxa_servico: parseFloat(novasConfigs.taxa_servico) || 0
+    };
+
+    console.log('📤 Configurações para enviar:', configParaEnviar);
+
+    const data = await fetchAPI('/admin/configuracoes', {
+      method: 'PUT',
+      body: JSON.stringify(configParaEnviar)
+    });
+    
+    console.log('✅ Configurações atualizadas com sucesso:', data);
+    
+    // Atualizar o estado local
+    setConfiguracoes(data.data);
+    setFormConfig({
+      nome_estabelecimento: data.data.nome_estabelecimento || '',
+      telefone: data.data.telefone || '',
+      numero_mesas: data.data.numero_mesas || 10,
+      taxa_servico: data.data.taxa_servico || 0
+    });
+    
+    alert('✅ Configurações atualizadas com sucesso!');
+    setMostrarModalConfig(false);
+    
+  } catch (erro) {
+    console.error('❌ Erro ao atualizar configurações:', erro);
+    alert('❌ Erro ao atualizar configurações: ' + erro.message);
+    
+    // Mostrar detalhes do erro no console
+    if (erro.message.includes('JSON')) {
+      console.error('Problema com o formato JSON das configurações');
     }
-  };
+  }
+};
 
   const carregarExpedienteStatus = async () => {
     try {
@@ -576,262 +602,469 @@ function App() {
     );
   };
 
-  // 🔥 MODAL CONFIGURAÇÕES - CORRIGIDO
-  const ModalConfiguracoes = () => {
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-      await atualizarConfiguracoes(formConfig);
+  // 🔥 MODAL CONFIGURAÇÕES - CORRIGIDO (NÚMERO DE MESAS)
+const ModalConfiguracoes = () => {
+  // Estado local para o formulário
+  const [localForm, setLocalForm] = useState({
+    nome_estabelecimento: '',
+    telefone: '',
+    numero_mesas: 10,
+    taxa_servico: 0
+  });
+
+  // Carregar configurações quando o modal abrir
+  useEffect(() => {
+    if (configuracoes && mostrarModalConfig) {
+      console.log('📱 Carregando configurações no modal:', configuracoes);
+      setLocalForm({
+        nome_estabelecimento: configuracoes.nome_estabelecimento || '',
+        telefone: configuracoes.telefone || '',
+        numero_mesas: configuracoes.numero_mesas || 10,
+        taxa_servico: configuracoes.taxa_servico || 0
+      });
+    }
+  }, [configuracoes, mostrarModalConfig]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    console.log('📤 Enviando configurações:', localForm);
+    
+    // Garantir que os números sejam corretos
+    const configParaEnviar = {
+      ...localForm,
+      numero_mesas: parseInt(localForm.numero_mesas) || 1,
+      taxa_servico: parseFloat(localForm.taxa_servico) || 0
     };
+    
+    await atualizarConfiguracoes(configParaEnviar);
+  };
 
-    if (!mostrarModalConfig) return null;
+  const handleInputChange = (field, value) => {
+    setLocalForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
 
-    return (
+  if (!mostrarModalConfig) return null;
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000
+    }}>
       <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000
+        backgroundColor: 'white',
+        padding: '30px',
+        borderRadius: '8px',
+        maxWidth: '500px',
+        width: '90%',
+        maxHeight: '80vh',
+        overflow: 'auto'
       }}>
-        <div style={{
-          backgroundColor: 'white',
-          padding: '30px',
-          borderRadius: '8px',
-          maxWidth: '500px',
-          width: '90%',
-          maxHeight: '80vh',
-          overflow: 'auto'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h3>⚙️ Configurações do Sistema</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h3>⚙️ Configurações do Sistema</h3>
+          <button
+            onClick={() => setMostrarModalConfig(false)}
+            style={{ backgroundColor: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer' }}
+          >
+            ✕
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+              Nome do Estabelecimento:
+            </label>
+            <input
+              type="text"
+              value={localForm.nome_estabelecimento}
+              onChange={(e) => handleInputChange('nome_estabelecimento', e.target.value)}
+              style={{ 
+                width: '100%', 
+                padding: '12px', 
+                border: '1px solid #ddd', 
+                borderRadius: '4px', 
+                fontSize: '16px',
+                boxSizing: 'border-box'
+              }}
+              required
+            />
+          </div>
+
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+              Telefone:
+            </label>
+            <input
+              type="text"
+              value={localForm.telefone}
+              onChange={(e) => handleInputChange('telefone', e.target.value)}
+              style={{ 
+                width: '100%', 
+                padding: '12px', 
+                border: '1px solid #ddd', 
+                borderRadius: '4px', 
+                fontSize: '16px',
+                boxSizing: 'border-box'
+              }}
+              placeholder="(11) 99999-9999"
+            />
+          </div>
+
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+              Número de Mesas:
+            </label>
+            <input
+              type="number"
+              min="1"
+              max="50"
+              value={localForm.numero_mesas}
+              onChange={(e) => handleInputChange('numero_mesas', e.target.value)}
+              style={{ 
+                width: '100%', 
+                padding: '12px', 
+                border: '1px solid #ddd', 
+                borderRadius: '4px', 
+                fontSize: '16px',
+                boxSizing: 'border-box'
+              }}
+              required
+            />
+            <small style={{ color: '#666', fontSize: '12px' }}>
+              ⚠️ Alterar o número de mesas pode afetar o sistema existente
+            </small>
+          </div>
+
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+              Taxa de Serviço (%):
+            </label>
+            <input
+              type="number"
+              min="0"
+              max="20"
+              step="0.1"
+              value={localForm.taxa_servico}
+              onChange={(e) => handleInputChange('taxa_servico', e.target.value)}
+              style={{ 
+                width: '100%', 
+                padding: '12px', 
+                border: '1px solid #ddd', 
+                borderRadius: '4px', 
+                fontSize: '16px',
+                boxSizing: 'border-box'
+              }}
+            />
+            <small style={{ color: '#666', fontSize: '12px' }}>
+              Exemplo: 10 para 10% de taxa de serviço
+            </small>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
             <button
+              type="submit"
+              style={{ 
+                ...estilos.button, 
+                ...estilos.buttonSuccess, 
+                padding: '12px 24px', 
+                fontSize: '16px',
+                flex: 1
+              }}
+            >
+              💾 Salvar Configurações
+            </button>
+            <button
+              type="button"
               onClick={() => setMostrarModalConfig(false)}
-              style={{ backgroundColor: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer' }}
+              style={{ 
+                ...estilos.button, 
+                backgroundColor: '#6c757d', 
+                color: 'white', 
+                padding: '12px 24px', 
+                fontSize: '16px',
+                flex: 1
+              }}
             >
-              ✕
+              Cancelar
             </button>
           </div>
-
-          <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                Nome do Estabelecimento:
-              </label>
-              <input
-                type="text"
-                value={formConfig.nome_estabelecimento}
-                onChange={(e) => setFormConfig({...formConfig, nome_estabelecimento: e.target.value})}
-                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '16px' }}
-                required
-              />
-            </div>
-
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                Telefone:
-              </label>
-              <input
-                type="text"
-                value={formConfig.telefone}
-                onChange={(e) => setFormConfig({...formConfig, telefone: e.target.value})}
-                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '16px' }}
-                placeholder="(11) 99999-9999"
-              />
-            </div>
-
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                Número de Mesas:
-              </label>
-              <input
-                type="number"
-                min="1"
-                max="50"
-                value={formConfig.numero_mesas}
-                onChange={(e) => setFormConfig({...formConfig, numero_mesas: parseInt(e.target.value) || 1})}
-                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '16px' }}
-                required
-              />
-            </div>
-
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                Taxa de Serviço (%):
-              </label>
-              <input
-                type="number"
-                min="0"
-                max="20"
-                step="0.1"
-                value={formConfig.taxa_servico}
-                onChange={(e) => setFormConfig({...formConfig, taxa_servico: parseFloat(e.target.value) || 0})}
-                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '16px' }}
-              />
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-              <button
-                type="submit"
-                style={{ ...estilos.button, ...estilos.buttonSuccess, padding: '12px 24px', fontSize: '14px' }}
-              >
-                💾 Salvar Configurações
-              </button>
-              <button
-                type="button"
-                onClick={() => setMostrarModalConfig(false)}
-                style={{ ...estilos.button, backgroundColor: '#6c757d', color: 'white', padding: '12px 24px', fontSize: '14px' }}
-              >
-                Cancelar
-              </button>
-            </div>
-          </form>
-        </div>
+        </form>
       </div>
-    );
+    </div>
+  );
+};
+
+  // 🔥 MODAL PRODUTO - CORRIGIDO (INPUTS FUNCIONANDO)
+const ModalProduto = () => {
+  // Estado local para controlar os inputs
+  const [localForm, setLocalForm] = useState({
+    nome: '',
+    descricao: '',
+    preco: '',
+    categoria_id: '',
+    disponivel: true,
+    imagem: ''
+  });
+
+  // Quando o modal abrir ou o produtoEditando mudar, atualizar o estado local
+  useEffect(() => {
+    if (produtoEditando) {
+      setLocalForm({
+        nome: produtoEditando.nome || '',
+        descricao: produtoEditando.descricao || '',
+        preco: produtoEditando.preco || '',
+        categoria_id: produtoEditando.categoria_id || '',
+        disponivel: produtoEditando.disponivel !== undefined ? produtoEditando.disponivel : true,
+        imagem: produtoEditando.imagem || ''
+      });
+    } else {
+      setLocalForm({
+        nome: '',
+        descricao: '',
+        preco: '',
+        categoria_id: '',
+        disponivel: true,
+        imagem: ''
+      });
+    }
+  }, [produtoEditando, mostrarModalProduto]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    try {
+      const produtoData = {
+        ...localForm,
+        preco: parseFloat(localForm.preco) || 0
+      };
+
+      if (produtoEditando) {
+        await fetchAPI(`/admin/produtos/${produtoEditando.id}`, {
+          method: 'PUT',
+          body: JSON.stringify(produtoData)
+        });
+        alert('✅ Produto atualizado com sucesso!');
+      } else {
+        await fetchAPI('/admin/produtos', {
+          method: 'POST',
+          body: JSON.stringify(produtoData)
+        });
+        alert('✅ Produto criado com sucesso!');
+      }
+
+      setMostrarModalProduto(false);
+      carregarProdutos();
+    } catch (erro) {
+      console.error('Erro ao salvar produto:', erro);
+      alert('❌ Erro ao salvar produto: ' + erro.message);
+    }
   };
 
-  // 🔥 MODAL PRODUTO - CORRIGIDO
-  const ModalProduto = () => {
-    if (!mostrarModalProduto) return null;
+  const handleInputChange = (field, value) => {
+    setLocalForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
 
-    return (
+  if (!mostrarModalProduto) return null;
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000
+    }}>
       <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000
+        backgroundColor: 'white',
+        padding: '30px',
+        borderRadius: '8px',
+        maxWidth: '500px',
+        width: '90%',
+        maxHeight: '80vh',
+        overflow: 'auto'
       }}>
-        <div style={{
-          backgroundColor: 'white',
-          padding: '30px',
-          borderRadius: '8px',
-          maxWidth: '500px',
-          width: '90%',
-          maxHeight: '80vh',
-          overflow: 'auto'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h3>{produtoEditando ? '✏️ Editar Produto' : '🍔 Novo Produto'}</h3>
-            <button
-              onClick={() => setMostrarModalProduto(false)}
-              style={{ backgroundColor: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer' }}
-            >
-              ✕
-            </button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h3>{produtoEditando ? '✏️ Editar Produto' : '🍔 Novo Produto'}</h3>
+          <button
+            onClick={() => setMostrarModalProduto(false)}
+            style={{ backgroundColor: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer' }}
+          >
+            ✕
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+              Nome do Produto: *
+            </label>
+            <input
+              type="text"
+              value={localForm.nome}
+              onChange={(e) => handleInputChange('nome', e.target.value)}
+              style={{ 
+                width: '100%', 
+                padding: '12px', 
+                border: '1px solid #ddd', 
+                borderRadius: '4px', 
+                fontSize: '16px',
+                boxSizing: 'border-box'
+              }}
+              required
+              autoFocus
+            />
           </div>
 
-          <form onSubmit={salvarProduto}>
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                Nome do Produto: *
-              </label>
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+              Descrição:
+            </label>
+            <textarea
+              value={localForm.descricao}
+              onChange={(e) => handleInputChange('descricao', e.target.value)}
+              style={{ 
+                width: '100%', 
+                padding: '12px', 
+                border: '1px solid #ddd', 
+                borderRadius: '4px', 
+                minHeight: '80px', 
+                fontSize: '16px',
+                boxSizing: 'border-box',
+                resize: 'vertical'
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+              Preço: *
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={localForm.preco}
+              onChange={(e) => handleInputChange('preco', e.target.value)}
+              style={{ 
+                width: '100%', 
+                padding: '12px', 
+                border: '1px solid #ddd', 
+                borderRadius: '4px', 
+                fontSize: '16px',
+                boxSizing: 'border-box'
+              }}
+              required
+            />
+          </div>
+
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+              Categoria: *
+            </label>
+            <select
+              value={localForm.categoria_id}
+              onChange={(e) => handleInputChange('categoria_id', e.target.value)}
+              style={{ 
+                width: '100%', 
+                padding: '12px', 
+                border: '1px solid #ddd', 
+                borderRadius: '4px', 
+                fontSize: '16px',
+                boxSizing: 'border-box'
+              }}
+              required
+            >
+              <option value="">Selecione uma categoria</option>
+              {categorias.map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.nome}</option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
               <input
-                type="text"
-                value={formProduto.nome}
-                onChange={(e) => setFormProduto({...formProduto, nome: e.target.value})}
-                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '16px' }}
-                required
+                type="checkbox"
+                checked={localForm.disponivel}
+                onChange={(e) => handleInputChange('disponivel', e.target.checked)}
+                style={{ transform: 'scale(1.2)' }}
               />
-            </div>
+              <span style={{ fontWeight: 'bold', fontSize: '16px' }}>Produto disponível</span>
+            </label>
+          </div>
 
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                Descrição:
-              </label>
-              <textarea
-                value={formProduto.descricao}
-                onChange={(e) => setFormProduto({...formProduto, descricao: e.target.value})}
-                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', minHeight: '60px', fontSize: '16px' }}
-              />
-            </div>
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+              URL da Imagem:
+            </label>
+            <input
+              type="url"
+              value={localForm.imagem}
+              onChange={(e) => handleInputChange('imagem', e.target.value)}
+              style={{ 
+                width: '100%', 
+                padding: '12px', 
+                border: '1px solid #ddd', 
+                borderRadius: '4px', 
+                fontSize: '16px',
+                boxSizing: 'border-box'
+              }}
+              placeholder="https://exemplo.com/imagem.jpg"
+            />
+          </div>
 
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                Preço: *
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={formProduto.preco}
-                onChange={(e) => setFormProduto({...formProduto, preco: e.target.value})}
-                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '16px' }}
-                required
-              />
-            </div>
-
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                Categoria: *
-              </label>
-              <select
-                value={formProduto.categoria_id}
-                onChange={(e) => setFormProduto({...formProduto, categoria_id: e.target.value})}
-                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '16px' }}
-                required
-              >
-                <option value="">Selecione uma categoria</option>
-                {categorias.map(cat => (
-                  <option key={cat.id} value={cat.id}>{cat.nome}</option>
-                ))}
-              </select>
-            </div>
-
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={formProduto.disponivel}
-                  onChange={(e) => setFormProduto({...formProduto, disponivel: e.target.checked})}
-                />
-                <span style={{ fontWeight: 'bold' }}>Produto disponível</span>
-              </label>
-            </div>
-
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                URL da Imagem:
-              </label>
-              <input
-                type="url"
-                value={formProduto.imagem}
-                onChange={(e) => setFormProduto({...formProduto, imagem: e.target.value})}
-                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '16px' }}
-                placeholder="https://exemplo.com/imagem.jpg"
-              />
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-              <button
-                type="submit"
-                style={{ ...estilos.button, ...estilos.buttonSuccess, padding: '12px 24px', fontSize: '14px' }}
-              >
-                💾 {produtoEditando ? 'Atualizar' : 'Criar'} Produto
-              </button>
-              <button
-                type="button"
-                onClick={() => setMostrarModalProduto(false)}
-                style={{ ...estilos.button, backgroundColor: '#6c757d', color: 'white', padding: '12px 24px', fontSize: '14px' }}
-              >
-                Cancelar
-              </button>
-            </div>
-          </form>
-        </div>
+          <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+            <button
+              type="submit"
+              style={{ 
+                ...estilos.button, 
+                ...estilos.buttonSuccess, 
+                padding: '12px 24px', 
+                fontSize: '16px',
+                flex: 1
+              }}
+            >
+              💾 {produtoEditando ? 'Atualizar' : 'Criar'} Produto
+            </button>
+            <button
+              type="button"
+              onClick={() => setMostrarModalProduto(false)}
+              style={{ 
+                ...estilos.button, 
+                backgroundColor: '#6c757d', 
+                color: 'white', 
+                padding: '12px 24px', 
+                fontSize: '16px',
+                flex: 1
+              }}
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
       </div>
-    );
-  };
+    </div>
+  );
+};
 
   // 🔥 MODAL RELATÓRIO DIA
   const ModalRelatorioDia = () => {

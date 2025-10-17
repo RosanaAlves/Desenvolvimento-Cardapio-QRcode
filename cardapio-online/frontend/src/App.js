@@ -128,7 +128,7 @@ const fetchWithErrorHandling = async (url, options = {}) => {
   }
 };
 
-// 🔥 COMPONENTE DE STATUS DA MESA
+// 🔥 COMPONENTE DE STATUS DA MESA (ATUALIZADO)
 const StatusMesaInfo = ({ mesaSelecionada, verResumoConta, reabrirConta }) => {
   if (mesaSelecionada.status_pagamento === 'fechada') {
     return (
@@ -436,7 +436,7 @@ function App() {
     }
   };
 
-  // Fechar conta (preparar para pagamento)
+  // ✅ Fechar conta (ATUALIZADA - com melhor tratamento de erro)
   const fecharConta = async () => {
     try {
       const resultado = await fetchWithErrorHandling(`/api/garcom/mesas/${mesaSelecionada.id}/fechar-conta`, {
@@ -446,20 +446,30 @@ function App() {
       if (resultado.success) {
         setResumoConta(resultado);
         setEtapa('conta-fechada');
-      } else {
-        if (resultado.error && resultado.error.includes('Sem pedidos')) {
-          alert('Sem pedidos realizados!');
-          return;
-        }
-        throw new Error(resultado.message || 'Erro ao fechar conta');
+        
+        // Atualizar status local
+        setMesaSelecionada({
+          ...mesaSelecionada,
+          status_pagamento: 'fechada'
+        });
       }
     } catch (erro) {
       console.error('Erro ao fechar conta:', erro);
-      alert(erro.message || 'Erro ao fechar conta. Tente novamente.');
+      
+      // ✅ MELHOR TRATAMENTO DE ERRO - AVISO VISUAL
+      if (erro.message.includes('Sem pedidos')) {
+        alert('❌ Não é possível fechar a conta!\n\nNenhum pedido foi realizado nesta mesa.');
+      } else if (erro.message.includes('já foi fechada')) {
+        alert('ℹ️ Esta conta já está fechada!\n\nAguarde o pagamento no caixa.');
+      } else if (erro.message.includes('já foi paga')) {
+        alert('✅ Esta conta já foi paga!\n\nA mesa está liberada.');
+      } else {
+        alert('❌ Erro ao fechar conta: ' + erro.message);
+      }
     }
   };
 
-  // ✅ NOVO: Ver resumo da conta (usando a rota statusConta)
+  // ✅ Ver resumo da conta
   const verResumoConta = async () => {
     try {
       setCarregandoResumo(true);
@@ -473,36 +483,13 @@ function App() {
       }
     } catch (erro) {
       console.error('Erro ao carregar resumo:', erro);
-      alert('Erro ao carregar resumo da conta. Tente novamente.');
+      alert('❌ Erro ao carregar resumo da conta. Tente novamente.');
     } finally {
       setCarregandoResumo(false);
     }
   };
 
-  // Pagar conta (após pagamento no caixa)
-  const pagarConta = async () => {
-    if (!window.confirm(`Confirmar pagamento da Mesa ${mesaSelecionada.numero}?\n\nApós confirmar, a mesa será liberada.`)) {
-      return;
-    }
-
-    try {
-      const resultado = await fetchWithErrorHandling(`/api/garcom/mesas/${mesaSelecionada.id}/pagar-conta`, {
-        method: 'POST'
-      });
-
-      if (resultado.success) {
-        alert('✅ Conta paga com sucesso! Mesa liberada.');
-        voltarParaMesas();
-      } else {
-        throw new Error(resultado.message || 'Erro ao processar pagamento');
-      }
-    } catch (erro) {
-      console.error('Erro ao pagar conta:', erro);
-      alert(erro.message || 'Erro ao processar pagamento. Verifique se a conta está fechada.');
-    }
-  };
-
-  // Reabrir conta - ATUALIZADA
+  // ✅ Reabrir conta (ATUALIZADA)
   const reabrirConta = async () => {
     try {
       const resultado = await fetchWithErrorHandling(`/api/garcom/mesas/${mesaSelecionada.id}/reabrir-conta`, {
@@ -510,7 +497,7 @@ function App() {
       });
 
       if (resultado.success) {
-        alert('Conta reaberta com sucesso!');
+        alert('✅ Conta reaberta com sucesso!');
         
         // ✅ ATUALIZA O STATUS LOCALMENTE
         setMesaSelecionada({
@@ -527,7 +514,7 @@ function App() {
       if (erro.message.includes('fechadas')) {
         alert('❌ Só é possível reabrir contas que estão fechadas!');
       } else {
-        alert('Erro ao reabrir conta: ' + erro.message);
+        alert('❌ Erro ao reabrir conta: ' + erro.message);
       }
     }
   };
@@ -1165,7 +1152,7 @@ function App() {
     );
   }
 
-  // 🔥 TELA CONTA FECHADA (ATUALIZADA)
+  // 🔥 TELA CONTA FECHADA (ATUALIZADA - SEM BOTÃO DE PAGAMENTO)
   if (etapa === 'conta-fechada') {
     return (
       <div style={{ 
@@ -1344,24 +1331,8 @@ function App() {
           )}
 
           <div style={{ display: 'flex', gap: designSystem.spacing.md, flexDirection: 'column' }}>
-            {mesaSelecionada.status_pagamento === 'fechada' && (
-              <button
-                onClick={pagarConta}
-                style={{
-                  backgroundColor: designSystem.cores.sucesso,
-                  color: designSystem.cores.textoClaro,
-                  border: 'none',
-                  padding: designSystem.spacing.lg,
-                  borderRadius: '12px',
-                  fontSize: designSystem.fontSizes.lg,
-                  ...estilosBase.botao,
-                  cursor: 'pointer'
-                }}
-              >
-                ✅ Confirmar Pagamento
-              </button>
-            )}
-
+            {/* ❌ REMOVIDO: Botão de Confirmar Pagamento (apenas caixa) */}
+            
             {mesaSelecionada.status_pagamento === 'fechada' && (
               <button
                 onClick={reabrirConta}
@@ -1411,7 +1382,7 @@ function App() {
               textAlign: 'center'
             }}>
               💡 <strong>Fluxo correto:</strong><br />
-              1. Fechar conta → 2. Cliente paga no caixa → 3. Confirmar pagamento
+              1. Fechar conta → 2. Cliente paga no caixa → 3. Caixa confirma pagamento
             </p>
           </div>
         </div>
