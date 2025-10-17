@@ -66,7 +66,6 @@ Route::prefix('garcom')->group(function () {
     Route::post('/mesas/{id}/ocupar', [MesaController::class, 'ocupar']);
     Route::post('/mesas/{id}/liberar', [MesaController::class, 'liberar']);
     Route::post('/mesas/{id}/fechar-conta', [MesaController::class, 'fecharConta']);
-    // ❌ REMOVIDO: Route::post('/mesas/{id}/pagar-conta', [MesaController::class, 'pagarConta']);
     Route::post('/mesas/{id}/reabrir-conta', [MesaController::class, 'reabrirConta']);
     Route::get('/mesas/{id}/status-conta', [MesaController::class, 'statusConta']);
     
