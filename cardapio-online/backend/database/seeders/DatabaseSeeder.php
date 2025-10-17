@@ -18,6 +18,8 @@ class DatabaseSeeder extends Seeder
         // 2. CHAME O SEEDER DE PRODUTOS DEPOIS
         // Agora, os produtos podem ser inseridos com segurança.
         $this->call(ProdutoSeeder::class);
+        $this->call(MesasSeeder::class);
+      
 
         // Se você tiver outros seeders (como Users, Pedidos, etc.), chame-os aqui.
         // $this->call(UserSeeder::class); 

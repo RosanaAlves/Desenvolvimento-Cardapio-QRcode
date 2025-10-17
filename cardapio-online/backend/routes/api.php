@@ -87,8 +87,9 @@ Route::prefix('garcom')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index']);
 });
 
-// =========================================================================
-// ROTAS DO ADMIN (CORRIGIDAS - USANDO OS CONTROLLERS CORRETOS)
+
+/// =========================================================================
+// ROTAS DO ADMIN (CORRIGIDAS - USANDO OS CONTROLLERS DA PASTA ADMIN)
 // =========================================================================
 
 Route::prefix('admin')->group(function () {
@@ -111,27 +112,33 @@ Route::prefix('admin')->group(function () {
     // 🔥 DASHBOARD - ADMIN
     Route::get('/dashboard', [ConfiguracaoController::class, 'dashboard']);
 
-    // 🔥 PEDIDOS - ADMIN (USANDO OS CONTROLLERS DO ADMIN)
-    Route::get('/pedidos', [AdminPedidoController::class, 'index']);
-    Route::put('/pedidos/{id}/status', [AdminPedidoController::class, 'updateStatus']);
-    Route::post('/pedidos/{id}/cancelar', [AdminPedidoController::class, 'cancelar']);
+    // 🔥 PEDIDOS - ADMIN (USANDO OS CONTROLLERS DA PASTA ADMIN)
+    Route::get('/pedidos', [App\Http\Controllers\Api\Admin\PedidoController::class, 'index']);
+    Route::put('/pedidos/{id}/status', [App\Http\Controllers\Api\Admin\PedidoController::class, 'updateStatus']);
+    Route::post('/pedidos/{id}/cancelar', [App\Http\Controllers\Api\Admin\PedidoController::class, 'cancelar']);
 
-    // 🔥 PRODUTOS - ADMIN (USANDO OS CONTROLLERS DO ADMIN)
-    Route::get('/produtos', [AdminProdutoController::class, 'index']);
-    Route::post('/produtos', [AdminProdutoController::class, 'store']);
-    Route::put('/produtos/{id}', [AdminProdutoController::class, 'update']);
-    Route::delete('/produtos/{id}', [AdminProdutoController::class, 'destroy']);
+    // 🔥 PRODUTOS - ADMIN (USANDO OS CONTROLLERS DA PASTA ADMIN)
+    Route::get('/produtos', [App\Http\Controllers\Api\Admin\ProdutoController::class, 'index']);
+    Route::post('/produtos', [App\Http\Controllers\Api\Admin\ProdutoController::class, 'store']);
+    Route::put('/produtos/{id}', [App\Http\Controllers\Api\Admin\ProdutoController::class, 'update']);
+    Route::delete('/produtos/{id}', [App\Http\Controllers\Api\Admin\ProdutoController::class, 'destroy']);
 
-    // 🔥 CATEGORIAS - ADMIN (USANDO OS CONTROLLERS DO ADMIN)
-    Route::get('/categorias', [AdminCategoriaController::class, 'index']);
-    Route::post('/categorias', [AdminCategoriaController::class, 'store']);
-    Route::put('/categorias/{id}', [AdminCategoriaController::class, 'update']);
-    Route::delete('/categorias/{id}', [AdminCategoriaController::class, 'destroy']);
+    // 🔥 CATEGORIAS - ADMIN (USANDO OS CONTROLLERS DA PASTA ADMIN)
+    Route::get('/categorias', [App\Http\Controllers\Api\Admin\CategoriaController::class, 'index']);
+    Route::post('/categorias', [App\Http\Controllers\Api\Admin\CategoriaController::class, 'store']);
+    Route::put('/categorias/{id}', [App\Http\Controllers\Api\Admin\CategoriaController::class, 'update']);
+    Route::delete('/categorias/{id}', [App\Http\Controllers\Api\Admin\CategoriaController::class, 'destroy']);
 
-    // 🔥 MESAS - ADMIN (USANDO OS CONTROLLERS DO ADMIN + NOVA ROTA PAGAR CONTA)
-    Route::get('/mesas', [AdminMesaController::class, 'index']);
-    Route::post('/mesas/{id}/pagar-conta', [AdminMesaController::class, 'pagarConta']); // ✅ NOVA ROTA
+    // 🔥 IMPRESSÃO - ADMIN
+    Route::get('/impressao/pedido/{id}/termica', [ImpressaoController::class, 'imprimirPedidoTermica']);
+    Route::get('/impressao/pedido/{id}/compacto', [ImpressaoController::class, 'imprimirPedidoCompacto']);
+    Route::get('/impressao/relatorio', [ImpressaoController::class, 'imprimirRelatorio']);
+
+    // 🔥 MESAS - ADMIN (USANDO OS CONTROLLERS DA PASTA ADMIN + NOVA ROTA PAGAR CONTA)
+    Route::get('/mesas', [App\Http\Controllers\Api\Admin\MesaController::class, 'index']);
+    Route::post('/mesas/{id}/pagar-conta', [App\Http\Controllers\Api\Admin\MesaController::class, 'pagarConta']); // ✅ NOVA ROTA
 });
+
 
 // =========================================================================
 // ROTAS DE COMPATIBILIDADE (PUBLICAS - MANTIDAS COMO FALLBACK)

@@ -45,7 +45,13 @@ function App() {
   const [pedidoSelecionado, setPedidoSelecionado] = useState(null);
   
   // Estados para modais e formulários
-  const [configuracoes, setConfiguracoes] = useState(null);
+  const [configuracoes, setConfiguracoes] = useState({
+    nome_estabelecimento: "Jetro's Lanches",
+    numero_mesas: 10,
+    taxa_servico: 0,
+    expediente_aberto: false,
+    telefone: ""
+  });
   const [expedienteStatus, setExpedienteStatus] = useState(null);
   const [mostrarModalConfig, setMostrarModalConfig] = useState(false);
   const [mostrarModalExpediente, setMostrarModalExpediente] = useState(false);
@@ -58,6 +64,12 @@ function App() {
     categoria_id: '',
     disponivel: true,
     imagem: ''
+  });
+  const [formConfig, setFormConfig] = useState({
+    nome_estabelecimento: '',
+    telefone: '',
+    numero_mesas: 10,
+    taxa_servico: 0
   });
 
   // ✅ CARREGAR DADOS
@@ -117,18 +129,51 @@ function App() {
     }
   };
 
+  // ✅ CONFIGURAÇÕES - CORRIGIDO
   const carregarConfiguracoes = async () => {
     try {
+      console.log('🔄 Carregando configurações...');
       const data = await fetchAPI('/admin/configuracoes');
-      setConfiguracoes(data.data);
+      console.log('✅ Configurações carregadas:', data);
+      
+      if (data.data) {
+        setConfiguracoes(data.data);
+        setFormConfig({
+          nome_estabelecimento: data.data.nome_estabelecimento || '',
+          telefone: data.data.telefone || '',
+          numero_mesas: data.data.numero_mesas || 10,
+          taxa_servico: data.data.taxa_servico || 0
+        });
+      }
     } catch (erro) {
-      console.error('Erro ao carregar configurações:', erro);
+      console.error('❌ Erro ao carregar configurações:', erro);
+      // Configurações padrão
       setConfiguracoes({
         nome_estabelecimento: "Jetro's Lanches",
         numero_mesas: 10,
         taxa_servico: 0,
-        expediente_aberto: false
+        expediente_aberto: false,
+        telefone: ""
       });
+    }
+  };
+
+  const atualizarConfiguracoes = async (novasConfigs) => {
+    try {
+      console.log('🔄 Atualizando configurações:', novasConfigs);
+      const data = await fetchAPI('/admin/configuracoes', {
+        method: 'PUT',
+        body: JSON.stringify(novasConfigs)
+      });
+      
+      console.log('✅ Configurações atualizadas:', data);
+      setConfiguracoes(data.data);
+      alert('✅ Configurações atualizadas com sucesso!');
+      setMostrarModalConfig(false);
+      
+    } catch (erro) {
+      console.error('❌ Erro ao atualizar configurações:', erro);
+      alert('❌ Erro ao atualizar configurações: ' + erro.message);
     }
   };
 
@@ -141,7 +186,7 @@ function App() {
     }
   };
 
-  // ✅ ATUALIZAR STATUS DO PEDIDO (CORRIGIDO)
+  // ✅ ATUALIZAR STATUS DO PEDIDO
   const atualizarStatusPedido = async (pedidoId, novoStatus) => {
     try {
       await fetchAPI(`/admin/pedidos/${pedidoId}/status`, {
@@ -176,7 +221,7 @@ function App() {
     }
   };
 
-  // ✅ PAGAR CONTA DA MESA (CORRIGIDO)
+  // ✅ PAGAR CONTA DA MESA
   const pagarContaMesa = async (mesaId) => {
     try {
       await fetchAPI(`/admin/mesas/${mesaId}/pagar-conta`, {
@@ -192,16 +237,16 @@ function App() {
     }
   };
 
-  // ✅ GERENCIAMENTO DE PRODUTOS
+  // ✅ GERENCIAMENTO DE PRODUTOS - CORRIGIDO
   const abrirModalProduto = (produto = null) => {
     if (produto) {
       setProdutoEditando(produto);
       setFormProduto({
-        nome: produto.nome,
+        nome: produto.nome || '',
         descricao: produto.descricao || '',
-        preco: produto.preco,
-        categoria_id: produto.categoria_id,
-        disponivel: produto.disponivel,
+        preco: produto.preco || '',
+        categoria_id: produto.categoria_id || '',
+        disponivel: produto.disponivel !== undefined ? produto.disponivel : true,
         imagem: produto.imagem || ''
       });
     } else {
@@ -224,18 +269,16 @@ function App() {
     try {
       const produtoData = {
         ...formProduto,
-        preco: parseFloat(formProduto.preco)
+        preco: parseFloat(formProduto.preco) || 0
       };
 
       if (produtoEditando) {
-        // Atualizar produto
         await fetchAPI(`/admin/produtos/${produtoEditando.id}`, {
           method: 'PUT',
           body: JSON.stringify(produtoData)
         });
         alert('✅ Produto atualizado com sucesso!');
       } else {
-        // Criar novo produto
         await fetchAPI('/admin/produtos', {
           method: 'POST',
           body: JSON.stringify(produtoData)
@@ -269,92 +312,108 @@ function App() {
     }
   };
 
-  // ✅ IMPRESSÃO DE PEDIDO (MELHORADA)
-  const imprimirPedido = (pedido) => {
+  // ✅ IMPRESSÃO VIA CONTROLLER - NOVO SISTEMA
+  const imprimirPedidoController = async (pedido, tipo = 'termica') => {
+    try {
+      const data = await fetchAPI(`/admin/impressao/pedido/${pedido.id}/${tipo}`);
+      
+      const janelaImpressao = window.open('', '_blank', 'width=300,height=500,left=200,top=100');
+      janelaImpressao.document.write(data.data.conteudo_impressao);
+      janelaImpressao.document.close();
+      
+      setTimeout(() => {
+        janelaImpressao.focus();
+        janelaImpressao.print();
+        setTimeout(() => janelaImpressao.close(), 1000);
+      }, 300);
+      
+    } catch (erro) {
+      console.error('Erro na impressão:', erro);
+      // Fallback para impressão local
+      imprimirPedidoFallback(pedido);
+    }
+  };
+
+  // ✅ IMPRESSÃO DE FALLBACK
+  const imprimirPedidoFallback = (pedido) => {
     const conteudoImpressao = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Pedido #${pedido.id}</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 20px; }
-          .header { text-align: center; margin-bottom: 20px; }
-          .info { margin-bottom: 15px; }
-          .itens { width: 100%; border-collapse: collapse; margin: 15px 0; }
-          .itens th, .itens td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-          .itens th { background-color: #f5f5f5; }
-          .total { font-weight: bold; font-size: 1.2em; margin-top: 15px; }
-          @media print { body { margin: 0; } }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <h2>${configuracoes?.nome_estabelecimento || "Jetro's Lanches"}</h2>
-          <h3>PEDIDO #${pedido.id}</h3>
-        </div>
-        
-        <div class="info">
-          <p><strong>Mesa:</strong> ${pedido.mesa?.numero || pedido.mesa_id || 'N/A'}</p>
-          <p><strong>Garçom:</strong> ${pedido.garcom_nome || 'N/A'}</p>
-          <p><strong>Data:</strong> ${new Date(pedido.created_at).toLocaleString('pt-BR')}</p>
-          <p><strong>Status:</strong> ${pedido.status}</p>
-        </div>
-        
-        <table class="itens">
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th>Qtd</th>
-              <th>Preço</th>
-              <th>Subtotal</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${pedido.itens ? pedido.itens.map(item => `
-              <tr>
-                <td>${item.produto?.nome || 'Produto'}${item.observacoes ? `<br><small>${item.observacoes}</small>` : ''}</td>
-                <td>${item.quantidade}</td>
-                <td>R$ ${Number(item.preco_unitario).toFixed(2)}</td>
-                <td>R$ ${Number(item.quantidade * item.preco_unitario).toFixed(2)}</td>
-              </tr>
-            `).join('') : ''}
-          </tbody>
-        </table>
-        
-        <div class="total">
-          TOTAL: R$ ${Number(pedido.total).toFixed(2)}
-        </div>
-      </body>
-      </html>
-    `;
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Pedido #${pedido.id}</title>
+  <style>
+    body { font-family: 'Courier New', monospace; margin: 0; padding: 2mm; font-size: 9px; width: 58mm; }
+    .header { text-align: center; margin-bottom: 3mm; border-bottom: 1px dashed #000; padding-bottom: 2mm; }
+    .empresa { font-weight: bold; font-size: 11px; margin-bottom: 1mm; }
+    .info { margin-bottom: 3mm; font-size: 8px; }
+    .info-line { display: flex; justify-content: space-between; margin: 1mm 0; }
+    .itens { width: 100%; border-collapse: collapse; margin: 2mm 0; font-size: 8px; }
+    .itens th, .itens td { padding: 1mm; text-align: left; border-bottom: 1px dashed #ddd; }
+    .itens th { border-bottom: 1px solid #000; }
+    .item-nome { width: 60%; }
+    .item-qtd { width: 15%; text-align: center; }
+    .item-preco { width: 25%; text-align: right; }
+    .total { font-weight: bold; font-size: 10px; margin-top: 3mm; border-top: 2px solid #000; padding-top: 2mm; text-align: center; }
+    .footer { text-align: center; margin-top: 4mm; font-size: 7px; color: #666; }
+    @media print { body { margin: 0; padding: 2mm; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="empresa">${configuracoes.nome_estabelecimento}</div>
+    <div>PEDIDO #${pedido.id}</div>
+  </div>
+  
+  <div class="info">
+    <div class="info-line">
+      <span>Mesa: ${pedido.mesa?.numero || pedido.mesa_id}</span>
+      <span>${new Date(pedido.created_at).toLocaleDateString('pt-BR')}</span>
+    </div>
+    <div class="info-line">
+      <span>Garçom: ${pedido.garcom_nome || 'SISTEMA'}</span>
+      <span>${new Date(pedido.created_at).toLocaleTimeString('pt-BR')}</span>
+    </div>
+  </div>
+  
+  <table class="itens">
+    <thead>
+      <tr>
+        <th class="item-nome">ITEM</th>
+        <th class="item-qtd">QTD</th>
+        <th class="item-preco">VALOR</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${pedido.itens ? pedido.itens.map(item => `
+        <tr>
+          <td class="item-nome">${item.produto?.nome || 'PRODUTO'}</td>
+          <td class="item-qtd">${item.quantidade}</td>
+          <td class="item-preco">R$ ${Number(item.preco_unitario).toFixed(2)}</td>
+        </tr>
+      `).join('') : ''}
+    </tbody>
+  </table>
+  
+  <div class="total">
+    TOTAL: R$ ${Number(pedido.total).toFixed(2)}
+  </div>
+  
+  <div class="footer">
+    ${new Date().toLocaleString('pt-BR')}
+  </div>
+</body>
+</html>`;
 
     const janelaImpressao = window.open('', '_blank');
     janelaImpressao.document.write(conteudoImpressao);
     janelaImpressao.document.close();
-    janelaImpressao.focus();
     setTimeout(() => {
       janelaImpressao.print();
-      janelaImpressao.close();
+      setTimeout(() => janelaImpressao.close(), 500);
     }, 250);
   };
 
-  // 🔥 FUNÇÕES DE EXPEDIENTE E CONFIGURAÇÕES (mantidas iguais)
-  const atualizarConfiguracoes = async (novasConfigs) => {
-    try {
-      const data = await fetchAPI('/admin/configuracoes', {
-        method: 'PUT',
-        body: JSON.stringify(novasConfigs)
-      });
-      
-      setConfiguracoes(data.data);
-      alert('✅ Configurações atualizadas com sucesso!');
-      setMostrarModalConfig(false);
-    } catch (erro) {
-      console.error('Erro ao atualizar configurações:', erro);
-      alert('❌ Erro ao atualizar configurações');
-    }
-  };
-
+  // 🔥 FUNÇÕES DE EXPEDIENTE
   const abrirExpediente = async () => {
     try {
       await fetchAPI('/admin/expediente/abrir', {
@@ -427,7 +486,7 @@ function App() {
     }
   }, [paginaAtiva]);
 
-  // 🎨 ESTILOS (mantidos iguais)
+  // 🎨 ESTILOS
   const estilos = {
     container: { fontFamily: 'Arial, sans-serif', backgroundColor: '#f8f9fa', minHeight: '100vh' },
     header: { backgroundColor: '#1a237e', color: 'white', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' },
@@ -457,7 +516,7 @@ function App() {
     buttonInfo: { backgroundColor: '#17a2b8', color: 'white' }
   };
 
-  // 🔥 COMPONENTE CONTROLE EXPEDIENTE (mantido igual)
+  // 🔥 COMPONENTE CONTROLE EXPEDIENTE
   const ControleExpediente = () => {
     if (!expedienteStatus) return null;
 
@@ -517,7 +576,126 @@ function App() {
     );
   };
 
-  // 🆕 MODAL DE PRODUTO (NOVO)
+  // 🔥 MODAL CONFIGURAÇÕES - CORRIGIDO
+  const ModalConfiguracoes = () => {
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      await atualizarConfiguracoes(formConfig);
+    };
+
+    if (!mostrarModalConfig) return null;
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000
+      }}>
+        <div style={{
+          backgroundColor: 'white',
+          padding: '30px',
+          borderRadius: '8px',
+          maxWidth: '500px',
+          width: '90%',
+          maxHeight: '80vh',
+          overflow: 'auto'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h3>⚙️ Configurações do Sistema</h3>
+            <button
+              onClick={() => setMostrarModalConfig(false)}
+              style={{ backgroundColor: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer' }}
+            >
+              ✕
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit}>
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                Nome do Estabelecimento:
+              </label>
+              <input
+                type="text"
+                value={formConfig.nome_estabelecimento}
+                onChange={(e) => setFormConfig({...formConfig, nome_estabelecimento: e.target.value})}
+                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '16px' }}
+                required
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                Telefone:
+              </label>
+              <input
+                type="text"
+                value={formConfig.telefone}
+                onChange={(e) => setFormConfig({...formConfig, telefone: e.target.value})}
+                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '16px' }}
+                placeholder="(11) 99999-9999"
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                Número de Mesas:
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="50"
+                value={formConfig.numero_mesas}
+                onChange={(e) => setFormConfig({...formConfig, numero_mesas: parseInt(e.target.value) || 1})}
+                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '16px' }}
+                required
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                Taxa de Serviço (%):
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="20"
+                step="0.1"
+                value={formConfig.taxa_servico}
+                onChange={(e) => setFormConfig({...formConfig, taxa_servico: parseFloat(e.target.value) || 0})}
+                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '16px' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+              <button
+                type="submit"
+                style={{ ...estilos.button, ...estilos.buttonSuccess, padding: '12px 24px', fontSize: '14px' }}
+              >
+                💾 Salvar Configurações
+              </button>
+              <button
+                type="button"
+                onClick={() => setMostrarModalConfig(false)}
+                style={{ ...estilos.button, backgroundColor: '#6c757d', color: 'white', padding: '12px 24px', fontSize: '14px' }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
+  // 🔥 MODAL PRODUTO - CORRIGIDO
   const ModalProduto = () => {
     if (!mostrarModalProduto) return null;
 
@@ -562,7 +740,7 @@ function App() {
                 type="text"
                 value={formProduto.nome}
                 onChange={(e) => setFormProduto({...formProduto, nome: e.target.value})}
-                style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '16px' }}
                 required
               />
             </div>
@@ -574,7 +752,7 @@ function App() {
               <textarea
                 value={formProduto.descricao}
                 onChange={(e) => setFormProduto({...formProduto, descricao: e.target.value})}
-                style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px', minHeight: '60px' }}
+                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', minHeight: '60px', fontSize: '16px' }}
               />
             </div>
 
@@ -588,7 +766,7 @@ function App() {
                 min="0"
                 value={formProduto.preco}
                 onChange={(e) => setFormProduto({...formProduto, preco: e.target.value})}
-                style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '16px' }}
                 required
               />
             </div>
@@ -600,7 +778,7 @@ function App() {
               <select
                 value={formProduto.categoria_id}
                 onChange={(e) => setFormProduto({...formProduto, categoria_id: e.target.value})}
-                style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '16px' }}
                 required
               >
                 <option value="">Selecione uma categoria</option>
@@ -629,7 +807,7 @@ function App() {
                 type="url"
                 value={formProduto.imagem}
                 onChange={(e) => setFormProduto({...formProduto, imagem: e.target.value})}
-                style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '16px' }}
                 placeholder="https://exemplo.com/imagem.jpg"
               />
             </div>
@@ -637,14 +815,14 @@ function App() {
             <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
               <button
                 type="submit"
-                style={{ ...estilos.button, ...estilos.buttonSuccess, padding: '10px 20px' }}
+                style={{ ...estilos.button, ...estilos.buttonSuccess, padding: '12px 24px', fontSize: '14px' }}
               >
                 💾 {produtoEditando ? 'Atualizar' : 'Criar'} Produto
               </button>
               <button
                 type="button"
                 onClick={() => setMostrarModalProduto(false)}
-                style={{ ...estilos.button, backgroundColor: '#6c757d', color: 'white', padding: '10px 20px' }}
+                style={{ ...estilos.button, backgroundColor: '#6c757d', color: 'white', padding: '12px 24px', fontSize: '14px' }}
               >
                 Cancelar
               </button>
@@ -655,7 +833,79 @@ function App() {
     );
   };
 
-  // ✅ COMPONENTE PEDIDOS (CORRIGIDO)
+  // 🔥 MODAL RELATÓRIO DIA
+  const ModalRelatorioDia = () => {
+    if (!mostrarModalExpediente || !expedienteStatus) return null;
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000
+      }}>
+        <div style={{
+          backgroundColor: 'white',
+          padding: '30px',
+          borderRadius: '8px',
+          maxWidth: '600px',
+          width: '90%',
+          maxHeight: '80vh',
+          overflow: 'auto'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h3>📊 Relatório do Expediente</h3>
+            <button
+              onClick={() => setMostrarModalExpediente(false)}
+              style={{ backgroundColor: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer' }}
+            >
+              ✕
+            </button>
+          </div>
+
+          <div style={estilos.grid}>
+            <div style={estilos.statCard}>
+              <h4>🛒 Pedidos Hoje</h4>
+              <p style={{ fontSize: '2em', fontWeight: 'bold', margin: '10px 0', color: '#007bff' }}>
+                {expedienteStatus.pedidos_hoje || 0}
+              </p>
+            </div>
+            
+            <div style={estilos.statCard}>
+              <h4>💰 Vendas Hoje</h4>
+              <p style={{ fontSize: '2em', fontWeight: 'bold', margin: '10px 0', color: '#28a745' }}>
+                R$ {Number(expedienteStatus.vendas_hoje || 0).toFixed(2)}
+              </p>
+            </div>
+          </div>
+
+          <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '5px' }}>
+            <h4 style={{ marginBottom: '10px' }}>✅ Expediente Encerrado</h4>
+            <p style={{ margin: 0, color: '#666' }}>
+              O expediente foi fechado com sucesso. Todos os dados do dia foram registrados.
+            </p>
+          </div>
+
+          <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
+            <button
+              onClick={() => setMostrarModalExpediente(false)}
+              style={{ ...estilos.button, ...estilos.buttonPrimary, padding: '10px 20px' }}
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ✅ COMPONENTE PEDIDOS
   const Pedidos = () => {
     const getBadgeStyle = (status) => {
       switch (status) {
@@ -822,10 +1072,16 @@ function App() {
               
               <div style={{ marginTop: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 <button
-                  onClick={() => imprimirPedido(pedidoSelecionado)}
+                  onClick={() => imprimirPedidoController(pedidoSelecionado, 'termica')}
                   style={{ ...estilos.button, ...estilos.buttonPrimary }}
                 >
-                  🖨️ Imprimir Pedido
+                  🖨️ 58mm (Termica)
+                </button>
+                <button
+                  onClick={() => imprimirPedidoController(pedidoSelecionado, 'compacto')}
+                  style={{ ...estilos.button, ...estilos.buttonInfo }}
+                >
+                  📄 80mm (Compacto)
                 </button>
                 <button
                   onClick={() => setPedidoSelecionado(null)}
@@ -841,7 +1097,7 @@ function App() {
     );
   };
 
-  // ✅ COMPONENTE PRODUTOS (CORRIGIDO)
+  // ✅ COMPONENTE PRODUTOS
   const Produtos = () => {
     return (
       <div>
@@ -925,7 +1181,7 @@ function App() {
     );
   };
 
-  // ✅ COMPONENTE MESAS (CORRIGIDO)
+  // ✅ COMPONENTE MESAS
   const Mesas = () => {
     return (
       <div>
@@ -989,7 +1245,7 @@ function App() {
     );
   };
 
-  // ✅ COMPONENTE DASHBOARD (CORRIGIDO)
+  // ✅ COMPONENTE DASHBOARD
   const Dashboard = () => {
     if (!dashboardData) return <div>Carregando dashboard...</div>;
 
@@ -1071,7 +1327,7 @@ function App() {
     <div style={estilos.container}>
       {/* Header */}
       <header style={estilos.header}>
-        <h1 style={{ margin: 0 }}>🍔 Jetro's Lanches - Painel Admin</h1>
+        <h1 style={{ margin: 0 }}>🍔 {configuracoes.nome_estabelecimento} - Painel Admin</h1>
         <p style={{ margin: '5px 0 0 0', opacity: 0.8 }}>Sistema de Gerenciamento</p>
         
         <nav style={estilos.nav}>
@@ -1125,102 +1381,5 @@ function App() {
     </div>
   );
 }
-
-// 🔥 COMPONENTES MODAIS (mantidos iguais)
-const ModalConfiguracoes = () => {
-  const [formData, setFormData] = React.useState({});
-  const { configuracoes, atualizarConfiguracoes, mostrarModalConfig, setMostrarModalConfig } = React.useContext(AppContext) || {};
-
-  React.useEffect(() => {
-    if (configuracoes) {
-      setFormData(configuracoes);
-    }
-  }, [configuracoes]);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (atualizarConfiguracoes) {
-      atualizarConfiguracoes(formData);
-    }
-  };
-
-  if (!mostrarModalConfig) return null;
-
-  return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-    }}>
-      <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '8px', maxWidth: '500px', width: '90%' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h3>⚙️ Configurações do Sistema</h3>
-          <button onClick={() => setMostrarModalConfig(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>✕</button>
-        </div>
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Nome do Estabelecimento:</label>
-            <input type="text" value={formData.nome_estabelecimento || ''} onChange={(e) => setFormData({...formData, nome_estabelecimento: e.target.value})} style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }} required />
-          </div>
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Número de Mesas:</label>
-            <input type="number" min="1" max="50" value={formData.numero_mesas || 10} onChange={(e) => setFormData({...formData, numero_mesas: parseInt(e.target.value)})} style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }} required />
-          </div>
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Taxa de Serviço (%):</label>
-            <input type="number" min="0" max="20" step="0.1" value={formData.taxa_servico || 0} onChange={(e) => setFormData({...formData, taxa_servico: parseFloat(e.target.value)})} style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }} />
-          </div>
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Telefone:</label>
-            <input type="text" value={formData.telefone || ''} onChange={(e) => setFormData({...formData, telefone: e.target.value})} style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }} placeholder="(11) 99999-9999" />
-          </div>
-          <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-            <button type="submit" style={{ padding: '10px 20px', border: 'none', borderRadius: '4px', backgroundColor: '#28a745', color: 'white', cursor: 'pointer' }}>💾 Salvar Configurações</button>
-            <button type="button" onClick={() => setMostrarModalConfig(false)} style={{ padding: '10px 20px', border: 'none', borderRadius: '4px', backgroundColor: '#6c757d', color: 'white', cursor: 'pointer' }}>Cancelar</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-const ModalRelatorioDia = () => {
-  const { expedienteStatus, mostrarModalExpediente, setMostrarModalExpediente } = React.useContext(AppContext) || {};
-
-  if (!mostrarModalExpediente || !expedienteStatus) return null;
-
-  return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-    }}>
-      <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '8px', maxWidth: '600px', width: '90%' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h3>📊 Relatório do Expediente</h3>
-          <button onClick={() => setMostrarModalExpediente(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>✕</button>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '30px' }}>
-          <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '20px', textAlign: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-            <h4>🛒 Pedidos Hoje</h4>
-            <p style={{ fontSize: '2em', fontWeight: 'bold', margin: '10px 0', color: '#007bff' }}>{expedienteStatus.pedidos_hoje || 0}</p>
-          </div>
-          <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '20px', textAlign: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-            <h4>💰 Vendas Hoje</h4>
-            <p style={{ fontSize: '2em', fontWeight: 'bold', margin: '10px 0', color: '#28a745' }}>R$ {Number(expedienteStatus.vendas_hoje || 0).toFixed(2)}</p>
-          </div>
-        </div>
-        <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '5px' }}>
-          <h4 style={{ marginBottom: '10px' }}>✅ Expediente Encerrado</h4>
-          <p style={{ margin: 0, color: '#666' }}>O expediente foi fechado com sucesso. Todos os dados do dia foram registrados.</p>
-        </div>
-        <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
-          <button onClick={() => setMostrarModalExpediente(false)} style={{ padding: '10px 20px', border: 'none', borderRadius: '4px', backgroundColor: '#007bff', color: 'white', cursor: 'pointer' }}>Fechar</button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Context para os modais
-const AppContext = React.createContext();
 
 export default App;
