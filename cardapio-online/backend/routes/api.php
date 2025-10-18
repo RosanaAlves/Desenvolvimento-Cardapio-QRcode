@@ -132,7 +132,6 @@ Route::prefix('admin')->group(function () {
     Route::post('/produtos', [AdminProdutoController::class, 'store']);
     Route::get('/produtos/{id}', [AdminProdutoController::class, 'show']);
     Route::put('/produtos/{id}', [AdminProdutoController::class, 'update']);
-    // Route::post('/produtos/{id}/toggle-disponibilidade', [AdminProdutoController::class, 'toggleDisponibilidade']); // ✅ NOVA ROTA
     Route::delete('/produtos/{id}', [AdminProdutoController::class, 'destroy']);
     
     // 📂 CATEGORIAS
