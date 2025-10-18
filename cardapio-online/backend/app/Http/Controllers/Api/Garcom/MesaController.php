@@ -11,17 +11,17 @@ use Illuminate\Support\Facades\Log;
 
 class MesaController extends Controller
 {
-    // ✅ CORREÇÃO: Use os métodos do Controller pai ou remova estes métodos
-
-    // Listar TODAS as mesas para o garçom
+    // ✅ LISTAR MESAS - CORRIGIDO PARA NOVO MODEL
     public function index()
     {
         try {
-            $mesas = Mesa::all();
+            $mesas = Mesa::with(['pedidosAtivos'])->orderBy('numero')->get();
             
             return response()->json([
                 'success' => true,
-                'data' => $mesas
+                'data' => $mesas->map(function($mesa) {
+                    return $mesa->toArrayResumido();
+                })
             ]);
             
         } catch (\Exception $e) {
@@ -33,37 +33,31 @@ class MesaController extends Controller
         }
     }
 
-    // Status das mesas - CORRIGIDO
+    // ✅ STATUS DAS MESAS - CORRIGIDO PARA NOVO MODEL
     public function status()
     {
         try {
             $mesas = Mesa::with(['pedidosAtivos'])->get();
 
             $mesasComStatus = $mesas->map(function($mesa) {
-                $temPedidosAtivos = $mesa->pedidosAtivos->isNotEmpty();
-                
-                // ✅ LÓGICA CORRIGIDA - Prioridade correta
-                $status = 'livre';
-                
-                if ($mesa->status_pagamento === 'paga') {
-                    $status = 'paga';
-                } elseif ($mesa->status_pagamento === 'fechada') {
-                    $status = 'fechada';
-                } elseif ($temPedidosAtivos) {
-                    $status = 'ocupada';
-                } elseif ($mesa->status === 'em_uso') {
-                    $status = 'em_uso';
-                }
-
+                // ✅ USAR MÉTODOS DO MODEL EM VEZ DE LÓGICA CUSTOMIZADA
                 return [
                     'id' => $mesa->id,
                     'numero' => $mesa->numero,
-                    'status' => $status,
-                    'garcom_nome' => $mesa->garcom_nome,
+                    'status' => $mesa->status,
                     'status_pagamento' => $mesa->status_pagamento,
+                    'status_formatado' => $mesa->status_formatado,
+                    'status_pagamento_formatado' => $mesa->status_pagamento_formatado,
+                    'garcom_nome' => $mesa->garcom_nome,
                     'pedidos_ativos' => $mesa->pedidosAtivos,
+                    'total_conta' => $mesa->total_conta,
+                    'quantidade_pedidos_ativos' => $mesa->quantidade_pedidos_ativos,
+                    'cor_status' => $mesa->cor_status,
+                    'cor_status_pagamento' => $mesa->cor_status_pagamento,
                     'created_at' => $mesa->created_at,
-                    'updated_at' => $mesa->updated_at
+                    'updated_at' => $mesa->updated_at,
+                    // ✅ INFORMAR SE PODE FECHAR CONTA
+                    'pode_fechar_conta' => $mesa->contaAberta() && $mesa->total_conta > 0
                 ];
             });
 
@@ -81,13 +75,14 @@ class MesaController extends Controller
         }
     }
 
-    // Pedidos da mesa
+    // ✅ PEDIDOS DA MESA - CORRIGIDO
     public function pedidos($mesaId)
     {
         try {
             $pedidos = Pedido::where('mesa_id', $mesaId)
                             ->where('status', '!=', 'cancelado')
                             ->with(['itens.produto', 'mesa'])
+                            ->orderBy('created_at', 'desc')
                             ->get();
 
             return response()->json([
@@ -103,69 +98,58 @@ class MesaController extends Controller
         }
     }
 
-        // NO MesaController do Garçom - CORRIGIR A LÓGICA
+    // ✅ OCUPAR MESA - CORRIGIDO PARA NOVO MODEL
     public function ocupar($id)
     {
+        DB::beginTransaction();
         try {
             $mesa = Mesa::findOrFail($id);
             
             // ✅ VERIFICAR SE JÁ ESTÁ OCUPADA
-            if ($mesa->status === 'ocupada') {
+            if ($mesa->estaOcupada()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Mesa já está ocupada'
                 ], 400);
             }
 
-            // ✅ APENAS MARCAR COMO "EM USO" OU "RESERVADA" - NÃO "OCUPADA"
-            $mesa->update([
-                'status' => 'em_uso', // ou 'reservada'
-                'garcom_nome' => auth()->user()->name ?? 'Garçom',
-                'updated_at' => now()
-            ]);
+            // ✅ VERIFICAR SE JÁ TEM CONTA FECHADA OU PAGA
+            if ($mesa->contaFechada() || $mesa->contaPaga()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Mesa com conta fechada ou paga. Libere a mesa primeiro.'
+                ], 400);
+            }
+
+            // ✅ USAR MÉTODO DO MODEL
+            $resultado = $mesa->ocupar(auth()->user()->name ?? 'Garçom');
+
+            if (!$resultado) {
+                throw new \Exception('Falha ao ocupar mesa');
+            }
+
+            DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Mesa preparada para uso',
-                'data' => $mesa
+                'message' => 'Mesa ocupada com sucesso',
+                'data' => $mesa->toArrayResumido()
             ]);
 
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error('Erro ao ocupar mesa: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao preparar mesa'
+                'message' => 'Erro ao ocupar mesa: ' . $e->getMessage()
             ], 500);
         }
     }
 
-    // ✅ MARCAR COMO OCUPADA APENAS QUANDO PRIMEIRO PEDIDO FOR FEITO
-    public function marcarComoOcupada($id)
-    {
-        try {
-            $mesa = Mesa::findOrFail($id);
-            
-            $mesa->update([
-                'status' => 'ocupada',
-                'updated_at' => now()
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Mesa marcada como ocupada'
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Erro ao marcar mesa como ocupada: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao atualizar status da mesa'
-            ], 500);
-        }
-    }
-    // Liberar mesa
+    // ✅ LIBERAR MESA - CORRIGIDO PARA NOVO MODEL
     public function liberar($id)
     {
+        DB::beginTransaction();
         try {
             $mesa = Mesa::find($id);
             
@@ -176,64 +160,88 @@ class MesaController extends Controller
                 ], 404);
             }
 
-            $mesa->update([
-                'status' => 'livre',
-                'garcom_nome' => null,
-                'status_pagamento' => 'aberta'
-            ]);
+            // ✅ VERIFICAR SE PODE LIBERAR (não pode liberar com conta fechada e valor pendente)
+            if ($mesa->contaFechada() && $mesa->total_conta > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Não é possível liberar mesa com conta fechada e valor pendente. Feche o pedido no caixa primeiro.'
+                ], 422);
+            }
+
+            // ✅ CANCELAR PEDIDOS ATIVOS SE HOUVER
+            if ($mesa->tem_pedidos_ativos) {
+                Pedido::where('mesa_id', $id)
+                     ->whereIn('status', ['pendente', 'preparando', 'pronto'])
+                     ->update(['status' => 'cancelado']);
+            }
+
+            // ✅ USAR MÉTODO DO MODEL
+            $resultado = $mesa->liberar();
+
+            if (!$resultado) {
+                throw new \Exception('Falha ao liberar mesa');
+            }
+
+            DB::commit();
 
             return response()->json([
                 'success' => true,
-                'data' => $mesa,
-                'message' => 'Mesa liberada com sucesso!'
+                'message' => 'Mesa liberada com sucesso!',
+                'data' => $mesa->toArrayResumido()
             ]);
 
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error('Erro em MesaController::liberar: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao liberar mesa'
+                'message' => 'Erro ao liberar mesa: ' . $e->getMessage()
             ], 500);
         }
     }
 
-    // ... outros métodos ...
+    // ✅ STATUS DA CONTA - CORRIGIDO
     public function statusConta($id)
     {
         try {
-            $mesa = Mesa::find($id);
+            $mesa = Mesa::with(['pedidosAtivos.itens.produto'])->find($id);
+            
             if (!$mesa) {
-                return response()->json(['success' => false, 'message' => 'Mesa não encontrada'], 404);
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'Mesa não encontrada'
+                ], 404);
             }
-
-            $pedidos = Pedido::where('mesa_id', $id)
-                            ->where('status', '!=', 'cancelado')
-                            ->with('itens.produto')
-                            ->get();
-
-            $totalConta = $pedidos->sum('total');
 
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'total_conta' => $totalConta,
-                    'pedidos' => $pedidos,
-                    'mesa' => $mesa
+                    'total_conta' => $mesa->total_conta,
+                    'pedidos' => $mesa->pedidosAtivos,
+                    'mesa' => $mesa->toArrayResumido(),
+                    'pode_fechar_conta' => $mesa->contaAberta() && $mesa->total_conta > 0,
+                    'pode_reabrir_conta' => $mesa->contaFechada(),
+                    // ✅ INFORMAR QUE O PAGAMENTO É NO CAIXA
+                    'instrucao_pagamento' => $mesa->contaFechada() ? 'Direcione o cliente ao caixa para pagamento' : null
                 ]
             ]);
 
         } catch (\Exception $e) {
             Log::error('Erro em MesaController::statusConta: ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'Erro ao carregar status da conta'], 500);
+            return response()->json([
+                'success' => false, 
+                'message' => 'Erro ao carregar status da conta'
+            ], 500);
         }
     }
 
-    // ✅ FECHAR CONTA - Com validação de status
+    // ✅ FECHAR CONTA - GARÇOM APENAS FECHA, NÃO PAGA
     public function fecharConta($id)
     {
         DB::beginTransaction();
         try {
             $mesa = Mesa::find($id);
+            
             if (!$mesa) {
                 return response()->json([
                     'success' => false,
@@ -242,49 +250,49 @@ class MesaController extends Controller
             }
 
             // ✅ VALIDAÇÃO: Verifica se a conta já está fechada
-            if ($mesa->status_pagamento === 'fechada') {
+            if ($mesa->contaFechada()) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'Conta já foi fechada! Aguarde o pagamento no caixa.'
+                    'message' => 'Conta já foi fechada! Aguarde o pagamento no caixa.'
                 ], 422);
             }
 
             // ✅ VALIDAÇÃO: Verifica se a conta já está paga
-            if ($mesa->status_pagamento === 'paga') {
+            if ($mesa->contaPaga()) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'Conta já foi paga! Mesa liberada.'
+                    'message' => 'Conta já foi paga! Mesa liberada.'
                 ], 422);
             }
-
-            $pedidos = Pedido::where('mesa_id', $id)
-                            ->where('status', '!=', 'cancelado')
-                            ->with('itens.produto')
-                            ->get();
 
             // ✅ VALIDAÇÃO: Verifica se há pedidos
-            if ($pedidos->isEmpty()) {
+            if ($mesa->total_conta <= 0) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'Sem pedidos realizados!'
+                    'message' => 'Sem pedidos realizados!'
                 ], 422);
             }
 
-            $totalConta = $pedidos->sum('total');
+            // ✅ USAR MÉTODO DO MODEL
+            $resultado = $mesa->fecharConta();
 
-            // ✅ Fecha a conta
-            $mesa->update([
-                'status_pagamento' => 'fechada'
-            ]);
+            if (!$resultado) {
+                throw new \Exception('Falha ao fechar conta');
+            }
 
             DB::commit();
 
+            // ✅ RECARREGAR DADOS ATUALIZADOS
+            $mesa->refresh();
+
             return response()->json([
                 'success' => true,
-                'total_conta' => $totalConta,
-                'pedidos' => $pedidos,
-                'mesa' => $mesa,
-                'message' => 'Conta fechada! Direcione o cliente ao caixa.'
+                'message' => '✅ Conta fechada com sucesso! Direcione o cliente ao caixa para pagamento.',
+                'data' => [
+                    'total_conta' => $mesa->total_conta,
+                    'mesa' => $mesa->toArrayResumido(),
+                    'instrucao' => 'Cliente deve ser direcionado ao caixa para efetuar o pagamento'
+                ]
             ]);
 
         } catch (\Exception $e) {
@@ -297,7 +305,7 @@ class MesaController extends Controller
         }
     }
 
-    // ✅ REABRIR CONTA
+    // ✅ REABRIR CONTA - GARÇOM PODE REABRIR SE NECESSÁRIO
     public function reabrirConta($id)
     {
         DB::beginTransaction();
@@ -312,23 +320,27 @@ class MesaController extends Controller
             }
 
             // ✅ VALIDAÇÃO: Só pode reabrir se estiver fechada
-            if ($mesa->status_pagamento !== 'fechada') {
+            if (!$mesa->contaFechada()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Só é possível reabrir contas que estão fechadas'
                 ], 422);
             }
 
-            // Reabrir conta
+            // ✅ USAR MÉTODO DO MODEL (se existir) ou atualizar diretamente
             $mesa->update([
                 'status_pagamento' => 'aberta'
             ]);
 
             DB::commit();
 
+            // ✅ RECARREGAR DADOS ATUALIZADOS
+            $mesa->refresh();
+
             return response()->json([
                 'success' => true,
-                'message' => 'Conta reaberta com sucesso!'
+                'message' => 'Conta reaberta com sucesso!',
+                'data' => $mesa->toArrayResumido()
             ]);
 
         } catch (\Exception $e) {
@@ -339,5 +351,8 @@ class MesaController extends Controller
                 'message' => 'Erro ao reabrir conta: ' . $e->getMessage()
             ], 500);
         }
-    }  
+    }
+
+    // ❌ REMOVIDO: Método pagarConta() - Apenas admin/caixa pode pagar conta
+    // ❌ REMOVIDO: Método marcarComoOcupada() - Não é mais necessário
 }

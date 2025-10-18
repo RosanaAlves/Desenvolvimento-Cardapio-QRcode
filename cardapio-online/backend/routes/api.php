@@ -6,7 +6,7 @@ use App\Http\Controllers\Api\Garcom\CategoriaController;
 use App\Http\Controllers\Api\Garcom\DashboardController;
 use App\Http\Controllers\Api\Garcom\MesaController;
 use App\Http\Controllers\Api\Garcom\PedidoController;
-use App\Http\Controllers\Api\Garcom\ProdutoController;
+// use App\Http\Controllers\Api\Garcom\ProdutoController;
 use App\Http\Controllers\Api\Cliente\CardapioController as ClienteCardapioController;
 
 // 🔥 NOVOS CONTROLLERS ADMIN
@@ -79,14 +79,9 @@ Route::prefix('garcom')->group(function () {
     Route::get('/pedidos/garcom/{garcomNome}/estatisticas', [PedidoController::class, 'estatisticas']); // ✅ NOVA
     
      //🔥 PRODUTO - GARÇOM (ATUALIZADAS)
-    Route::get('/produtos', [Garcom\ProdutoController::class, 'index']);
-    Route::get('/produtos/categorias', [Garcom\ProdutoController::class, 'categorias']);
-    Route::get('/produtos/categoria/{categoriaId}', [Garcom\ProdutoController::class, 'porCategoria']);
-    Route::get('/produtos/mais-vendidos', [Garcom\ProdutoController::class, 'maisVendidos']);
-    Route::get('/produtos/buscar/{termo}', [Garcom\ProdutoController::class, 'buscar']);
-    Route::get('/produtos/{id}', [Garcom\ProdutoController::class, 'show']);
-    Route::get('/produtos/estatisticas/geral', [Garcom\ProdutoController::class, 'estatisticas']);
-
+    Route::get('/produtos', [ProdutoController::class, 'index']);
+    Route::get('/produtos/{id}', [ProdutoController::class, 'show']);
+    
     // 🔥 CATEGORIAS
     Route::get('/categorias', [CategoriaController::class, 'index']);
     Route::get('/categorias/{id}/produtos', [CategoriaController::class, 'produtosPorCategoria']);

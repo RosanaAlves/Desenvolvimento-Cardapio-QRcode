@@ -62,6 +62,9 @@ function App() {
   });
   const [expedienteStatus, setExpedienteStatus] = useState(null);
   const [mostrarModalConfig, setMostrarModalConfig] = useState(false);
+  const abrirModalConfiguracoes = () => {
+  setMostrarModalConfig(true);
+  };
   const [mostrarModalExpediente, setMostrarModalExpediente] = useState(false);
   const [mostrarModalProduto, setMostrarModalProduto] = useState(false);
   const [produtoEditando, setProdutoEditando] = useState(null);
@@ -668,7 +671,7 @@ function App() {
           )}
           
           <button
-            onClick={() => setMostrarModalConfig(true)}
+            onClick={abrirModalConfiguracoes}
             style={{ ...estilos.button, ...estilos.buttonPrimary, padding: '10px 20px' }}
           >
             ⚙️ Configurações
@@ -694,209 +697,214 @@ function App() {
     );
   };
 
-  // 🔥 MODAL CONFIGURAÇÕES - CORRIGIDO
-  const ModalConfiguracoes = () => {
-    // Estado local para o formulário
-    const [localForm, setLocalForm] = useState({
-      nome_estabelecimento: '',
-      telefone: '',
-      numero_mesas: 10,
-      taxa_servico: 0
-    });
+ // 🔥 MODAL CONFIGURAÇÕES - CORRIGIDO
+const ModalConfiguracoes = ({ configuracoes, mostrarModalConfig, setMostrarModalConfig, atualizarConfiguracoes, estilos }) => {
+  // Estado local para o formulário
+  const [localForm, setLocalForm] = useState({
+    nome_estabelecimento: '',
+    telefone: '',
+    numero_mesas: 10,
+    taxa_servico: 0
+  });
 
-    // Carregar configurações quando o modal abrir
-    useEffect(() => {
-      if (configuracoes && mostrarModalConfig) {
-        console.log('📱 Carregando configurações no modal:', configuracoes);
-        setLocalForm({
-          nome_estabelecimento: configuracoes.nome_estabelecimento || '',
-          telefone: configuracoes.telefone || '',
-          numero_mesas: configuracoes.numero_mesas || 10,
-          taxa_servico: configuracoes.taxa_servico || 0
-        });
-      }
-    }, [configuracoes, mostrarModalConfig]);
+  // Carregar configurações quando o modal abrir
+  useEffect(() => {
+    if (configuracoes && mostrarModalConfig) {
+      console.log('📱 Carregando configurações no modal:', configuracoes);
+      setLocalForm({
+        nome_estabelecimento: configuracoes.nome_estabelecimento ?? '',
+        telefone: configuracoes.telefone ?? '',
+        numero_mesas: configuracoes.numero_mesas ?? 10,
+        taxa_servico: configuracoes.taxa_servico ?? 0
+      });
+    }
+  }, [configuracoes, mostrarModalConfig]);
 
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-      console.log('📤 Enviando configurações:', localForm);
-      
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    console.log('📤 Enviando configurações:', localForm);
+    
+    try {
       // Garantir que os números sejam corretos
       const configParaEnviar = {
         ...localForm,
-        numero_mesas: parseInt(localForm.numero_mesas) || 1,
-        taxa_servico: parseFloat(localForm.taxa_servico) || 0
+        numero_mesas: Math.max(1, parseInt(localForm.numero_mesas) || 1),
+        taxa_servico: Math.max(0, parseFloat(localForm.taxa_servico) || 0)
       };
       
       await atualizarConfiguracoes(configParaEnviar);
-    };
-
-    const handleInputChange = (field, value) => {
-      setLocalForm(prev => ({
-        ...prev,
-        [field]: value
-      }));
-    };
-
-    if (!mostrarModalConfig) return null;
-
-    return (
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000
-      }}>
-        <div style={{
-          backgroundColor: 'white',
-          padding: '30px',
-          borderRadius: '8px',
-          maxWidth: '500px',
-          width: '90%',
-          maxHeight: '80vh',
-          overflow: 'auto'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h3>⚙️ Configurações do Sistema</h3>
-            <button
-              onClick={() => setMostrarModalConfig(false)}
-              style={{ backgroundColor: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer' }}
-            >
-              ✕
-            </button>
-          </div>
-
-          <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                Nome do Estabelecimento:
-              </label>
-              <input
-                type="text"
-                value={localForm.nome_estabelecimento}
-                onChange={(e) => handleInputChange('nome_estabelecimento', e.target.value)}
-                style={{ 
-                  width: '100%', 
-                  padding: '12px', 
-                  border: '1px solid #ddd', 
-                  borderRadius: '4px', 
-                  fontSize: '16px',
-                  boxSizing: 'border-box'
-                }}
-                required
-              />
-            </div>
-
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                Telefone:
-              </label>
-              <input
-                type="text"
-                value={localForm.telefone}
-                onChange={(e) => handleInputChange('telefone', e.target.value)}
-                style={{ 
-                  width: '100%', 
-                  padding: '12px', 
-                  border: '1px solid #ddd', 
-                  borderRadius: '4px', 
-                  fontSize: '16px',
-                  boxSizing: 'border-box'
-                }}
-                placeholder="(11) 99999-9999"
-              />
-            </div>
-
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                Número de Mesas:
-              </label>
-              <input
-                type="number"
-                min="1"
-                max="50"
-                value={localForm.numero_mesas}
-                onChange={(e) => handleInputChange('numero_mesas', e.target.value)}
-                style={{ 
-                  width: '100%', 
-                  padding: '12px', 
-                  border: '1px solid #ddd', 
-                  borderRadius: '4px', 
-                  fontSize: '16px',
-                  boxSizing: 'border-box'
-                }}
-                required
-              />
-              <small style={{ color: '#666', fontSize: '12px' }}>
-                ⚠️ Alterar o número de mesas pode afetar o sistema existente
-              </small>
-            </div>
-
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                Taxa de Serviço (%):
-              </label>
-              <input
-                type="number"
-                min="0"
-                max="20"
-                step="0.1"
-                value={localForm.taxa_servico}
-                onChange={(e) => handleInputChange('taxa_servico', e.target.value)}
-                style={{ 
-                  width: '100%', 
-                  padding: '12px', 
-                  border: '1px solid #ddd', 
-                  borderRadius: '4px', 
-                  fontSize: '16px',
-                  boxSizing: 'border-box'
-                }}
-              />
-              <small style={{ color: '#666', fontSize: '12px' }}>
-                Exemplo: 10 para 10% de taxa de serviço
-              </small>
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-              <button
-                type="submit"
-                style={{ 
-                  ...estilos.button, 
-                  ...estilos.buttonSuccess, 
-                  padding: '12px 24px', 
-                  fontSize: '16px',
-                  flex: 1
-                }}
-              >
-                💾 Salvar Configurações
-              </button>
-              <button
-                type="button"
-                onClick={() => setMostrarModalConfig(false)}
-                style={{ 
-                  ...estilos.button, 
-                  backgroundColor: '#6c757d', 
-                  color: 'white', 
-                  padding: '12px 24px', 
-                  fontSize: '16px',
-                  flex: 1
-                }}
-              >
-                Cancelar
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
+      setMostrarModalConfig(false);
+    } catch (error) {
+      console.error('❌ Erro ao salvar configurações:', error);
+      // Aqui você pode adicionar um toast de erro ou alerta
+    }
   };
 
+  const handleInputChange = (field, value) => {
+    setLocalForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  if (!mostrarModalConfig) return null;
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000
+    }}>
+      <div style={{
+        backgroundColor: 'white',
+        padding: '30px',
+        borderRadius: '8px',
+        maxWidth: '500px',
+        width: '90%',
+        maxHeight: '80vh',
+        overflow: 'auto'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h3>⚙️ Configurações do Sistema</h3>
+          <button
+            onClick={() => setMostrarModalConfig(false)}
+            style={{ backgroundColor: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer' }}
+          >
+            ✕
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+              Nome do Estabelecimento:
+            </label>
+            <input
+              type="text"
+              value={localForm.nome_estabelecimento}
+              onChange={(e) => handleInputChange('nome_estabelecimento', e.target.value)}
+              style={{ 
+                width: '100%', 
+                padding: '12px', 
+                border: '1px solid #ddd', 
+                borderRadius: '4px', 
+                fontSize: '16px',
+                boxSizing: 'border-box'
+              }}
+              required
+            />
+          </div>
+
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+              Telefone:
+            </label>
+            <input
+              type="text"
+              value={localForm.telefone}
+              onChange={(e) => handleInputChange('telefone', e.target.value)}
+              style={{ 
+                width: '100%', 
+                padding: '12px', 
+                border: '1px solid #ddd', 
+                borderRadius: '4px', 
+                fontSize: '16px',
+                boxSizing: 'border-box'
+              }}
+              placeholder="(11) 99999-9999"
+            />
+          </div>
+
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+              Número de Mesas:
+            </label>
+            <input
+              type="number"
+              min="1"
+              max="50"
+              value={localForm.numero_mesas}
+              onChange={(e) => handleInputChange('numero_mesas', e.target.value)}
+              style={{ 
+                width: '100%', 
+                padding: '12px', 
+                border: '1px solid #ddd', 
+                borderRadius: '4px', 
+                fontSize: '16px',
+                boxSizing: 'border-box'
+              }}
+              required
+            />
+            <small style={{ color: '#666', fontSize: '12px' }}>
+              ⚠️ Alterar o número de mesas pode afetar o sistema existente
+            </small>
+          </div>
+
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+              Taxa de Serviço (%):
+            </label>
+            <input
+              type="number"
+              min="0"
+              max="20"
+              step="0.1"
+              value={localForm.taxa_servico}
+              onChange={(e) => handleInputChange('taxa_servico', e.target.value)}
+              style={{ 
+                width: '100%', 
+                padding: '12px', 
+                border: '1px solid #ddd', 
+                borderRadius: '4px', 
+                fontSize: '16px',
+                boxSizing: 'border-box'
+              }}
+            />
+            <small style={{ color: '#666', fontSize: '12px' }}>
+              Exemplo: 10 para 10% de taxa de serviço
+            </small>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+            <button
+              type="submit"
+              style={{ 
+                ...estilos.button, 
+                ...estilos.buttonSuccess, 
+                padding: '12px 24px', 
+                fontSize: '16px',
+                flex: 1
+              }}
+            >
+              💾 Salvar Configurações
+            </button>
+            <button
+              type="button"
+              onClick={() => setMostrarModalConfig(false)}
+              style={{ 
+                ...estilos.button, 
+                backgroundColor: '#6c757d', 
+                color: 'white', 
+                padding: '12px 24px', 
+                fontSize: '16px',
+                flex: 1
+              }}
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
   // 🔥 MODAL PRODUTO - CORRIGIDO
   const ModalProduto = () => {
     // Estado local para controlar os inputs
@@ -1778,7 +1786,13 @@ function App() {
 
       {/* MODAIS */}
       <ModalProduto />
-      <ModalConfiguracoes />
+      <ModalConfiguracoes
+        configuracoes={configuracoes}
+        mostrarModalConfig={mostrarModalConfig}
+        setMostrarModalConfig={setMostrarModalConfig}
+        atualizarConfiguracoes={atualizarConfiguracoes}
+        estilos={estilos}
+      />
       <ModalRelatorioDia />
     </div>
   );

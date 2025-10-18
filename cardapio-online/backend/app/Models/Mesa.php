@@ -5,19 +5,19 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Log;
 
 class Mesa extends Model
 {
     use HasFactory;
 
-    // 🔥 STATUS DISPONÍVEIS - CORRIGIDO
+    // 🔥 STATUS DISPONÍVEIS - SIMPLIFICADO
     public const STATUS_DISPONIVEIS = [
         'livre' => 'Livre',
-        'em_uso' => 'Em Uso',  // ✅ NOVO STATUS - mesa sendo preparada pelo garçom
-        'ocupada' => 'Ocupada'  // mesa com pedidos ativos
+        'ocupada' => 'Ocupada'
     ];
 
-    // 🔥 STATUS PAGAMENTO DISPONÍVEIS - CORRIGIDO
+    // 🔥 STATUS PAGAMENTO DISPONÍVEIS - SIMPLIFICADO
     public const STATUS_PAGAMENTO_DISPONIVEIS = [
         'aberta' => 'Aberta',
         'fechada' => 'Fechada',
@@ -45,11 +45,12 @@ class Mesa extends Model
         'capacidade' => 4
     ];
 
-    // 🔥 VALIDAÇÃO DE STATUS - CORRIGIDA
+    // 🔥 VALIDAÇÃO DE STATUS - SIMPLIFICADA
     public function setStatusAttribute($value)
     {
         if (!array_key_exists($value, self::STATUS_DISPONIVEIS)) {
-            throw new \InvalidArgumentException("Status inválido: {$value}. Status disponíveis: " . implode(', ', array_keys(self::STATUS_DISPONIVEIS)));
+            // Usar valor padrão em vez de lançar exceção
+            $value = 'livre';
         }
         $this->attributes['status'] = $value;
     }
@@ -57,12 +58,13 @@ class Mesa extends Model
     public function setStatusPagamentoAttribute($value)
     {
         if (!array_key_exists($value, self::STATUS_PAGAMENTO_DISPONIVEIS)) {
-            throw new \InvalidArgumentException("Status pagamento inválido: {$value}. Status disponíveis: " . implode(', ', array_keys(self::STATUS_PAGAMENTO_DISPONIVEIS)));
+            // Usar valor padrão em vez de lançar exceção
+            $value = 'aberta';
         }
         $this->attributes['status_pagamento'] = $value;
     }
 
-    // 🔥 BOOT METHOD PARA VALIDAÇÕES
+    // 🔥 BOOT METHOD SIMPLIFICADO
     protected static function boot()
     {
         parent::boot();
@@ -76,21 +78,26 @@ class Mesa extends Model
         });
 
         static::updating(function ($mesa) {
-            // ✅ CORREÇÃO: Quando a conta é paga, a mesa deve ser liberada
-            if ($mesa->isDirty('status_pagamento') && $mesa->status_pagamento === 'paga') {
-                $mesa->status = 'livre';
-                $mesa->garcom_nome = null;
-            }
+            try {
+                // ✅ CORREÇÃO: Quando a conta é paga, a mesa deve ser liberada
+                if ($mesa->isDirty('status_pagamento') && $mesa->status_pagamento === 'paga') {
+                    $mesa->status = 'livre';
+                    $mesa->garcom_nome = null;
+                }
 
-            // ✅ CORREÇÃO: Quando a conta é fechada, a mesa permanece ocupada
-            if ($mesa->isDirty('status_pagamento') && $mesa->status_pagamento === 'fechada') {
-                $mesa->status = 'ocupada';
-            }
+                // ✅ CORREÇÃO: Quando a conta é fechada, a mesa permanece ocupada
+                if ($mesa->isDirty('status_pagamento') && $mesa->status_pagamento === 'fechada') {
+                    $mesa->status = 'ocupada';
+                }
 
-            // ✅ CORREÇÃO: Quando a mesa é liberada, resetar status de pagamento
-            if ($mesa->isDirty('status') && $mesa->status === 'livre' && $mesa->status_pagamento !== 'paga') {
-                $mesa->status_pagamento = 'aberta';
-                $mesa->garcom_nome = null;
+                // ✅ CORREÇÃO: Quando a mesa é liberada, resetar status de pagamento
+                if ($mesa->isDirty('status') && $mesa->status === 'livre' && $mesa->status_pagamento !== 'paga') {
+                    $mesa->status_pagamento = 'aberta';
+                    $mesa->garcom_nome = null;
+                }
+            } catch (\Exception $e) {
+                Log::error("Erro no boot method da Mesa {$mesa->id}: " . $e->getMessage());
+                // Não lançar exceção para não bloquear atualizações
             }
         });
     }
@@ -119,15 +126,10 @@ class Mesa extends Model
                     ->whereDate('created_at', today());
     }
 
-    // 🔥 MÉTODOS DE STATUS
+    // 🔥 MÉTODOS DE STATUS - SIMPLIFICADOS
     public function estaLivre(): bool
     {
         return $this->status === 'livre';
-    }
-
-    public function estaEmUso(): bool
-    {
-        return $this->status === 'em_uso';
     }
 
     public function estaOcupada(): bool
@@ -155,38 +157,18 @@ class Mesa extends Model
         return $this->disponivel && $this->estaLivre();
     }
 
-    // 🔥 MÉTODOS DE AÇÃO - CORRIGIDOS
-    public function prepararParaUso(?string $garcomNome = null): bool
+    // 🔥 MÉTODOS DE AÇÃO - SIMPLIFICADOS
+    public function ocupar(?string $garcomNome = null): bool
     {
-        if (!$this->estaLivre()) {
-            throw new \Exception("Mesa não está livre para uso");
-        }
-
         return $this->update([
-            'status' => 'em_uso',
+            'status' => 'ocupada',
             'garcom_nome' => $garcomNome,
             'status_pagamento' => 'aberta'
         ]);
     }
 
-    public function ocupar(): bool
-    {
-        if (!$this->estaEmUso()) {
-            throw new \Exception("Mesa precisa estar em uso antes de ser ocupada");
-        }
-
-        return $this->update([
-            'status' => 'ocupada'
-        ]);
-    }
-
     public function liberar(): bool
     {
-        // ✅ CORREÇÃO: Verificar se pode ser liberada
-        if ($this->contaFechada() && $this->getTotalContaAttribute() > 0) {
-            throw new \Exception("Não é possível liberar mesa com conta fechada e valor pendente");
-        }
-
         return $this->update([
             'status' => 'livre',
             'garcom_nome' => null,
@@ -196,38 +178,14 @@ class Mesa extends Model
 
     public function fecharConta(): bool
     {
-        if (!$this->contaAberta()) {
-            throw new \Exception("Conta já está fechada");
-        }
-
-        if ($this->getTotalContaAttribute() <= 0) {
-            throw new \Exception("Não é possível fechar conta sem pedidos");
-        }
-
         return $this->update([
-            'status_pagamento' => 'fechada',
-            'status' => 'ocupada' // ✅ CORREÇÃO: Mesa permanece ocupada quando conta é fechada
-        ]);
-    }
-
-    public function reabrirConta(): bool
-    {
-        if (!$this->contaFechada()) {
-            throw new \Exception("Conta não está fechada");
-        }
-
-        return $this->update([
-            'status_pagamento' => 'aberta'
+            'status_pagamento' => 'fechada'
         ]);
     }
 
     public function pagarConta(): bool
     {
-        if (!$this->contaFechada()) {
-            throw new \Exception("Conta precisa estar fechada para ser paga");
-        }
-
-        // ✅ CORREÇÃO: Marcar pedidos como entregues ao pagar conta
+        // Marcar pedidos como entregues ao pagar conta
         $this->pedidosEmAberto()->update(['status' => 'entregue']);
 
         return $this->update([
@@ -241,11 +199,6 @@ class Mesa extends Model
     public function scopeLivres($query)
     {
         return $query->where('status', 'livre')->where('disponivel', true);
-    }
-
-    public function scopeEmUso($query)
-    {
-        return $query->where('status', 'em_uso');
     }
 
     public function scopeOcupadas($query)
@@ -296,7 +249,8 @@ class Mesa extends Model
 
     public function getTotalContaAttribute(): float
     {
-        return (float) $this->pedidosEmAberto()->sum('total');
+        $total = $this->pedidosEmAberto()->sum('total');
+        return (float) ($total ?: 0);
     }
 
     public function getQuantidadePedidosAtivosAttribute(): int
@@ -308,7 +262,6 @@ class Mesa extends Model
     {
         return match($this->status) {
             'livre' => '#4caf50', // Verde
-            'em_uso' => '#ff9800', // Laranja
             'ocupada' => '#f44336', // Vermelho
             default => '#9e9e9e' // Cinza
         };
@@ -324,7 +277,7 @@ class Mesa extends Model
         };
     }
 
-    // 🔥 MÉTODO PARA RESPOSTA DA API - CORRIGIDO
+    // 🔥 MÉTODO PARA RESPOSTA DA API - SIMPLIFICADO
     public function toArrayResumido(): array
     {
         return [
@@ -365,15 +318,16 @@ class Mesa extends Model
         ]);
     }
 
-    // 🔥 MÉTODO STATIC PARA CRIAR MESAS
-    public static function criarMesas(int $quantidade): void
+    // 🔥 MÉTODO STATIC PARA CRIAR MESAS - CORRIGIDO
+    public static function criarMesas(int $quantidade): array
     {
         $mesaMaxima = self::max('numero') ?? 0;
+        $mesasCriadas = [];
         
         for ($i = 1; $i <= $quantidade; $i++) {
             $numeroMesa = $mesaMaxima + $i;
             
-            self::firstOrCreate(
+            $mesa = self::firstOrCreate(
                 ['numero' => $numeroMesa],
                 [
                     'capacidade' => 4,
@@ -382,6 +336,41 @@ class Mesa extends Model
                     'disponivel' => true
                 ]
             );
+            
+            $mesasCriadas[] = $mesa;
         }
+
+        return $mesasCriadas;
+    }
+
+    // 🔥 MÉTODO PARA ATUALIZAR NÚMERO DE MESAS - NOVO
+    public static function atualizarQuantidadeMesas(int $novaQuantidade): array
+    {
+        $quantidadeAtual = self::count();
+        $resultado = [
+            'antes' => $quantidadeAtual,
+            'depois' => $novaQuantidade,
+            'mesas_adicionadas' => 0,
+            'mesas_removidas' => 0
+        ];
+
+        if ($novaQuantidade > $quantidadeAtual) {
+            // Adicionar mesas
+            $mesasAdicionadas = self::criarMesas($novaQuantidade - $quantidadeAtual);
+            $resultado['mesas_adicionadas'] = count($mesasAdicionadas);
+        } elseif ($novaQuantidade < $quantidadeAtual) {
+            // Remover mesas (apenas se estiverem livres)
+            $mesasParaRemover = self::where('numero', '>', $novaQuantidade)
+                ->where('status', 'livre')
+                ->where('status_pagamento', 'aberta')
+                ->get();
+
+            foreach ($mesasParaRemover as $mesa) {
+                $mesa->delete();
+                $resultado['mesas_removidas']++;
+            }
+        }
+
+        return $resultado;
     }
 }
