@@ -69,7 +69,7 @@ Route::prefix('garcom')->group(function () {
     Route::post('/mesas/{id}/reabrir-conta', [MesaController::class, 'reabrirConta']);
     Route::get('/mesas/{id}/status-conta', [MesaController::class, 'statusConta']);
     
-    // 🔥 PEDIDOS - GARÇOM (ATUALIZADAS)
+    //🔥 PEDIDOS - GARÇOM (ATUALIZADAS)
     Route::post('/pedidos', [PedidoController::class, 'store']);
     Route::get('/pedidos/{id}', [PedidoController::class, 'show']);
     Route::post('/pedidos/{id}/cancelar', [PedidoController::class, 'cancelar']);
@@ -78,6 +78,15 @@ Route::prefix('garcom')->group(function () {
     Route::put('/pedidos/{id}/observacoes', [PedidoController::class, 'atualizarObservacoes']); // ✅ NOVA
     Route::get('/pedidos/garcom/{garcomNome}/estatisticas', [PedidoController::class, 'estatisticas']); // ✅ NOVA
     
+     //🔥 PRODUTO - GARÇOM (ATUALIZADAS)
+    Route::get('/produtos', [Garcom\ProdutoController::class, 'index']);
+    Route::get('/produtos/categorias', [Garcom\ProdutoController::class, 'categorias']);
+    Route::get('/produtos/categoria/{categoriaId}', [Garcom\ProdutoController::class, 'porCategoria']);
+    Route::get('/produtos/mais-vendidos', [Garcom\ProdutoController::class, 'maisVendidos']);
+    Route::get('/produtos/buscar/{termo}', [Garcom\ProdutoController::class, 'buscar']);
+    Route::get('/produtos/{id}', [Garcom\ProdutoController::class, 'show']);
+    Route::get('/produtos/estatisticas/geral', [Garcom\ProdutoController::class, 'estatisticas']);
+
     // 🔥 CATEGORIAS
     Route::get('/categorias', [CategoriaController::class, 'index']);
     Route::get('/categorias/{id}/produtos', [CategoriaController::class, 'produtosPorCategoria']);
@@ -106,30 +115,31 @@ Route::prefix('admin')->group(function () {
     Route::post('/expediente/relatorio', [ExpedienteController::class, 'relatorioPorData']);
     
     // 📦 PEDIDOS
-    Route::get('/pedidos', [PedidoController::class, 'index']);
-    Route::get('/pedidos/{id}', [PedidoController::class, 'show']);
-    Route::put('/pedidos/{id}/status', [PedidoController::class, 'updateStatus']);
-    Route::post('/pedidos/{id}/cancelar', [PedidoController::class, 'cancelar']);
-    Route::get('/pedidos/estatisticas', [PedidoController::class, 'estatisticas']);
+    Route::get('/pedidos', [AdminPedidoController::class, 'index']);
+    Route::get('/pedidos/{id}', [AdminPedidoController::class, 'show']);
+    Route::put('/pedidos/{id}/status', [AdminPedidoController::class, 'updateStatus']);
+    Route::post('/pedidos/{id}/cancelar', [AdminPedidoController::class, 'cancelar']);
+    Route::get('/pedidos/estatisticas', [AdminPedidoController::class, 'estatisticas']);
     
     // 🪑 MESAS
-    Route::get('/mesas', [MesaController::class, 'index']);
-    Route::post('/mesas/{id}/pagar-conta', [MesaController::class, 'pagarConta']);
-    Route::post('/mesas/{id}/liberar', [MesaController::class, 'liberarMesa']);
-    Route::get('/mesas/estatisticas', [MesaController::class, 'estatisticas']);
+    Route::get('/mesas', [AdminMesaController::class, 'index']);
+    Route::post('/mesas/{id}/pagar-conta', [AdminMesaController::class, 'pagarConta']);
+    Route::post('/mesas/{id}/liberar', [AdminMesaController::class, 'liberarMesa']);
+    Route::get('/mesas/estatisticas', [AdminMesaController::class, 'estatisticas']);
     
     // 🍔 PRODUTOS
-    Route::get('/produtos', [ProdutoController::class, 'index']);
-    Route::post('/produtos', [ProdutoController::class, 'store']);
-    Route::get('/produtos/{id}', [ProdutoController::class, 'show']);
-    Route::put('/produtos/{id}', [ProdutoController::class, 'update']);
-    Route::delete('/produtos/{id}', [ProdutoController::class, 'destroy']);
+    Route::get('/produtos', [AdminProdutoController::class, 'index']);
+    Route::post('/produtos', [AdminProdutoController::class, 'store']);
+    Route::get('/produtos/{id}', [AdminProdutoController::class, 'show']);
+    Route::put('/produtos/{id}', [AdminProdutoController::class, 'update']);
+    // Route::post('/produtos/{id}/toggle-disponibilidade', [AdminProdutoController::class, 'toggleDisponibilidade']); // ✅ NOVA ROTA
+    Route::delete('/produtos/{id}', [AdminProdutoController::class, 'destroy']);
     
     // 📂 CATEGORIAS
-    Route::get('/categorias', [CategoriaController::class, 'index']);
-    Route::post('/categorias', [CategoriaController::class, 'store']);
-    Route::put('/categorias/{id}', [CategoriaController::class, 'update']);
-    Route::delete('/categorias/{id}', [CategoriaController::class, 'destroy']);
+    Route::get('/categorias', [AdminCategoriaController::class, 'index']);
+    Route::post('/categorias', [AdminCategoriaController::class, 'store']);
+    Route::put('/categorias/{id}', [AdminCategoriaController::class, 'update']);
+    Route::delete('/categorias/{id}', [AdminCategoriaController::class, 'destroy']);
     
     // 🖨️ IMPRESSÃO - CORRIGIDO PARA OS MÉTODOS EXISTENTES
     Route::get('/impressao/pedido/{id}/termica', [ImpressaoController::class, 'imprimirPedidoTermica']);
