@@ -13,11 +13,18 @@ use Illuminate\Support\Facades\Log;
 
 class ConfiguracaoController extends Controller
 {
-    // ✅ OBTER CONFIGURAÇÕES
+    // ✅ OBTER CONFIGURAÇÕES - CORRIGIDO
     public function index()
     {
         try {
-            $config = Configuracao::getConfig();
+            // Usar firstOrCreate para evitar erros se não existir
+            $config = Configuracao::firstOrCreate([], [
+                'nome_estabelecimento' => 'Jetro\'s Lanches',
+                'telefone' => '',
+                'numero_mesas' => 10,
+                'taxa_servico' => 0,
+                'expediente_aberto' => false
+            ]);
             
             return response()->json([
                 'success' => true,
@@ -33,54 +40,45 @@ class ConfiguracaoController extends Controller
         }
     }
 
-    // ✅ ATUALIZAR CONFIGURAÇÕES - VERSÃO SIMPLIFICADA (NO CONTROLLER)
+    // ✅ ATUALIZAR CONFIGURAÇÕES - CORRIGIDO
     public function update(Request $request)
     {
+        DB::beginTransaction();
         try {
-            \Log::info('📥 Recebendo atualização de configurações:', $request->all());
+            Log::info('📥 Recebendo atualização de configurações:', $request->all());
 
-            $request->validate([
+            $validated = $request->validate([
                 'nome_estabelecimento' => 'sometimes|string|max:255',
                 'telefone' => 'sometimes|string|max:20',
                 'numero_mesas' => 'sometimes|integer|min:1|max:50',
-                'taxa_servico' => 'sometimes|numeric|min:0'
+                'taxa_servico' => 'sometimes|numeric|min:0|max:100'
             ]);
 
-            \Log::info('✅ Validação passou');
+            Log::info('✅ Validação passou');
 
-            // 🔥 ALTERNATIVA SIMPLES - Atualização direta
-            $config = \App\Models\Configuracao::first();
-            
-            if (!$config) {
-                \Log::error('❌ Configuração não encontrada');
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Configuração não encontrada'
-                ], 404);
-            }
+            // 🔥 USAR firstOrCreate PARA EVITAR ERROS
+            $config = Configuracao::firstOrCreate([], [
+                'nome_estabelecimento' => 'Jetro\'s Lanches',
+                'telefone' => '',
+                'numero_mesas' => 10,
+                'taxa_servico' => 0,
+                'expediente_aberto' => false
+            ]);
 
-            \Log::info('📋 Configuração encontrada:', ['id' => $config->id]);
+            Log::info('📋 Configuração encontrada/criada:', ['id' => $config->id]);
 
-            // Atualizar campos individualmente
-            if ($request->has('nome_estabelecimento')) {
-                $config->nome_estabelecimento = $request->nome_estabelecimento;
-            }
-            
-            if ($request->has('telefone')) {
-                $config->telefone = $request->telefone;
-            }
-            
-            if ($request->has('numero_mesas')) {
-                $config->numero_mesas = $request->numero_mesas;
-            }
-            
-            if ($request->has('taxa_servico')) {
-                $config->taxa_servico = $request->taxa_servico;
+            // ✅ CORREÇÃO: Atualizar número de mesas se necessário
+            if (isset($validated['numero_mesas'])) {
+                $this->atualizarNumeroMesas($validated['numero_mesas']);
             }
 
-            \Log::info('💾 Salvando configuração...');
+            // Atualizar apenas os campos fornecidos
+            $config->fill($validated);
             $config->save();
-            \Log::info('✅ Configuração salva com sucesso');
+
+            Log::info('✅ Configuração salva com sucesso');
+
+            DB::commit();
 
             return response()->json([
                 'success' => true,
@@ -89,43 +87,81 @@ class ConfiguracaoController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('❌ Erro em ConfiguracaoController::update: ' . $e->getMessage());
-            \Log::error('❌ Stack trace: ' . $e->getTraceAsString());
+            DB::rollBack();
+            Log::error('❌ Erro em ConfiguracaoController::update: ' . $e->getMessage());
+            Log::error('❌ Stack trace: ' . $e->getTraceAsString());
             
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao atualizar configurações: ' . $e->getMessage(),
-                'debug' => 'Verifique os logs do servidor'
+                'message' => 'Erro ao atualizar configurações: ' . $e->getMessage()
             ], 500);
         }
     }
 
-    // ✅ REINICIAR SISTEMA (zerar mesas e pedidos)
+    // ✅ CORREÇÃO: Método para atualizar número de mesas
+    private function atualizarNumeroMesas($novoNumero)
+    {
+        $mesasAtuais = Mesa::count();
+        
+        if ($novoNumero > $mesasAtuais) {
+            // Adicionar mesas faltantes
+            for ($i = $mesasAtuais + 1; $i <= $novoNumero; $i++) {
+                Mesa::create([
+                    'numero' => $i,
+                    'status' => 'livre',
+                    'status_pagamento' => 'aberta',
+                    'capacidade' => 4,
+                    'disponivel' => true
+                ]);
+            }
+        } elseif ($novoNumero < $mesasAtuais) {
+            // Remover mesas extras (apenas se estiverem livres)
+            $mesasParaRemover = Mesa::where('numero', '>', $novoNumero)
+                ->where('status', 'livre')
+                ->get();
+                
+            foreach ($mesasParaRemover as $mesa) {
+                $mesa->delete();
+            }
+        }
+        
+        Log::info('🔄 Número de mesas atualizado', [
+            'antes' => $mesasAtuais,
+            'depois' => $novoNumero
+        ]);
+    }
+
+    // ✅ REINICIAR SISTEMA - CORRIGIDO (AGORA LIMPA PEDIDOS)
     public function reiniciarSistema()
     {
         DB::beginTransaction();
         try {
+            // 🔄 CANCELAR TODOS OS PEDIDOS (NÃO DELETAR, APENAS CANCELAR)
+            Pedido::where('status', '!=', 'cancelado')
+                 ->update([
+                     'status' => 'cancelado',
+                     'updated_at' => now()
+                 ]);
+
             // 🔄 LIBERAR TODAS AS MESAS
             Mesa::query()->update([
                 'status' => 'livre',
                 'garcom_nome' => null,
-                'status_pagamento' => 'aberta'
+                'status_pagamento' => 'aberta',
+                'updated_at' => now()
             ]);
 
-            // 🔄 CANCELAR PEDIDOS EM ABERTO (não entregues)
-            Pedido::where('status', '!=', 'entregue')
-                 ->where('status', '!=', 'cancelado')
-                 ->update(['status' => 'cancelado']);
-
             // 🔄 FECHAR EXPEDIENTE
-            $config = Configuracao::getConfig();
-            $config->update(['expediente_aberto' => false]);
+            $config = Configuracao::first();
+            if ($config) {
+                $config->update(['expediente_aberto' => false]);
+            }
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Sistema reiniciado com sucesso! Todas as mesas foram liberadas.'
+                'message' => 'Sistema reiniciado com sucesso! Todas as mesas foram liberadas e pedidos cancelados.'
             ]);
 
         } catch (\Exception $e) {
@@ -133,29 +169,31 @@ class ConfiguracaoController extends Controller
             Log::error('Erro em ConfiguracaoController::reiniciarSistema: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao reiniciar sistema'
+                'message' => 'Erro ao reiniciar sistema: ' . $e->getMessage()
             ], 500);
         }
     }
 
-    // ✅ DASHBOARD - ADMIN
+    // ✅ DASHBOARD - CORRIGIDO
     public function dashboard()
     {
         try {
-            $mesasOcupadas = Mesa::whereHas('pedidos', function($query) {
-                $query->whereIn('status', ['pendente', 'preparando', 'pronto']);
-            })->count();
+            $mesasOcupadas = Mesa::where('status', 'ocupada')->count();
             
             $stats = [
                 'total_mesas' => Mesa::count(),
                 'mesas_ocupadas' => $mesasOcupadas,
-                'mesas_livres' => Mesa::count() - $mesasOcupadas,
+                'mesas_livres' => Mesa::where('status', 'livre')->count(),
                 'total_pedidos' => Pedido::count(),
                 'pedidos_pendentes' => Pedido::where('status', 'pendente')->count(),
                 'pedidos_preparando' => Pedido::where('status', 'preparando')->count(),
                 'pedidos_prontos' => Pedido::where('status', 'pronto')->count(),
                 'pedidos_entregues' => Pedido::where('status', 'entregue')->count(),
+                'pedidos_cancelados' => Pedido::where('status', 'cancelado')->count(),
                 'pedidos_hoje' => Pedido::whereDate('created_at', today())->count(),
+                'vendas_hoje' => Pedido::whereDate('created_at', today())
+                                 ->where('status', '!=', 'cancelado')
+                                 ->sum('total'),
                 'total_produtos' => Produto::count(),
                 'total_categorias' => Categoria::count(),
             ];

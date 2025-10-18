@@ -2,7 +2,6 @@
 
 // 🔥 SISTEMA DE DESIGN RESPONSIVO E ACESSÍVEL
 const designSystem = {
-  // Cores com alto contraste
   cores: {
     primaria: '#b71c1c',
     secundaria: '#2e7d32', 
@@ -13,22 +12,21 @@ const designSystem = {
     textoClaro: '#ffffff',
     fundo: '#f8f9fa',
     card: '#ffffff',
-    borda: '#e0e0e0'
+    borda: '#e0e0e0',
+    emUso: '#ff9800' // ✅ NOVA COR PARA STATUS "EM USO"
   },
 
-  // Tamanhos de fonte escaláveis (ACESSIBILIDADE)
   fontSizes: {
-    xs: '0.875rem',    // 14px
-    sm: '1rem',        // 16px  
-    base: '1.125rem',  // 18px - BASE MAIOR
-    lg: '1.25rem',     // 20px
-    xl: '1.5rem',      // 24px
-    '2xl': '1.875rem', // 30px
-    '3xl': '2.25rem',  // 36px
-    '4xl': '3rem',     // 48px
+    xs: '0.875rem',
+    sm: '1rem',  
+    base: '1.125rem',
+    lg: '1.25rem',
+    xl: '1.5rem',
+    '2xl': '1.875rem',
+    '3xl': '2.25rem',
+    '4xl': '3rem',
   },
 
-  // Espaçamentos generosos
   spacing: {
     xs: '8px',
     sm: '12px',
@@ -40,14 +38,12 @@ const designSystem = {
     '4xl': '64px'
   },
 
-  // Botões touch-friendly
   botao: {
     minHeight: '60px',
     minWidth: '120px',
     padding: '16px 24px'
   },
 
-  // Breakpoints responsivos
   breakpoints: {
     mobile: 768,
     tablet: 1024,
@@ -98,10 +94,10 @@ const estilosBase = {
 // Configuração da API
 const API_BASE_URL = 'http://localhost:8000';
 
-// Função para fetch com tratamento de erro
-const fetchWithErrorHandling = async (url, options = {}) => {
+// ✅ MELHORADO: Função para fetch com tratamento de erro aprimorado
+const fetchAPI = async (endpoint, options = {}) => {
   try {
-    const response = await fetch(`${API_BASE_URL}${url}`, {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
@@ -112,7 +108,8 @@ const fetchWithErrorHandling = async (url, options = {}) => {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
     }
 
     const data = await response.json();
@@ -121,15 +118,22 @@ const fetchWithErrorHandling = async (url, options = {}) => {
       throw new Error('Resposta da API vazia');
     }
 
+    if (data.success === false) {
+      throw new Error(data.message || 'Erro na API');
+    }
+
     return data;
   } catch (error) {
-    console.error(`❌ Erro na requisição para ${url}:`, error);
+    console.error(`❌ Erro na requisição para ${endpoint}:`, error);
     throw error;
   }
 };
 
 // 🔥 COMPONENTE DE STATUS DA MESA (ATUALIZADO)
 const StatusMesaInfo = ({ mesaSelecionada, verResumoConta, reabrirConta }) => {
+  if (!mesaSelecionada) return null;
+
+  // ✅ CORREÇÃO: Status atualizado com novo fluxo
   if (mesaSelecionada.status_pagamento === 'fechada') {
     return (
       <div style={{
@@ -199,6 +203,28 @@ const StatusMesaInfo = ({ mesaSelecionada, verResumoConta, reabrirConta }) => {
     );
   }
 
+  // ✅ NOVO: Status "Em Uso"
+  if (mesaSelecionada.status === 'em_uso') {
+    return (
+      <div style={{
+        backgroundColor: '#fff3cd',
+        border: '2px solid #ff9800',
+        borderRadius: '10px',
+        padding: '15px',
+        marginBottom: '20px',
+        textAlign: 'center'
+      }}>
+        <div style={{ fontSize: '2em', marginBottom: '10px' }}>🟡</div>
+        <h3 style={{ margin: '0 0 10px 0', color: '#856404' }}>
+          Mesa em Preparação
+        </h3>
+        <p style={{ margin: '0', color: '#856404' }}>
+          Faça o primeiro pedido para ocupar a mesa
+        </p>
+      </div>
+    );
+  }
+
   return null;
 };
 
@@ -217,6 +243,7 @@ function App() {
   const [itemComObservacao, setItemComObservacao] = useState(null);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [carregandoResumo, setCarregandoResumo] = useState(false);
+  const [atualizandoMesas, setAtualizandoMesas] = useState(false);
 
   // 🔥 DETECTAR TAMANHO DA TELA PARA RESPONSIVIDADE
   useEffect(() => {
@@ -256,7 +283,7 @@ function App() {
 
   const responsive = getResponsiveStyles();
 
-  // Carregar dados iniciais
+  // ✅ MELHORADO: Carregar dados iniciais com tratamento de erro
   useEffect(() => {
     const carregarDados = async () => {
       try {
@@ -264,12 +291,12 @@ function App() {
         setErro(null);
 
         const [dadosMesas, dadosCategorias] = await Promise.all([
-          fetchWithErrorHandling('/api/garcom/mesas/status'),
-          fetchWithErrorHandling('/api/garcom/cardapio/categorias')
+          fetchAPI('/api/garcom/mesas/status'),
+          fetchAPI('/api/garcom/cardapio/categorias')
         ]);
 
-        const mesasFormatadas = dadosMesas.success ? dadosMesas.data : [];
-        const categoriasFormatadas = dadosCategorias.success ? dadosCategorias.data : [];
+        const mesasFormatadas = dadosMesas.data || [];
+        const categoriasFormatadas = dadosCategorias.data || [];
 
         if (!Array.isArray(mesasFormatadas)) throw new Error('Formato inválido de mesas');
         if (!Array.isArray(categoriasFormatadas)) throw new Error('Formato inválido de categorias');
@@ -279,7 +306,7 @@ function App() {
         
       } catch (erro) {
         console.error('❌ Erro ao carregar dados:', erro);
-        setErro('Erro ao carregar cardápio. Tente recarregar a página.');
+        setErro('Erro ao carregar cardápio. Verifique a conexão com o servidor.');
       } finally {
         setCarregando(false);
       }
@@ -287,6 +314,19 @@ function App() {
 
     carregarDados();
   }, []);
+
+  // ✅ MELHORADO: Atualizar lista de mesas
+  const atualizarMesas = async () => {
+    try {
+      setAtualizandoMesas(true);
+      const dadosMesas = await fetchAPI('/api/garcom/mesas/status');
+      setMesas(dadosMesas.data || []);
+    } catch (erro) {
+      console.error('Erro ao atualizar mesas:', erro);
+    } finally {
+      setAtualizandoMesas(false);
+    }
+  };
 
   // Avançar para seleção de mesa após coletar nome do GARÇOM
   const avancarParaMesas = () => {
@@ -297,16 +337,17 @@ function App() {
     setEtapa('selecao-mesa');
   };
 
-  // Selecionar mesa com nome do GARÇOM
+  // ✅ CORREÇÃO: Selecionar mesa com novo fluxo
   const selecionarMesa = async (mesa) => {
-    if (mesa.status === 'ocupada') {
+    // Se mesa já está ocupada ou em uso, apenas acessa
+    if (mesa.status === 'ocupada' || mesa.status === 'em_uso') {
       setMesaSelecionada(mesa);
       setEtapa('cardapio');
       return;
     }
 
     try {
-      const resultado = await fetchWithErrorHandling(`/api/garcom/mesas/${mesa.id}/ocupar`, {
+      const resultado = await fetchAPI(`/api/garcom/mesas/${mesa.id}/ocupar`, {
         method: 'POST',
         body: JSON.stringify({
           garcom_nome: garcomNome
@@ -314,16 +355,25 @@ function App() {
       });
 
       if (resultado.success) {
-        const mesasAtualizadas = await fetchWithErrorHandling('/api/garcom/mesas/status');
-        const mesaAtualizada = mesasAtualizadas.data.find(m => m.id === mesa.id);
+        // Atualizar lista de mesas
+        await atualizarMesas();
+        
+        // Buscar mesa atualizada
+        const mesaAtualizada = mesas.find(m => m.id === mesa.id) || resultado.data;
         
         setMesaSelecionada(mesaAtualizada);
         setEtapa('cardapio');
-        setMesas(mesasAtualizadas.data);
+        
+        alert('✅ Mesa preparada para uso! Agora você pode fazer pedidos.');
       }
     } catch (erro) {
-      console.error('Erro ao ocupar mesa:', erro);
-      alert('Erro ao ocupar mesa. Tente novamente.');
+      console.error('Erro ao preparar mesa:', erro);
+      
+      if (erro.message.includes('já está ocupada')) {
+        alert('❌ Esta mesa já está ocupada por outro garçom.');
+      } else {
+        alert('❌ Erro ao preparar mesa. Tente novamente.');
+      }
     }
   };
 
@@ -349,6 +399,7 @@ function App() {
     
     if (isNaN(precoNumerico)) {
       console.error('Preço inválido:', produto.preco);
+      alert('Erro: Preço do produto inválido');
       return;
     }
 
@@ -401,8 +452,13 @@ function App() {
     }, 0);
   };
 
-  // Finalizar pedido com GARÇOM_NOME
+  // ✅ MELHORADO: Finalizar pedido com tratamento completo
   const finalizarPedido = async () => {
+    if (carrinho.length === 0) {
+      alert('❌ Seu carrinho está vazio!');
+      return;
+    }
+
     try {
       setEnviandoPedido(true);
 
@@ -416,76 +472,77 @@ function App() {
         }))
       };
 
-      const resultado = await fetchWithErrorHandling('/api/garcom/pedidos', {
+      console.log('📤 Enviando pedido:', pedidoData);
+
+      const resultado = await fetchAPI('/api/garcom/pedidos', {
         method: 'POST',
         body: JSON.stringify(pedidoData)
       });
 
       if (resultado.success) {
+        // ✅ ATUALIZAR STATUS DA MESA APÓS PRIMEIRO PEDIDO
+        if (mesaSelecionada.status === 'em_uso') {
+          await atualizarMesas();
+        }
+
         setEtapa('confirmacao');
         setCarrinho([]);
+        
+        console.log('✅ Pedido criado com sucesso:', resultado.data);
       } else {
         throw new Error(resultado.message || 'Erro desconhecido ao enviar pedido');
       }
 
     } catch (erro) {
       console.error('Erro ao finalizar pedido:', erro);
-      alert('Erro ao enviar pedido. Tente novamente.');
+      alert('❌ Erro ao enviar pedido: ' + erro.message);
     } finally {
       setEnviandoPedido(false);
     }
   };
 
-  // ✅ CORRIGIDO: Fechar conta com estrutura padronizada
+  // ✅ CORRIGIDO: Fechar conta
   const fecharConta = async () => {
     try {
-      const resultado = await fetchWithErrorHandling(`/api/garcom/mesas/${mesaSelecionada.id}/fechar-conta`, {
+      const resultado = await fetchAPI(`/api/garcom/mesas/${mesaSelecionada.id}/fechar-conta`, {
         method: 'POST'
       });
       
       if (resultado.success) {
-        // ✅ CORREÇÃO: Padronizar estrutura do resumoConta
-        const resumoPadronizado = {
-          total_conta: resultado.total_conta,
-          pedidos: resultado.pedidos,
-          mesa: resultado.mesa
-        };
-        
-        setResumoConta(resumoPadronizado);
+        setResumoConta(resultado);
         setEtapa('conta-fechada');
         
         // Atualizar status local
-        setMesaSelecionada({
-          ...mesaSelecionada,
+        setMesaSelecionada(prev => ({
+          ...prev,
           status_pagamento: 'fechada'
-        });
+        }));
+
+        // Atualizar lista de mesas
+        await atualizarMesas();
       }
     } catch (erro) {
       console.error('Erro ao fechar conta:', erro);
       
-      // ✅ CORREÇÃO: Tratamento específico para erro 422 (Sem pedidos)
-      if (erro.message.includes('422')) {
+      if (erro.message.includes('422') || erro.message.includes('Sem pedidos')) {
         alert('❌ Não é possível fechar a conta!\n\nNenhum pedido foi realizado nesta mesa.');
-      } else if (erro.message.includes('Sem pedidos')) {
-        alert('❌ Não é possível fechar a conta!\n\nNenhum pedido foi realizado nesta mesa.');
+      } else if (erro.message.includes('já foi fechada')) {
+        alert('❌ Esta conta já está fechada!');
       } else {
         alert('❌ Erro ao fechar conta: ' + erro.message);
       }
     }
   };
 
-  // ✅ CORRIGIDO: Ver resumo da conta com estrutura padronizada
+  // ✅ CORRIGIDO: Ver resumo da conta
   const verResumoConta = async () => {
     try {
       setCarregandoResumo(true);
-      const resultado = await fetchWithErrorHandling(`/api/garcom/mesas/${mesaSelecionada.id}/status-conta`);
+      const resultado = await fetchAPI(`/api/garcom/mesas/${mesaSelecionada.id}/status-conta`);
       
       if (resultado.success) {
-        // ✅ CORREÇÃO: Usar estrutura padronizada
         setResumoConta(resultado.data);
         setEtapa('conta-fechada');
-      } else {
-        throw new Error(resultado.message || 'Erro ao carregar resumo da conta');
       }
     } catch (erro) {
       console.error('Erro ao carregar resumo:', erro);
@@ -495,10 +552,10 @@ function App() {
     }
   };
 
-  // ✅ CORRIGIDO: Reabrir conta com melhor tratamento de erro
+  // ✅ CORRIGIDO: Reabrir conta
   const reabrirConta = async () => {
     try {
-      const resultado = await fetchWithErrorHandling(`/api/garcom/mesas/${mesaSelecionada.id}/reabrir-conta`, {
+      const resultado = await fetchAPI(`/api/garcom/mesas/${mesaSelecionada.id}/reabrir-conta`, {
         method: 'POST'
       });
 
@@ -506,20 +563,20 @@ function App() {
         alert('✅ Conta reaberta com sucesso!');
         
         // Atualizar status local
-        setMesaSelecionada({
-          ...mesaSelecionada,
+        setMesaSelecionada(prev => ({
+          ...prev,
           status_pagamento: 'aberta'
-        });
+        }));
+        
+        // Atualizar lista de mesas
+        await atualizarMesas();
         
         setEtapa('cardapio');
       }
     } catch (erro) {
       console.error('Erro ao reabrir conta:', erro);
       
-      // ✅ CORREÇÃO: Tratamento específico para erro 422
-      if (erro.message.includes('422')) {
-        alert('❌ Só é possível reabrir contas que estão fechadas!');
-      } else if (erro.message.includes('fechadas')) {
+      if (erro.message.includes('422') || erro.message.includes('fechadas')) {
         alert('❌ Só é possível reabrir contas que estão fechadas!');
       } else {
         alert('❌ Erro ao reabrir conta: ' + erro.message);
@@ -540,6 +597,22 @@ function App() {
     setCarrinho([]);
     setGarcomNome('');
     setEtapa('coletar-garcom');
+  };
+
+  // ✅ CORREÇÃO: Função para obter cor e status da mesa
+  const getStatusMesa = (mesa) => {
+    // Prioridade: Status pagamento > Status mesa
+    if (mesa.status_pagamento === 'paga') {
+      return { cor: '#4caf50', texto: 'Paga', emoji: '✅' };
+    } else if (mesa.status_pagamento === 'fechada') {
+      return { cor: designSystem.cores.aviso, texto: 'Fechada', emoji: '🧾' };
+    } else if (mesa.status === 'ocupada') {
+      return { cor: designSystem.cores.primaria, texto: 'Ocupada', emoji: '🔴' };
+    } else if (mesa.status === 'em_uso') {
+      return { cor: designSystem.cores.emUso, texto: 'Em Uso', emoji: '🟡' };
+    } else {
+      return { cor: designSystem.cores.sucesso, texto: 'Livre', emoji: '🟢' };
+    }
   };
 
   // 🔥 TELA DE COLETAR NOME DO GARÇOM
@@ -668,6 +741,15 @@ function App() {
 
   // 🔥 TELA DE SELEÇÃO DE MESA
   if (etapa === 'selecao-mesa') {
+    // ✅ CORREÇÃO: Calcular estatísticas atualizadas
+    const estatisticas = {
+      livres: mesas.filter(m => getStatusMesa(m).texto === 'Livre').length,
+      emUso: mesas.filter(m => getStatusMesa(m).texto === 'Em Uso').length,
+      ocupadas: mesas.filter(m => getStatusMesa(m).texto === 'Ocupada').length,
+      fechadas: mesas.filter(m => getStatusMesa(m).texto === 'Fechada').length,
+      pagas: mesas.filter(m => getStatusMesa(m).texto === 'Paga').length
+    };
+
     return (
       <div style={{ 
         padding: responsive.paddingContainer,
@@ -779,7 +861,7 @@ function App() {
           </div>
         ) : (
           <div>
-            {/* PAINEL DE STATUS */}
+            {/* ✅ CORREÇÃO: Painel de status atualizado */}
             <div style={{ 
               display: 'flex', 
               justifyContent: 'center', 
@@ -796,7 +878,18 @@ function App() {
                 ...estilosBase.botao,
                 minHeight: 'auto'
               }}>
-                ✅ Livres: {mesas.filter(m => m.status === 'livre').length}
+                🟢 Livres: {estatisticas.livres}
+              </div>
+              <div style={{ 
+                backgroundColor: designSystem.cores.emUso,
+                color: designSystem.cores.textoClaro, 
+                padding: designSystem.spacing.md,
+                borderRadius: '25px',
+                fontSize: designSystem.fontSizes.lg,
+                ...estilosBase.botao,
+                minHeight: 'auto'
+              }}>
+                🟡 Em Uso: {estatisticas.emUso}
               </div>
               <div style={{ 
                 backgroundColor: designSystem.cores.primaria,
@@ -807,7 +900,7 @@ function App() {
                 ...estilosBase.botao,
                 minHeight: 'auto'
               }}>
-                🍽️ Ocupadas: {mesas.filter(m => m.status === 'ocupada').length}
+                🔴 Ocupadas: {estatisticas.ocupadas}
               </div>
               <div style={{ 
                 backgroundColor: designSystem.cores.aviso,
@@ -818,7 +911,7 @@ function App() {
                 ...estilosBase.botao,
                 minHeight: 'auto'
               }}>
-                🧾 Fechadas: {mesas.filter(m => m.status === 'fechada').length}
+                🧾 Fechadas: {estatisticas.fechadas}
               </div>
             </div>
 
@@ -831,26 +924,14 @@ function App() {
               margin: '0 auto'
             }}>
               {mesas.map(mesa => {
-                const isOcupada = mesa.status === 'ocupada';
-                const isFechada = mesa.status_pagamento === 'fechada';
-                
-                let corMesa = designSystem.cores.sucesso; // Verde - Livre
-                let textoStatus = 'Livre';
-                
-                if (isOcupada && !isFechada) {
-                  corMesa = designSystem.cores.primaria; // Vermelho - Ocupada
-                  textoStatus = 'Ocupada';
-                } else if (isFechada) {
-                  corMesa = designSystem.cores.aviso; // Laranja - Fechada
-                  textoStatus = 'Fechada';
-                }
+                const status = getStatusMesa(mesa);
 
                 return (
                   <div key={mesa.id} style={{ position: 'relative' }}>
                     <button
                       onClick={() => selecionarMesa(mesa)}
                       style={{
-                        backgroundColor: corMesa,
+                        backgroundColor: status.cor,
                         color: designSystem.cores.textoClaro,
                         border: 'none',
                         padding: designSystem.spacing.lg,
@@ -878,7 +959,7 @@ function App() {
                         marginTop: '8px',
                         opacity: 0.9
                       }}>
-                        {textoStatus}
+                        {status.emoji} {status.texto}
                       </div>
                       {mesa.garcom_nome && (
                         <div style={{
@@ -895,7 +976,7 @@ function App() {
               })}
             </div>
 
-            {/* LEGENDA */}
+            {/* ✅ CORREÇÃO: Legenda atualizada */}
             <div style={{ 
               textAlign: 'center', 
               marginTop: designSystem.spacing['2xl'], 
@@ -903,9 +984,10 @@ function App() {
               ...estilosBase.texto
             }}>
               <p style={{ fontSize: designSystem.fontSizes.lg }}>
-                <span style={{ color: designSystem.cores.sucesso, fontWeight: 'bold' }}>Verde</span> = Livre • 
-                <span style={{ color: designSystem.cores.primaria, fontWeight: 'bold' }}> Vermelho</span> = Ocupada • 
-                <span style={{ color: designSystem.cores.aviso, fontWeight: 'bold' }}> Laranja</span> = Fechada
+                <span style={{ color: designSystem.cores.sucesso, fontWeight: 'bold' }}>🟢 Verde</span> = Livre • 
+                <span style={{ color: designSystem.cores.emUso, fontWeight: 'bold' }}> 🟡 Laranja</span> = Em Uso • 
+                <span style={{ color: designSystem.cores.primaria, fontWeight: 'bold' }}> 🔴 Vermelho</span> = Ocupada • 
+                <span style={{ color: designSystem.cores.aviso, fontWeight: 'bold' }}> 🧾 Amarelo</span> = Fechada
               </p>
             </div>
           </div>
@@ -929,7 +1011,7 @@ function App() {
     );
   }
 
-  // 🔥 MODAL DE OBSERVAÇÕES
+  // 🔥 MODAL DE OBSERVAÇÕES (mantido igual)
   if (itemComObservacao) {
     return (
       <div style={{
@@ -1050,7 +1132,7 @@ function App() {
     );
   }
 
-  // 🔥 TELA DE CONFIRMAÇÃO DE PEDIDO
+  // 🔥 TELA DE CONFIRMAÇÃO DE PEDIDO (mantido igual)
   if (etapa === 'confirmacao') {
     return (
       <div style={{ 
@@ -1160,7 +1242,7 @@ function App() {
     );
   }
 
-  // 🔥 TELA CONTA FECHADA (CORRIGIDA - COM ESTRUTURA PADRONIZADA)
+  // 🔥 TELA CONTA FECHADA (mantido igual)
   if (etapa === 'conta-fechada') {
     return (
       <div style={{ 
@@ -1249,7 +1331,6 @@ function App() {
                   fontWeight: 'bold',
                   color: designSystem.cores.sucesso
                 }}>
-                  {/* ✅ CORREÇÃO: Verificação segura com fallback */}
                   R$ {Number(
                     resumoConta?.total_conta || 
                     resumoConta?.total || 
@@ -1266,7 +1347,6 @@ function App() {
                 </p>
               </div>
 
-              {/* ✅ CORREÇÃO: Verificação segura antes de mapear pedidos */}
               {resumoConta?.pedidos && resumoConta.pedidos.length > 0 ? (
                 <div style={{ marginBottom: designSystem.spacing.xl }}>
                   <h3 style={{ 
@@ -1349,8 +1429,6 @@ function App() {
           )}
 
           <div style={{ display: 'flex', gap: designSystem.spacing.md, flexDirection: 'column' }}>
-            {/* ❌ REMOVIDO: Botão de Confirmar Pagamento (apenas caixa) */}
-            
             {mesaSelecionada.status_pagamento === 'fechada' && (
               <button
                 onClick={reabrirConta}

@@ -69,11 +69,14 @@ Route::prefix('garcom')->group(function () {
     Route::post('/mesas/{id}/reabrir-conta', [MesaController::class, 'reabrirConta']);
     Route::get('/mesas/{id}/status-conta', [MesaController::class, 'statusConta']);
     
-    // 🔥 PEDIDOS
+    // 🔥 PEDIDOS - GARÇOM (ATUALIZADAS)
     Route::post('/pedidos', [PedidoController::class, 'store']);
     Route::get('/pedidos/{id}', [PedidoController::class, 'show']);
     Route::post('/pedidos/{id}/cancelar', [PedidoController::class, 'cancelar']);
     Route::get('/pedidos/garcom/{garcomNome}', [PedidoController::class, 'meusPedidos']);
+    Route::get('/pedidos/mesa/{mesaId}', [PedidoController::class, 'pedidosPorMesa']); // ✅ NOVA
+    Route::put('/pedidos/{id}/observacoes', [PedidoController::class, 'atualizarObservacoes']); // ✅ NOVA
+    Route::get('/pedidos/garcom/{garcomNome}/estatisticas', [PedidoController::class, 'estatisticas']); // ✅ NOVA
     
     // 🔥 CATEGORIAS
     Route::get('/categorias', [CategoriaController::class, 'index']);
@@ -87,55 +90,51 @@ Route::prefix('garcom')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index']);
 });
 
-// =========================================================================
-// ROTAS DO ADMIN (CORRIGIDAS - USANDO OS CONTROLLERS DA PASTA ADMIN)
-// =========================================================================
-
+// ✅ ROTAS ADMIN - PROTEGIDAS
 Route::prefix('admin')->group(function () {
     
-    // 🔥 CONFIGURAÇÕES DO SISTEMA
+    // 📊 DASHBOARD E CONFIGURAÇÕES
+    Route::get('/dashboard', [ConfiguracaoController::class, 'dashboard']);
     Route::get('/configuracoes', [ConfiguracaoController::class, 'index']);
     Route::put('/configuracoes', [ConfiguracaoController::class, 'update']);
     Route::post('/configuracoes/reiniciar-sistema', [ConfiguracaoController::class, 'reiniciarSistema']);
     
-    // 🔥 EXPEDIENTE (ABRIR/FECHAR DIA)
+    // 🕒 EXPEDIENTE - CORRIGIDO PARA OS MÉTODOS EXISTENTES
     Route::get('/expediente/status', [ExpedienteController::class, 'status']);
     Route::post('/expediente/abrir', [ExpedienteController::class, 'abrirExpediente']);
     Route::post('/expediente/fechar', [ExpedienteController::class, 'fecharExpediente']);
-    Route::get('/expediente/relatorio', [ExpedienteController::class, 'relatorioPorData']);
+    Route::post('/expediente/relatorio', [ExpedienteController::class, 'relatorioPorData']);
     
-    // 🔥 RELATÓRIOS AVANÇADOS
-    Route::get('/relatorios/vendas-periodo', [RelatorioController::class, 'vendasPorPeriodo']);
-    Route::get('/relatorios/produtos-mais-vendidos', [RelatorioController::class, 'produtosMaisVendidos']);
+    // 📦 PEDIDOS
+    Route::get('/pedidos', [PedidoController::class, 'index']);
+    Route::get('/pedidos/{id}', [PedidoController::class, 'show']);
+    Route::put('/pedidos/{id}/status', [PedidoController::class, 'updateStatus']);
+    Route::post('/pedidos/{id}/cancelar', [PedidoController::class, 'cancelar']);
+    Route::get('/pedidos/estatisticas', [PedidoController::class, 'estatisticas']);
     
-    // 🔥 DASHBOARD - ADMIN
-    Route::get('/dashboard', [ConfiguracaoController::class, 'dashboard']);
-
-    // 🔥 PEDIDOS - ADMIN
-    Route::get('/pedidos', [AdminPedidoController::class, 'index']);
-    Route::put('/pedidos/{id}/status', [AdminPedidoController::class, 'updateStatus']);
-    Route::post('/pedidos/{id}/cancelar', [AdminPedidoController::class, 'cancelar']);
-
-    // 🔥 PRODUTOS - ADMIN
-    Route::get('/produtos', [AdminProdutoController::class, 'index']);
-    Route::post('/produtos', [AdminProdutoController::class, 'store']);
-    Route::put('/produtos/{id}', [AdminProdutoController::class, 'update']);
-    Route::delete('/produtos/{id}', [AdminProdutoController::class, 'destroy']);
-
-    // 🔥 CATEGORIAS - ADMIN
-    Route::get('/categorias', [AdminCategoriaController::class, 'index']);
-    Route::post('/categorias', [AdminCategoriaController::class, 'store']);
-    Route::put('/categorias/{id}', [AdminCategoriaController::class, 'update']);
-    Route::delete('/categorias/{id}', [AdminCategoriaController::class, 'destroy']);
-
-    // 🔥 IMPRESSÃO - ADMIN
+    // 🪑 MESAS
+    Route::get('/mesas', [MesaController::class, 'index']);
+    Route::post('/mesas/{id}/pagar-conta', [MesaController::class, 'pagarConta']);
+    Route::post('/mesas/{id}/liberar', [MesaController::class, 'liberarMesa']);
+    Route::get('/mesas/estatisticas', [MesaController::class, 'estatisticas']);
+    
+    // 🍔 PRODUTOS
+    Route::get('/produtos', [ProdutoController::class, 'index']);
+    Route::post('/produtos', [ProdutoController::class, 'store']);
+    Route::get('/produtos/{id}', [ProdutoController::class, 'show']);
+    Route::put('/produtos/{id}', [ProdutoController::class, 'update']);
+    Route::delete('/produtos/{id}', [ProdutoController::class, 'destroy']);
+    
+    // 📂 CATEGORIAS
+    Route::get('/categorias', [CategoriaController::class, 'index']);
+    Route::post('/categorias', [CategoriaController::class, 'store']);
+    Route::put('/categorias/{id}', [CategoriaController::class, 'update']);
+    Route::delete('/categorias/{id}', [CategoriaController::class, 'destroy']);
+    
+    // 🖨️ IMPRESSÃO - CORRIGIDO PARA OS MÉTODOS EXISTENTES
     Route::get('/impressao/pedido/{id}/termica', [ImpressaoController::class, 'imprimirPedidoTermica']);
     Route::get('/impressao/pedido/{id}/compacto', [ImpressaoController::class, 'imprimirPedidoCompacto']);
-    Route::get('/impressao/relatorio', [ImpressaoController::class, 'imprimirRelatorio']);
-
-    // 🔥 MESAS - ADMIN
-    Route::get('/mesas', [AdminMesaController::class, 'index']);
-    Route::post('/mesas/{id}/pagar-conta', [AdminMesaController::class, 'pagarConta']); // ✅ APENAS ADMIN PODE PAGAR CONTA
+    Route::post('/impressao/relatorio', [ImpressaoController::class, 'imprimirRelatorio']);
 });
 
 // =========================================================================

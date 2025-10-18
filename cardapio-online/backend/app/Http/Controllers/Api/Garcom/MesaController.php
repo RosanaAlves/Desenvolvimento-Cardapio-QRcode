@@ -37,21 +37,22 @@ class MesaController extends Controller
     public function status()
     {
         try {
-            // ✅ CORREÇÃO: Agora usa 'pedidos' (plural) que foi corrigido no model
-            $mesas = Mesa::with(['pedidos' => function($query) {
-                $query->whereIn('status', ['pendente', 'preparando', 'pronto']);
-            }])->get();
+            $mesas = Mesa::with(['pedidosAtivos'])->get();
 
             $mesasComStatus = $mesas->map(function($mesa) {
-                $pedidoAtivo = $mesa->pedidos->first();
+                $temPedidosAtivos = $mesa->pedidosAtivos->isNotEmpty();
                 
+                // ✅ LÓGICA CORRIGIDA - Prioridade correta
                 $status = 'livre';
-                if ($pedidoAtivo) {
-                    $status = 'ocupada';
+                
+                if ($mesa->status_pagamento === 'paga') {
+                    $status = 'paga';
                 } elseif ($mesa->status_pagamento === 'fechada') {
                     $status = 'fechada';
-                } elseif ($mesa->status_pagamento === 'paga') {
-                    $status = 'paga';
+                } elseif ($temPedidosAtivos) {
+                    $status = 'ocupada';
+                } elseif ($mesa->status === 'em_uso') {
+                    $status = 'em_uso';
                 }
 
                 return [
@@ -60,8 +61,7 @@ class MesaController extends Controller
                     'status' => $status,
                     'garcom_nome' => $mesa->garcom_nome,
                     'status_pagamento' => $mesa->status_pagamento,
-                    'pedido_id' => $pedidoAtivo ? $pedidoAtivo->id : null,
-                    'total_pedido' => $pedidoAtivo ? $pedidoAtivo->total : null,
+                    'pedidos_ativos' => $mesa->pedidosAtivos,
                     'created_at' => $mesa->created_at,
                     'updated_at' => $mesa->updated_at
                 ];
@@ -103,45 +103,66 @@ class MesaController extends Controller
         }
     }
 
-    // Ocupar mesa - CORRIGIDO
-    public function ocupar(Request $request, $id)
+        // NO MesaController do Garçom - CORRIGIR A LÓGICA
+    public function ocupar($id)
     {
         try {
-            $request->validate([
-                'garcom_nome' => 'required|string|max:255'
-            ]);
-
-            $mesa = Mesa::find($id);
+            $mesa = Mesa::findOrFail($id);
             
-            if (!$mesa) {
+            // ✅ VERIFICAR SE JÁ ESTÁ OCUPADA
+            if ($mesa->status === 'ocupada') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Mesa não encontrada'
-                ], 404);
+                    'message' => 'Mesa já está ocupada'
+                ], 400);
             }
 
-            // Atualizar mesa
+            // ✅ APENAS MARCAR COMO "EM USO" OU "RESERVADA" - NÃO "OCUPADA"
             $mesa->update([
-                'status' => 'ocupada',
-                'garcom_nome' => $request->garcom_nome,
-                'status_pagamento' => 'aberta'
+                'status' => 'em_uso', // ou 'reservada'
+                'garcom_nome' => auth()->user()->name ?? 'Garçom',
+                'updated_at' => now()
             ]);
 
             return response()->json([
                 'success' => true,
-                'data' => $mesa,
-                'message' => 'Mesa ocupada com sucesso!'
+                'message' => 'Mesa preparada para uso',
+                'data' => $mesa
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Erro em MesaController::ocupar: ' . $e->getMessage());
+            Log::error('Erro ao ocupar mesa: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao ocupar mesa: ' . $e->getMessage()
+                'message' => 'Erro ao preparar mesa'
             ], 500);
         }
     }
 
+    // ✅ MARCAR COMO OCUPADA APENAS QUANDO PRIMEIRO PEDIDO FOR FEITO
+    public function marcarComoOcupada($id)
+    {
+        try {
+            $mesa = Mesa::findOrFail($id);
+            
+            $mesa->update([
+                'status' => 'ocupada',
+                'updated_at' => now()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Mesa marcada como ocupada'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erro ao marcar mesa como ocupada: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao atualizar status da mesa'
+            ], 500);
+        }
+    }
     // Liberar mesa
     public function liberar($id)
     {
