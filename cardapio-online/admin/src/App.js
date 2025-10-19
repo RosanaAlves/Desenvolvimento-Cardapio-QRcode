@@ -646,28 +646,39 @@ function App() {
   const [loadingAuth, setLoadingAuth] = useState(true);
 
   useEffect(() => {
-    const checkUser = async () => {
+  const checkUser = async () => {
       try {
+        // ✅ PRIMEIRO VERIFICA SE EXISTE TOKEN
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+          setLoadingAuth(false);
+          return;
+        }
+        
+        // ✅ SE TEM TOKEN, VERIFICA SE É VÁLIDO
         const response = await fetchAPI('/user');
         if (response.user) {
           setUser(response.user);
         }
       } catch (error) {
-        console.log('Nenhum usuário logado, exibindo tela de login.');
+        console.log('Token inválido ou expirado');
+        localStorage.removeItem('auth_token');
       } finally {
         setLoadingAuth(false);
       }
     };
-    checkUser();
-  }, []);
+      checkUser();
+    }, []);
 
   const handleLogout = async () => {
     try {
       await fetchAPI('/logout', { method: 'POST' });
+    } catch (err) {
+      console.error('Erro no logout:', err);
+    } finally {
+      // ✅ SEMPRE remove o token
+      localStorage.removeItem('auth_token');
       setUser(null);
-    } catch(err) {
-      console.error('Erro no logout', err);
-      alert('Não foi possível fazer logout.');
     }
   };
 
