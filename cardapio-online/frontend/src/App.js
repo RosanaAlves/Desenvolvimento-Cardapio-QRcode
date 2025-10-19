@@ -13,115 +13,46 @@ const designSystem = {
     fundo: '#f8f9fa',
     card: '#ffffff',
     borda: '#e0e0e0',
-    emUso: '#ff9800' // ✅ NOVA COR PARA STATUS "EM USO"
   },
-
   fontSizes: {
-    xs: '0.875rem',
-    sm: '1rem',  
-    base: '1.125rem',
-    lg: '1.25rem',
-    xl: '1.5rem',
-    '2xl': '1.875rem',
-    '3xl': '2.25rem',
-    '4xl': '3rem',
+    xs: '0.875rem', sm: '1rem', base: '1.125rem', lg: '1.25rem', xl: '1.5rem',
+    '2xl': '1.875rem', '3xl': '2.25rem', '4xl': '3rem',
   },
-
   spacing: {
-    xs: '8px',
-    sm: '12px',
-    md: '16px',
-    lg: '20px',
-    xl: '24px',
-    '2xl': '32px',
-    '3xl': '48px',
-    '4xl': '64px'
+    xs: '8px', sm: '12px', md: '16px', lg: '20px', xl: '24px',
+    '2xl': '32px', '3xl': '48px', '4xl': '64px'
   },
-
-  botao: {
-    minHeight: '60px',
-    minWidth: '120px',
-    padding: '16px 24px'
-  },
-
-  breakpoints: {
-    mobile: 768,
-    tablet: 1024,
-    desktop: 1200
-  }
+  botao: { minHeight: '60px', minWidth: '120px', padding: '16px 24px' },
+  breakpoints: { mobile: 768, tablet: 1024, desktop: 1200 }
 };
 
 // 🔥 ESTILOS BASE RESPONSIVOS
 const estilosBase = {
-  fontePrimaria: {
-    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-    lineHeight: '1.6',
-    fontSize: designSystem.fontSizes.base,
-    fontWeight: '400'
-  },
-  titulo: {
-    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-    fontWeight: '700',
-    lineHeight: '1.3',
-    fontSize: designSystem.fontSizes['3xl']
-  },
-  subtitulo: {
-    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-    fontWeight: '600', 
-    lineHeight: '1.4',
-    fontSize: designSystem.fontSizes.xl
-  },
-  texto: {
-    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-    fontWeight: '400',
-    lineHeight: '1.5',
-    fontSize: designSystem.fontSizes.base
-  },
-  botao: {
-    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-    fontWeight: '600',
-    fontSize: designSystem.fontSizes.lg,
-    minHeight: designSystem.botao.minHeight,
-    minWidth: designSystem.botao.minWidth,
-    padding: designSystem.botao.padding,
-    border: 'none',
-    borderRadius: '12px',
-    cursor: 'pointer',
-    transition: 'all 0.3s ease'
-  }
+  fontePrimaria: { fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", lineHeight: '1.6', fontSize: designSystem.fontSizes.base, fontWeight: '400' },
+  titulo: { fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", fontWeight: '700', lineHeight: '1.3', fontSize: designSystem.fontSizes['3xl'] },
+  subtitulo: { fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", fontWeight: '600', lineHeight: '1.4', fontSize: designSystem.fontSizes.xl },
+  texto: { fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", fontWeight: '400', lineHeight: '1.5', fontSize: designSystem.fontSizes.base },
+  botao: { fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", fontWeight: '600', fontSize: designSystem.fontSizes.lg, minHeight: designSystem.botao.minHeight, minWidth: designSystem.botao.minWidth, padding: designSystem.botao.padding, border: 'none', borderRadius: '12px', cursor: 'pointer', transition: 'all 0.3s ease' }
 };
 
 // Configuração da API
 const API_BASE_URL = 'http://localhost:8000';
 
-// ✅ MELHORADO: Função para fetch com tratamento de erro aprimorado
+// ✅ Função para fetch com tratamento de erro
 const fetchAPI = async (endpoint, options = {}) => {
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        ...options.headers
-      },
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', ...options.headers },
       ...options
     });
-
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`HTTP ${response.status}: ${errorText}`);
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(errorData.message || `HTTP ${response.status}`);
     }
-
     const data = await response.json();
-    
-    if (data === null || data === undefined) {
-      throw new Error('Resposta da API vazia');
-    }
-
-    if (data.success === false) {
-      throw new Error(data.message || 'Erro na API');
-    }
-
+    if (data === null || data === undefined) throw new Error('Resposta da API vazia');
+    if (data.success === false) throw new Error(data.message || 'Erro na API');
     return data;
   } catch (error) {
     console.error(`❌ Erro na requisição para ${endpoint}:`, error);
@@ -129,107 +60,35 @@ const fetchAPI = async (endpoint, options = {}) => {
   }
 };
 
-// 🔥 COMPONENTE DE STATUS DA MESA (ATUALIZADO)
+// 🔥 COMPONENTE DE STATUS DA MESA (SIMPLIFICADO)
 const StatusMesaInfo = ({ mesaSelecionada, verResumoConta, reabrirConta }) => {
   if (!mesaSelecionada) return null;
 
-  // ✅ CORREÇÃO: Status atualizado com novo fluxo
   if (mesaSelecionada.status_pagamento === 'fechada') {
     return (
-      <div style={{
-        backgroundColor: '#fff3cd',
-        border: '2px solid #ff9800',
-        borderRadius: '10px',
-        padding: '15px',
-        marginBottom: '20px',
-        textAlign: 'center'
-      }}>
+      <div style={{ backgroundColor: '#fff3cd', border: '2px solid #ff9800', borderRadius: '10px', padding: '15px', marginBottom: '20px', textAlign: 'center' }}>
         <div style={{ fontSize: '2em', marginBottom: '10px' }}>💰</div>
-        <h3 style={{ margin: '0 0 10px 0', color: '#856404' }}>
-          Conta Fechada
-        </h3>
-        <p style={{ margin: '0 0 15px 0', color: '#856404' }}>
-          Aguardando pagamento no caixa
-        </p>
-        <button
-          onClick={verResumoConta}
-          style={{
-            backgroundColor: '#ff9800',
-            color: 'white',
-            border: 'none',
-            padding: '10px 20px',
-            borderRadius: '5px',
-            cursor: 'pointer',
-            marginRight: '10px'
-          }}
-        >
-          👀 Ver Resumo
-        </button>
-        <button
-          onClick={reabrirConta}
-          style={{
-            backgroundColor: '#b71c1c',
-            color: 'white',
-            border: 'none',
-            padding: '10px 20px',
-            borderRadius: '5px',
-            cursor: 'pointer'
-          }}
-        >
-          ↩️ Reabrir Conta
-        </button>
+        <h3 style={{ margin: '0 0 10px 0', color: '#856404' }}>Conta Fechada</h3>
+        <p style={{ margin: '0 0 15px 0', color: '#856404' }}>Aguardando pagamento no caixa</p>
+        <button onClick={verResumoConta} style={{ backgroundColor: '#ff9800', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '5px', cursor: 'pointer', marginRight: '10px' }}>👀 Ver Resumo</button>
+        <button onClick={reabrirConta} style={{ backgroundColor: '#b71c1c', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '5px', cursor: 'pointer' }}>↩️ Reabrir Conta</button>
       </div>
     );
   }
 
   if (mesaSelecionada.status_pagamento === 'paga') {
     return (
-      <div style={{
-        backgroundColor: '#d4edda',
-        border: '2px solid #28a745',
-        borderRadius: '10px',
-        padding: '15px',
-        marginBottom: '20px',
-        textAlign: 'center'
-      }}>
+      <div style={{ backgroundColor: '#d4edda', border: '2px solid #28a745', borderRadius: '10px', padding: '15px', marginBottom: '20px', textAlign: 'center' }}>
         <div style={{ fontSize: '2em', marginBottom: '10px' }}>✅</div>
-        <h3 style={{ margin: '0 0 10px 0', color: '#155724' }}>
-          Conta Paga
-        </h3>
-        <p style={{ margin: '0', color: '#155724' }}>
-          Mesa liberada para novos clientes
-        </p>
+        <h3 style={{ margin: '0 0 10px 0', color: '#155724' }}>Conta Paga</h3>
+        <p style={{ margin: '0', color: '#155724' }}>Mesa liberada para novos clientes</p>
       </div>
     );
   }
-
-  // ✅ NOVO: Status "Em Uso"
-  if (mesaSelecionada.status === 'em_uso') {
-    return (
-      <div style={{
-        backgroundColor: '#fff3cd',
-        border: '2px solid #ff9800',
-        borderRadius: '10px',
-        padding: '15px',
-        marginBottom: '20px',
-        textAlign: 'center'
-      }}>
-        <div style={{ fontSize: '2em', marginBottom: '10px' }}>🟡</div>
-        <h3 style={{ margin: '0 0 10px 0', color: '#856404' }}>
-          Mesa em Preparação
-        </h3>
-        <p style={{ margin: '0', color: '#856404' }}>
-          Faça o primeiro pedido para ocupar a mesa
-        </p>
-      </div>
-    );
-  }
-
   return null;
 };
 
 function App() {
-  // Estados do sistema
   const [etapa, setEtapa] = useState('coletar-garcom');
   const [garcomNome, setGarcomNome] = useState('');
   const [mesas, setMesas] = useState([]);
@@ -243,67 +102,44 @@ function App() {
   const [itemComObservacao, setItemComObservacao] = useState(null);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [carregandoResumo, setCarregandoResumo] = useState(false);
-  const [atualizandoMesas, setAtualizandoMesas] = useState(false);
 
-  // 🔥 DETECTAR TAMANHO DA TELA PARA RESPONSIVIDADE
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // 🔥 ESTILOS RESPONSIVOS DINÂMICOS
   const getResponsiveStyles = () => {
-    if (windowWidth < designSystem.breakpoints.mobile) {
-      return {
-        gridColunasMesas: 'repeat(2, 1fr)',
-        fontSizeBase: designSystem.fontSizes.base,
-        paddingContainer: designSystem.spacing.md,
-        tamanhoMesa: '100px',
-        fontSizeMesa: designSystem.fontSizes.xl
-      };
-    } else if (windowWidth < designSystem.breakpoints.tablet) {
-      return {
-        gridColunasMesas: 'repeat(3, 1fr)',
-        fontSizeBase: designSystem.fontSizes.lg,
-        paddingContainer: designSystem.spacing.lg,
-        tamanhoMesa: '120px',
-        fontSizeMesa: designSystem.fontSizes['2xl']
-      };
-    } else {
-      return {
-        gridColunasMesas: 'repeat(4, 1fr)',
-        fontSizeBase: designSystem.fontSizes.xl,
-        paddingContainer: designSystem.spacing.xl,
-        tamanhoMesa: '140px',
-        fontSizeMesa: designSystem.fontSizes['3xl']
-      };
+    if (windowWidth < designSystem.breakpoints.mobile) return { gridColunasMesas: 'repeat(2, 1fr)', fontSizeBase: designSystem.fontSizes.base, paddingContainer: designSystem.spacing.md, tamanhoMesa: '100px', fontSizeMesa: designSystem.fontSizes.xl };
+    if (windowWidth < designSystem.breakpoints.tablet) return { gridColunasMesas: 'repeat(3, 1fr)', fontSizeBase: designSystem.fontSizes.lg, paddingContainer: designSystem.spacing.lg, tamanhoMesa: '120px', fontSizeMesa: designSystem.fontSizes['2xl'] };
+    return { gridColunasMesas: 'repeat(4, 1fr)', fontSizeBase: designSystem.fontSizes.xl, paddingContainer: designSystem.spacing.xl, tamanhoMesa: '140px', fontSizeMesa: designSystem.fontSizes['3xl'] };
+  };
+  const responsive = getResponsiveStyles();
+
+  const atualizarMesas = async () => {
+    try {
+      const dadosMesas = await fetchAPI('/api/garcom/mesas/status');
+      if (Array.isArray(dadosMesas.data)) {
+        setMesas(dadosMesas.data);
+      }
+    } catch (erro) {
+      console.error('Erro ao atualizar mesas:', erro);
     }
   };
 
-  const responsive = getResponsiveStyles();
-
-  // ✅ MELHORADO: Carregar dados iniciais com tratamento de erro
   useEffect(() => {
     const carregarDados = async () => {
       try {
         setCarregando(true);
         setErro(null);
-
         const [dadosMesas, dadosCategorias] = await Promise.all([
           fetchAPI('/api/garcom/mesas/status'),
           fetchAPI('/api/garcom/cardapio/categorias')
         ]);
-
-        const mesasFormatadas = dadosMesas.data || [];
-        const categoriasFormatadas = dadosCategorias.data || [];
-
-        if (!Array.isArray(mesasFormatadas)) throw new Error('Formato inválido de mesas');
-        if (!Array.isArray(categoriasFormatadas)) throw new Error('Formato inválido de categorias');
-
-        setMesas(mesasFormatadas);
-        setCategorias(categoriasFormatadas);
-        
+        if (!Array.isArray(dadosMesas.data)) throw new Error('Formato inválido de mesas');
+        if (!Array.isArray(dadosCategorias.data)) throw new Error('Formato inválido de categorias');
+        setMesas(dadosMesas.data);
+        setCategorias(dadosCategorias.data);
       } catch (erro) {
         console.error('❌ Erro ao carregar dados:', erro);
         setErro('Erro ao carregar cardápio. Verifique a conexão com o servidor.');
@@ -311,24 +147,9 @@ function App() {
         setCarregando(false);
       }
     };
-
     carregarDados();
   }, []);
 
-  // ✅ MELHORADO: Atualizar lista de mesas
-  const atualizarMesas = async () => {
-    try {
-      setAtualizandoMesas(true);
-      const dadosMesas = await fetchAPI('/api/garcom/mesas/status');
-      setMesas(dadosMesas.data || []);
-    } catch (erro) {
-      console.error('Erro ao atualizar mesas:', erro);
-    } finally {
-      setAtualizandoMesas(false);
-    }
-  };
-
-  // Avançar para seleção de mesa após coletar nome do GARÇOM
   const avancarParaMesas = () => {
     if (garcomNome.trim() === '') {
       alert('Por favor, informe o nome do garçom');
@@ -337,65 +158,50 @@ function App() {
     setEtapa('selecao-mesa');
   };
 
-  // ✅ CORREÇÃO: Selecionar mesa com novo fluxo
   const selecionarMesa = async (mesa) => {
-    // Se mesa já está ocupada ou em uso, apenas acessa
-    if (mesa.status === 'ocupada' || mesa.status === 'em_uso') {
+    if (mesa.status === 'ocupada') {
       setMesaSelecionada(mesa);
       setEtapa('cardapio');
       return;
     }
 
     try {
-      const resultado = await fetchAPI(`/api/garcom/mesas/${mesa.id}/ocupar`, { /* ... */ });
+      const resultado = await fetchAPI(`/api/garcom/mesas/${mesa.id}/ocupar`, {
+        method: 'POST',
+        body: JSON.stringify({ garcom_nome: garcomNome })
+      });
 
       if (resultado.success) {
-        // ATUALIZA A LISTA DE MESAS EM SEGUNDO PLANO
-        atualizarMesas(); 
-        
-        // ✅ CORREÇÃO: USA DIRETAMENTE O RETORNO DA API
-        setMesaSelecionada(resultado.data);
+        const mesaAtualizada = resultado.data;
+        setMesas(mesasAnteriores =>
+          mesasAnteriores.map(m => (m.id === mesaAtualizada.id ? mesaAtualizada : m))
+        );
+        setMesaSelecionada(mesaAtualizada);
         setEtapa('cardapio');
-        
-        alert('✅ Mesa ocupada! Agora você pode fazer pedidos.');
       }
     } catch (erro) {
       console.error('Erro ao preparar mesa:', erro);
-      
-      if (erro.message.includes('já está ocupada')) {
-        alert('❌ Esta mesa já está ocupada por outro garçom.');
+      if (erro.message.includes('Mesa já está ocupada')) {
+        alert('❌ Ops! Outro garçom acabou de ocupar esta mesa. A lista será atualizada.');
+        atualizarMesas();
       } else {
         alert('❌ Erro ao preparar mesa. Tente novamente.');
       }
     }
   };
 
-  // Adicionar item ao carrinho com observações
-  const adicionarAoCarrinho = (produto) => {
-    setItemComObservacao({
-      produto: produto,
-      observacoes: ''
-    });
-  };
+  const adicionarAoCarrinho = (produto) => setItemComObservacao({ produto, observacoes: '' });
 
-  // Confirmar item com observações
   const confirmarItemComObservacoes = () => {
     if (!itemComObservacao) return;
-
     const { produto, observacoes } = itemComObservacao;
-    const itemExistente = carrinho.find(item => 
-      item.produto_id === produto.id && 
-      item.observacoes === observacoes
-    );
-
+    const itemExistente = carrinho.find(item => item.produto_id === produto.id && item.observacoes === observacoes);
     const precoNumerico = Number(produto.preco);
-    
     if (isNaN(precoNumerico)) {
       console.error('Preço inválido:', produto.preco);
       alert('Erro: Preço do produto inválido');
       return;
     }
-
     if (itemExistente) {
       setCarrinho(carrinho.map(item =>
         item.produto_id === produto.id && item.observacoes === observacoes
@@ -411,24 +217,16 @@ function App() {
         observacoes: observacoes || ''
       }]);
     }
-
     setItemComObservacao(null);
   };
 
-  // Remover item do carrinho
-  const removerDoCarrinho = (produtoId, observacoes = '') => {
-    setCarrinho(carrinho.filter(item => 
-      !(item.produto_id === produtoId && item.observacoes === observacoes)
-    ));
-  };
+  const removerDoCarrinho = (produtoId, observacoes = '') => setCarrinho(carrinho.filter(item => !(item.produto_id === produtoId && item.observacoes === observacoes)));
 
-  // Atualizar quantidade
   const atualizarQuantidade = (produtoId, novaQuantidade, observacoes = '') => {
     if (novaQuantidade < 1) {
       removerDoCarrinho(produtoId, observacoes);
       return;
     }
-    
     setCarrinho(carrinho.map(item =>
       item.produto_id === produtoId && item.observacoes === observacoes
         ? { ...item, quantidade: novaQuantidade }
@@ -436,25 +234,15 @@ function App() {
     ));
   };
 
-  // Calcular total do carrinho
-  const calcularTotal = () => {
-    return carrinho.reduce((total, item) => {
-      const preco = Number(item.preco) || 0;
-      const quantidade = item.quantidade || 0;
-      return total + (preco * quantidade);
-    }, 0);
-  };
+  const calcularTotal = () => carrinho.reduce((total, item) => total + (Number(item.preco || 0) * (item.quantidade || 0)), 0);
 
-  // ✅ MELHORADO: Finalizar pedido com tratamento completo
   const finalizarPedido = async () => {
     if (carrinho.length === 0) {
       alert('❌ Seu carrinho está vazio!');
       return;
     }
-
     try {
       setEnviandoPedido(true);
-
       const pedidoData = {
         mesa_id: mesaSelecionada.id,
         garcom_nome: garcomNome,
@@ -464,28 +252,15 @@ function App() {
           observacoes: item.observacoes
         }))
       };
-
-      console.log('📤 Enviando pedido:', pedidoData);
-
       const resultado = await fetchAPI('/api/garcom/pedidos', {
         method: 'POST',
         body: JSON.stringify(pedidoData)
       });
-
       if (resultado.success) {
-        // ✅ ATUALIZAR STATUS DA MESA APÓS PRIMEIRO PEDIDO
-        if (mesaSelecionada.status === 'em_uso') {
-          await atualizarMesas();
-        }
-
         setEtapa('confirmacao');
         setCarrinho([]);
-        
-        console.log('✅ Pedido criado com sucesso:', resultado.data);
-      } else {
-        throw new Error(resultado.message || 'Erro desconhecido ao enviar pedido');
+        atualizarMesas(); // Atualiza a lista de mesas para refletir o novo pedido
       }
-
     } catch (erro) {
       console.error('Erro ao finalizar pedido:', erro);
       alert('❌ Erro ao enviar pedido: ' + erro.message);
@@ -494,61 +269,38 @@ function App() {
     }
   };
 
-// frontend/src/App.js
-
   const fecharConta = async () => {
     try {
-      // ✅ CORREÇÃO: Adicionado o /api/ no início do caminho
       const verificaResultado = await fetchAPI(`/api/garcom/mesas/${mesaSelecionada.id}/pode-fechar-conta`);
-      
-      if (!verificaResultado.success) {
-        alert('❌ Erro ao verificar conta');
-        return;
-      }
-
       const { pode_fechar, mensagem, total_conta } = verificaResultado.data;
-
       if (!pode_fechar) {
         alert(`❌ Não é possível fechar conta:\n${mensagem}`);
         return;
       }
-
       if (!window.confirm(`Fechar conta da Mesa ${mesaSelecionada.numero}?\n\nTotal: R$ ${Number(total_conta).toFixed(2)}`)) {
         return;
       }
-
-      // ✅ CORREÇÃO: Adicionado o /api/ no início do caminho
-      const resultado = await fetchAPI(`/api/garcom/mesas/${mesaSelecionada.id}/fechar-conta`, {
-        method: 'POST'
-      });
-      
+      const resultado = await fetchAPI(`/api/garcom/mesas/${mesaSelecionada.id}/fechar-conta`, { method: 'POST' });
       if (resultado.success) {
-        setResumoConta(resultado.data); // Corrigido para usar resultado.data
+        setResumoConta(resultado.data);
         setEtapa('conta-fechada');
-        
-        setMesaSelecionada(prev => ({
-          ...prev,
-          status_pagamento: 'fechada'
-        }));
-
-        await atualizarMesas();
+        const mesaAtualizada = resultado.data.mesa;
+        setMesaSelecionada(mesaAtualizada);
+        setMesas(mesasAnteriores =>
+          mesasAnteriores.map(m => (m.id === mesaAtualizada.id ? mesaAtualizada : m))
+        );
         alert('✅ ' + resultado.message);
-      } else {
-        alert(`❌ ${resultado.message}`);
       }
     } catch (erro) {
       console.error('Erro ao fechar conta:', erro);
-      // O erro 'NetworkError' aparecerá aqui se a URL estiver errada.
       alert('❌ Erro ao fechar conta: ' + erro.message);
     }
   };
 
-  // ✅ CORRIGIDO: Ver resumo da conta
   const verResumoConta = async () => {
     try {
       setCarregandoResumo(true);
       const resultado = await fetchAPI(`/api/garcom/mesas/${mesaSelecionada.id}/status-conta`);
-      
       if (resultado.success) {
         setResumoConta(resultado.data);
         setEtapa('conta-fechada');
@@ -561,307 +313,81 @@ function App() {
     }
   };
 
-  // ✅ CORRIGIDO: Reabrir conta
   const reabrirConta = async () => {
     try {
-      const resultado = await fetchAPI(`/api/garcom/mesas/${mesaSelecionada.id}/reabrir-conta`, {
-        method: 'POST'
-      });
-
+      const resultado = await fetchAPI(`/api/garcom/mesas/${mesaSelecionada.id}/reabrir-conta`, { method: 'POST' });
       if (resultado.success) {
         alert('✅ Conta reaberta com sucesso!');
-        
-        // Atualizar status local
-        setMesaSelecionada(prev => ({
-          ...prev,
-          status_pagamento: 'aberta'
-        }));
-        
-        // Atualizar lista de mesas
-        await atualizarMesas();
-        
+        const mesaAtualizada = resultado.data;
+        setMesaSelecionada(mesaAtualizada);
+        setMesas(mesasAnteriores =>
+          mesasAnteriores.map(m => (m.id === mesaAtualizada.id ? mesaAtualizada : m))
+        );
         setEtapa('cardapio');
       }
     } catch (erro) {
       console.error('Erro ao reabrir conta:', erro);
-      
-      if (erro.message.includes('422') || erro.message.includes('fechadas')) {
-        alert('❌ Só é possível reabrir contas que estão fechadas!');
-      } else {
-        alert('❌ Erro ao reabrir conta: ' + erro.message);
-      }
+      alert('❌ Erro ao reabrir conta: ' + erro.message);
     }
   };
 
-  // Voltar para seleção de mesa
-  const voltarParaMesas = () => {
-    setMesaSelecionada(null);
-    setCarrinho([]);
-    setEtapa('selecao-mesa');
-  };
+  const voltarParaMesas = () => { setMesaSelecionada(null); setCarrinho([]); setEtapa('selecao-mesa'); };
+  const voltarParaGarcom = () => { setMesaSelecionada(null); setCarrinho([]); setGarcomNome(''); setEtapa('coletar-garcom'); };
 
-  // Voltar para coletar nome do GARÇOM
-  const voltarParaGarcom = () => {
-    setMesaSelecionada(null);
-    setCarrinho([]);
-    setGarcomNome('');
-    setEtapa('coletar-garcom');
-  };
-
-  // ✅ CORREÇÃO: Função para obter cor e status da mesa
   const getStatusMesa = (mesa) => {
-    // Prioridade: Status pagamento > Status mesa
-    if (mesa.status_pagamento === 'paga') {
-      return { cor: '#4caf50', texto: 'Paga', emoji: '✅' };
-    } else if (mesa.status_pagamento === 'fechada') {
-      return { cor: designSystem.cores.aviso, texto: 'Fechada', emoji: '🧾' };
-    } else if (mesa.status === 'ocupada') {
-      return { cor: designSystem.cores.primaria, texto: 'Ocupada', emoji: '🔴' };
-    } else if (mesa.status === 'em_uso') {
-      return { cor: designSystem.cores.emUso, texto: 'Em Uso', emoji: '🟡' };
-    } else {
-      return { cor: designSystem.cores.sucesso, texto: 'Livre', emoji: '🟢' };
-    }
+    if (mesa.status_pagamento === 'paga') return { cor: '#4caf50', texto: 'Paga', emoji: '✅' };
+    if (mesa.status_pagamento === 'fechada') return { cor: designSystem.cores.aviso, texto: 'Fechada', emoji: '🧾' };
+    if (mesa.status === 'ocupada') return { cor: designSystem.cores.primaria, texto: 'Ocupada', emoji: '🔴' };
+    return { cor: designSystem.cores.sucesso, texto: 'Livre', emoji: '🟢' };
   };
 
-  // 🔥 TELA DE COLETAR NOME DO GARÇOM
   if (etapa === 'coletar-garcom') {
     return (
-      <div style={{ 
-        padding: responsive.paddingContainer,
-        minHeight: '100vh', 
-        backgroundColor: designSystem.cores.fundo,
-        ...estilosBase.fontePrimaria
-      }}>
-        <header style={{ 
-          backgroundColor: designSystem.cores.primaria,
-          color: designSystem.cores.textoClaro, 
-          padding: designSystem.spacing['2xl'],
-          textAlign: 'center',
-          borderRadius: '20px',
-          marginBottom: designSystem.spacing['2xl'],
-          boxShadow: '0 8px 16px rgba(0,0,0,0.2)'
-        }}>
-          <h1 style={{ 
-            margin: '0 0 16px 0', 
-            fontSize: designSystem.fontSizes['3xl'],
-            ...estilosBase.titulo
-          }}>
-            🍔 Jetro's Lanches
-          </h1>
-          <p style={{ 
-            margin: '0 0 12px 0', 
-            fontSize: designSystem.fontSizes.xl,
-            ...estilosBase.subtitulo
-          }}>
-            Sistema do Garçom
-          </p>
-          <p style={{ 
-            margin: '0', 
-            fontSize: designSystem.fontSizes.lg,
-            ...estilosBase.texto
-          }}>
-            👨‍💼 Painel de Atendimento
-          </p>
+      <div style={{ padding: responsive.paddingContainer, minHeight: '100vh', backgroundColor: designSystem.cores.fundo, ...estilosBase.fontePrimaria }}>
+        <header style={{ backgroundColor: designSystem.cores.primaria, color: designSystem.cores.textoClaro, padding: designSystem.spacing['2xl'], textAlign: 'center', borderRadius: '20px', marginBottom: designSystem.spacing['2xl'], boxShadow: '0 8px 16px rgba(0,0,0,0.2)' }}>
+          <h1 style={{ margin: '0 0 16px 0', fontSize: designSystem.fontSizes['3xl'], ...estilosBase.titulo }}>🍔 Jetro's Lanches</h1>
+          <p style={{ margin: '0 0 12px 0', fontSize: designSystem.fontSizes.xl, ...estilosBase.subtitulo }}>Sistema do Garçom</p>
+          <p style={{ margin: '0', fontSize: designSystem.fontSizes.lg, ...estilosBase.texto }}>👨‍💼 Painel de Atendimento</p>
         </header>
-
-        <div style={{ 
-          backgroundColor: designSystem.cores.card, 
-          padding: designSystem.spacing['3xl'], 
-          borderRadius: '20px',
-          maxWidth: '600px',
-          margin: '0 auto',
-          textAlign: 'center',
-          boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
-          border: `2px solid ${designSystem.cores.borda}`
-        }}>
+        <div style={{ backgroundColor: designSystem.cores.card, padding: designSystem.spacing['3xl'], borderRadius: '20px', maxWidth: '600px', margin: '0 auto', textAlign: 'center', boxShadow: '0 8px 16px rgba(0,0,0,0.1)', border: `2px solid ${designSystem.cores.borda}` }}>
           <div style={{ fontSize: '5em', marginBottom: designSystem.spacing.xl }}>👨‍💼</div>
-          <h2 style={{ 
-            color: designSystem.cores.texto, 
-            marginBottom: designSystem.spacing.lg,
-            ...estilosBase.titulo,
-            fontSize: designSystem.fontSizes['2xl']
-          }}>
-            Identificação do Garçom
-          </h2>
-          <p style={{ 
-            color: '#666', 
-            marginBottom: designSystem.spacing['2xl'],
-            ...estilosBase.texto,
-            fontSize: designSystem.fontSizes.lg
-          }}>
-            Por favor, informe seu nome para começar
-          </p>
-          
-          <input
-            type="text"
-            value={garcomNome}
-            onChange={(e) => setGarcomNome(e.target.value)}
-            placeholder="Digite seu nome completo"
-            style={{
-              width: '100%',
-              padding: designSystem.spacing.lg,
-              fontSize: designSystem.fontSizes.lg,
-              border: `3px solid ${designSystem.cores.borda}`,
-              borderRadius: '12px',
-              marginBottom: designSystem.spacing.xl,
-              textAlign: 'center',
-              ...estilosBase.texto
-            }}
-            onKeyPress={(e) => e.key === 'Enter' && avancarParaMesas()}
-          />
-          
-          <button
-            onClick={avancarParaMesas}
-            disabled={!garcomNome.trim()}
-            style={{
-              backgroundColor: garcomNome.trim() ? designSystem.cores.primaria : '#ccc',
-              color: designSystem.cores.textoClaro,
-              border: 'none',
-              padding: designSystem.spacing.lg,
-              borderRadius: '12px',
-              fontSize: designSystem.fontSizes.lg,
-              ...estilosBase.botao,
-              cursor: garcomNome.trim() ? 'pointer' : 'not-allowed',
-              width: '100%'
-            }}
-          >
-            Continuar para Mesas
-          </button>
+          <h2 style={{ color: designSystem.cores.texto, marginBottom: designSystem.spacing.lg, ...estilosBase.titulo, fontSize: designSystem.fontSizes['2xl'] }}>Identificação do Garçom</h2>
+          <p style={{ color: '#666', marginBottom: designSystem.spacing['2xl'], ...estilosBase.texto, fontSize: designSystem.fontSizes.lg }}>Por favor, informe seu nome para começar</p>
+          <input type="text" value={garcomNome} onChange={(e) => setGarcomNome(e.target.value)} placeholder="Digite seu nome completo" style={{ width: '100%', padding: designSystem.spacing.lg, fontSize: designSystem.fontSizes.lg, border: `3px solid ${designSystem.cores.borda}`, borderRadius: '12px', marginBottom: designSystem.spacing.xl, textAlign: 'center', ...estilosBase.texto }} onKeyPress={(e) => e.key === 'Enter' && avancarParaMesas()} />
+          <button onClick={avancarParaMesas} disabled={!garcomNome.trim()} style={{ backgroundColor: garcomNome.trim() ? designSystem.cores.primaria : '#ccc', color: designSystem.cores.textoClaro, border: 'none', padding: designSystem.spacing.lg, borderRadius: '12px', fontSize: designSystem.fontSizes.lg, ...estilosBase.botao, cursor: garcomNome.trim() ? 'pointer' : 'not-allowed', width: '100%' }}>Continuar para Mesas</button>
         </div>
-
-        <footer style={{ 
-          marginTop: designSystem.spacing['4xl'], 
-          textAlign: 'center', 
-          color: '#666',
-          padding: designSystem.spacing['2xl']
-        }}>
-          <p style={{ 
-            margin: '0', 
-            fontSize: designSystem.fontSizes.lg,
-            ...estilosBase.texto
-          }}>
-            © 2025 Jetro's Lanches - Sistema Garçom
-          </p>
+        <footer style={{ marginTop: designSystem.spacing['4xl'], textAlign: 'center', color: '#666', padding: designSystem.spacing['2xl'] }}>
+          <p style={{ margin: '0', fontSize: designSystem.fontSizes.lg, ...estilosBase.texto }}>© 2025 Jetro's Lanches - Sistema Garçom</p>
         </footer>
       </div>
     );
   }
 
-  // 🔥 TELA DE SELEÇÃO DE MESA
   if (etapa === 'selecao-mesa') {
-    // ✅ CORREÇÃO: Calcular estatísticas atualizadas
     const estatisticas = {
       livres: mesas.filter(m => getStatusMesa(m).texto === 'Livre').length,
-      emUso: mesas.filter(m => getStatusMesa(m).texto === 'Em Uso').length,
       ocupadas: mesas.filter(m => getStatusMesa(m).texto === 'Ocupada').length,
       fechadas: mesas.filter(m => getStatusMesa(m).texto === 'Fechada').length,
-      pagas: mesas.filter(m => getStatusMesa(m).texto === 'Paga').length
     };
-
     return (
-      <div style={{ 
-        padding: responsive.paddingContainer,
-        minHeight: '100vh', 
-        backgroundColor: designSystem.cores.fundo,
-        ...estilosBase.fontePrimaria
-      }}>
-        <header style={{ 
-          backgroundColor: designSystem.cores.primaria,
-          color: designSystem.cores.textoClaro, 
-          padding: designSystem.spacing['2xl'],
-          textAlign: 'center',
-          borderRadius: '20px',
-          marginBottom: designSystem.spacing['2xl'],
-          boxShadow: '0 8px 16px rgba(0,0,0,0.2)'
-        }}>
+      <div style={{ padding: responsive.paddingContainer, minHeight: '100vh', backgroundColor: designSystem.cores.fundo, ...estilosBase.fontePrimaria }}>
+        <header style={{ backgroundColor: designSystem.cores.primaria, color: designSystem.cores.textoClaro, padding: designSystem.spacing['2xl'], textAlign: 'center', borderRadius: '20px', marginBottom: designSystem.spacing['2xl'], boxShadow: '0 8px 16px rgba(0,0,0,0.2)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <button
-              onClick={voltarParaGarcom}
-              style={{
-                backgroundColor: 'transparent',
-                color: designSystem.cores.textoClaro,
-                border: `2px solid ${designSystem.cores.textoClaro}`,
-                padding: designSystem.spacing.sm,
-                borderRadius: '25px',
-                cursor: 'pointer',
-                fontSize: designSystem.fontSizes.sm,
-                ...estilosBase.botao,
-                minHeight: 'auto',
-                minWidth: 'auto'
-              }}
-            >
-              ← Trocar Garçom
-            </button>
-            <h1 style={{ 
-              margin: '0', 
-              fontSize: designSystem.fontSizes['2xl'],
-              ...estilosBase.titulo
-            }}>
-              🍔 Jetro's Lanches
-            </h1>
+            <button onClick={voltarParaGarcom} style={{ backgroundColor: 'transparent', color: designSystem.cores.textoClaro, border: `2px solid ${designSystem.cores.textoClaro}`, padding: designSystem.spacing.sm, borderRadius: '25px', cursor: 'pointer', fontSize: designSystem.fontSizes.sm, ...estilosBase.botao, minHeight: 'auto', minWidth: 'auto' }}>← Trocar Garçom</button>
+            <h1 style={{ margin: '0', fontSize: designSystem.fontSizes['2xl'], ...estilosBase.titulo }}>🍔 Jetro's Lanches</h1>
             <div style={{ width: '100px' }}></div>
           </div>
-          <p style={{ 
-            margin: '0 0 12px 0', 
-            fontSize: designSystem.fontSizes.xl,
-            ...estilosBase.subtitulo
-          }}>
-            Garçom: {garcomNome}
-          </p>
-          <p style={{ 
-            margin: '0', 
-            fontSize: designSystem.fontSizes.lg,
-            ...estilosBase.texto
-          }}>
-            Selecione uma mesa para atender
-          </p>
+          <p style={{ margin: '0 0 12px 0', fontSize: designSystem.fontSizes.xl, ...estilosBase.subtitulo }}>Garçom: {garcomNome}</p>
+          <p style={{ margin: '0', fontSize: designSystem.fontSizes.lg, ...estilosBase.texto }}>Selecione uma mesa para atender</p>
         </header>
 
-        <div style={{ textAlign: 'center', marginBottom: designSystem.spacing['2xl'] }}>
-          <h2 style={{ 
-            color: designSystem.cores.texto, 
-            marginBottom: designSystem.spacing.lg,
-            ...estilosBase.titulo,
-            fontSize: designSystem.fontSizes['2xl']
-          }}>
-            Mesas Disponíveis
-          </h2>
-        </div>
-
+        <div style={{ textAlign: 'center', marginBottom: designSystem.spacing['2xl'] }}><h2 style={{ color: designSystem.cores.texto, marginBottom: designSystem.spacing.lg, ...estilosBase.titulo, fontSize: designSystem.fontSizes['2xl'] }}>Mesas Disponíveis</h2></div>
+        
         {erro ? (
-          <div style={{ 
-            textAlign: 'center', 
-            padding: designSystem.spacing['3xl'],
-            backgroundColor: '#ffebee',
-            borderRadius: '16px',
-            margin: designSystem.spacing.lg,
-            border: `2px solid #ffcdd2`
-          }}>
+          <div style={{ textAlign: 'center', padding: designSystem.spacing['3xl'], backgroundColor: '#ffebee', borderRadius: '16px', margin: designSystem.spacing.lg, border: `2px solid #ffcdd2` }}>
             <div style={{ fontSize: '4em', marginBottom: designSystem.spacing.lg }}>😞</div>
-            <p style={{ 
-              color: designSystem.cores.perigo, 
-              marginBottom: designSystem.spacing.lg,
-              fontSize: designSystem.fontSizes.lg,
-              ...estilosBase.texto
-            }}>
-              {erro}
-            </p>
-            <button
-              onClick={() => window.location.reload()}
-              style={{
-                backgroundColor: designSystem.cores.primaria,
-                color: designSystem.cores.textoClaro,
-                border: 'none',
-                padding: designSystem.spacing.lg,
-                borderRadius: '12px',
-                cursor: 'pointer',
-                fontSize: designSystem.fontSizes.lg,
-                ...estilosBase.botao
-              }}
-            >
-              Recarregar Página
-            </button>
+            <p style={{ color: designSystem.cores.perigo, marginBottom: designSystem.spacing.lg, fontSize: designSystem.fontSizes.lg, ...estilosBase.texto }}>{erro}</p>
+            <button onClick={() => window.location.reload()} style={{ backgroundColor: designSystem.cores.primaria, color: designSystem.cores.textoClaro, border: 'none', padding: designSystem.spacing.lg, borderRadius: '12px', cursor: 'pointer', fontSize: designSystem.fontSizes.lg, ...estilosBase.botao }}>Recarregar Página</button>
           </div>
         ) : carregando ? (
           <div style={{ textAlign: 'center', padding: designSystem.spacing['3xl'] }}>
@@ -870,156 +396,43 @@ function App() {
           </div>
         ) : (
           <div>
-            {/* ✅ CORREÇÃO: Painel de status atualizado */}
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'center', 
-              gap: designSystem.spacing.lg, 
-              marginBottom: designSystem.spacing['2xl'],
-              flexWrap: 'wrap'
-            }}>
-              <div style={{ 
-                backgroundColor: designSystem.cores.sucesso,
-                color: designSystem.cores.textoClaro, 
-                padding: designSystem.spacing.md,
-                borderRadius: '25px',
-                fontSize: designSystem.fontSizes.lg,
-                ...estilosBase.botao,
-                minHeight: 'auto'
-              }}>
-                🟢 Livres: {estatisticas.livres}
-              </div>
-              <div style={{ 
-                backgroundColor: designSystem.cores.emUso,
-                color: designSystem.cores.textoClaro, 
-                padding: designSystem.spacing.md,
-                borderRadius: '25px',
-                fontSize: designSystem.fontSizes.lg,
-                ...estilosBase.botao,
-                minHeight: 'auto'
-              }}>
-                🟡 Em Uso: {estatisticas.emUso}
-              </div>
-              <div style={{ 
-                backgroundColor: designSystem.cores.primaria,
-                color: designSystem.cores.textoClaro, 
-                padding: designSystem.spacing.md,
-                borderRadius: '25px',
-                fontSize: designSystem.fontSizes.lg,
-                ...estilosBase.botao,
-                minHeight: 'auto'
-              }}>
-                🔴 Ocupadas: {estatisticas.ocupadas}
-              </div>
-              <div style={{ 
-                backgroundColor: designSystem.cores.aviso,
-                color: designSystem.cores.textoClaro, 
-                padding: designSystem.spacing.md,
-                borderRadius: '25px',
-                fontSize: designSystem.fontSizes.lg,
-                ...estilosBase.botao,
-                minHeight: 'auto'
-              }}>
-                🧾 Fechadas: {estatisticas.fechadas}
-              </div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: designSystem.spacing.lg, marginBottom: designSystem.spacing['2xl'], flexWrap: 'wrap' }}>
+              <div style={{ backgroundColor: designSystem.cores.sucesso, color: designSystem.cores.textoClaro, padding: designSystem.spacing.md, borderRadius: '25px' }}>🟢 Livres: {estatisticas.livres}</div>
+              <div style={{ backgroundColor: designSystem.cores.primaria, color: designSystem.cores.textoClaro, padding: designSystem.spacing.md, borderRadius: '25px' }}>🔴 Ocupadas: {estatisticas.ocupadas}</div>
+              <div style={{ backgroundColor: designSystem.cores.aviso, color: designSystem.cores.textoClaro, padding: designSystem.spacing.md, borderRadius: '25px' }}>🧾 Fechadas: {estatisticas.fechadas}</div>
             </div>
 
-            {/* MESAS */}
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: responsive.gridColunasMesas,
-              gap: designSystem.spacing.lg,
-              maxWidth: '1200px',
-              margin: '0 auto'
-            }}>
+            <div style={{ display: 'grid', gridTemplateColumns: responsive.gridColunasMesas, gap: designSystem.spacing.lg, maxWidth: '1200px', margin: '0 auto' }}>
               {mesas.map(mesa => {
                 const status = getStatusMesa(mesa);
-
                 return (
                   <div key={mesa.id} style={{ position: 'relative' }}>
-                    <button
-                      onClick={() => selecionarMesa(mesa)}
-                      style={{
-                        backgroundColor: status.cor,
-                        color: designSystem.cores.textoClaro,
-                        border: 'none',
-                        padding: designSystem.spacing.lg,
-                        borderRadius: '20px',
-                        fontSize: responsive.fontSizeMesa,
-                        ...estilosBase.botao,
-                        cursor: 'pointer',
-                        boxShadow: '0 6px 12px rgba(0,0,0,0.2)',
-                        transition: 'all 0.3s ease',
-                        minHeight: responsive.tamanhoMesa,
-                        width: '100%',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                      onMouseOver={(e) => e.target.style.transform = 'scale(1.05)'}
-                      onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
-                    >
-                      <div style={{ fontSize: '1.2em', fontWeight: 'bold' }}>
-                        Mesa {mesa.numero}
-                      </div>
-                      <div style={{
-                        fontSize: '0.7em',
-                        marginTop: '8px',
-                        opacity: 0.9
-                      }}>
-                        {status.emoji} {status.texto}
-                      </div>
-                      {mesa.garcom_nome && (
-                        <div style={{
-                          fontSize: '0.6em',
-                          marginTop: '4px',
-                          opacity: 0.8
-                        }}>
-                          {mesa.garcom_nome}
-                        </div>
-                      )}
+                    <button onClick={() => selecionarMesa(mesa)} style={{ backgroundColor: status.cor, color: designSystem.cores.textoClaro, border: 'none', padding: designSystem.spacing.lg, borderRadius: '20px', fontSize: responsive.fontSizeMesa, ...estilosBase.botao, cursor: 'pointer', boxShadow: '0 6px 12px rgba(0,0,0,0.2)', transition: 'all 0.3s ease', minHeight: responsive.tamanhoMesa, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }} onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'} onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}>
+                      <div style={{ fontSize: '1.2em', fontWeight: 'bold' }}>Mesa {mesa.numero}</div>
+                      <div style={{ fontSize: '0.7em', marginTop: '8px', opacity: 0.9 }}>{status.emoji} {status.texto}</div>
+                      {mesa.garcom_nome && (<div style={{ fontSize: '0.6em', marginTop: '4px', opacity: 0.8 }}>{mesa.garcom_nome}</div>)}
                     </button>
                   </div>
                 );
               })}
             </div>
-
-            {/* ✅ CORREÇÃO: Legenda atualizada */}
-            <div style={{ 
-              textAlign: 'center', 
-              marginTop: designSystem.spacing['2xl'], 
-              color: '#666',
-              ...estilosBase.texto
-            }}>
+            
+            <div style={{ textAlign: 'center', marginTop: designSystem.spacing['2xl'], color: '#666', ...estilosBase.texto }}>
               <p style={{ fontSize: designSystem.fontSizes.lg }}>
                 <span style={{ color: designSystem.cores.sucesso, fontWeight: 'bold' }}>🟢 Verde</span> = Livre • 
-                <span style={{ color: designSystem.cores.emUso, fontWeight: 'bold' }}> 🟡 Laranja</span> = Em Uso • 
                 <span style={{ color: designSystem.cores.primaria, fontWeight: 'bold' }}> 🔴 Vermelho</span> = Ocupada • 
                 <span style={{ color: designSystem.cores.aviso, fontWeight: 'bold' }}> 🧾 Amarelo</span> = Fechada
               </p>
             </div>
           </div>
         )}
-
-        <footer style={{ 
-          marginTop: designSystem.spacing['4xl'], 
-          textAlign: 'center', 
-          color: '#666',
-          padding: designSystem.spacing['2xl']
-        }}>
-          <p style={{ 
-            margin: '0', 
-            fontSize: designSystem.fontSizes.lg,
-            ...estilosBase.texto
-          }}>
-            © 2025 Jetro's Lanches - Sistema Garçom
-          </p>
+        <footer style={{ marginTop: designSystem.spacing['4xl'], textAlign: 'center', color: '#666', padding: designSystem.spacing['2xl'] }}>
+          <p style={{ margin: '0', fontSize: designSystem.fontSizes.lg, ...estilosBase.texto }}>© 2025 Jetro's Lanches - Sistema Garçom</p>
         </footer>
       </div>
     );
   }
-
+  
   // 🔥 MODAL DE OBSERVAÇÕES (mantido igual)
   if (itemComObservacao) {
     return (
