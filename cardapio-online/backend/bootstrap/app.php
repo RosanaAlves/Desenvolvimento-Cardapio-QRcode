@@ -12,13 +12,16 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // ✅ ADICIONE ESTA LINHA PARA CORS
-        $middleware->api(prepend: [
+     
+        $middleware->prepend([
+       
             \Illuminate\Http\Middleware\HandleCors::class,
-            // ✅ ADICIONE ESTA NOVA LINHA PARA O SANCTUM
+            \Illuminate\Session\Middleware\StartSession::class,
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+
         ]);
     })
+    
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();

@@ -1,47 +1,38 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios'; // ✅ Importa o Axios
 
-// Configuração da API
-const API_BASE_URL = 'http://localhost:8000/api';
+// =========================================================================
+// CONFIGURAÇÃO E FUNÇÕES AUXILIARES (NO TOPO DO ARQUIVO)
+// =========================================================================
 
-// ✅ Função fetchAPI melhorada
+const api = axios.create({
+  baseURL: 'http://localhost:8000/api',
+  withCredentials: true, // Essencial para o Sanctum enviar cookies
+});
+
+// Nossa função fetchAPI agora usa o Axios por baixo dos panos
 const fetchAPI = async (endpoint, options = {}) => {
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        ...options.headers
-      },
-      ...options
+    const response = await api({
+      url: endpoint,
+      method: options.method || 'GET',
+      data: options.body ? JSON.parse(options.body) : null,
+      ...options,
     });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: response.statusText }));
-      throw new Error(errorData.message || `HTTP ${response.status}`);
+    
+    if (response.data.success === false) {
+      throw new Error(response.data.message || 'API retornou um erro');
     }
-    const data = await response.json();
-    if (data === null || data === undefined) throw new Error('Resposta da API vazia');
-    if (data.success === false) console.warn(`⚠️ API retornou success=false para ${endpoint}:`, data.message);
-    return data;
+    return response.data;
   } catch (error) {
     console.error(`❌ Erro na requisição para ${endpoint}:`, error);
+    if (error.response && error.response.data && error.response.data.message) {
+      throw new Error(error.response.data.message);
+    }
     throw error;
   }
 };
 
-// ✅ Função de proteção
-const renderSafe = (value, fallback = 'N/A') => {
-  if (value === null || value === undefined) return fallback;
-  if (typeof value === 'object') {
-    if (Array.isArray(value)) return value.length;
-    if (value.nome !== undefined) return value.nome;
-    if (value.id !== undefined) return value.id;
-    if (value.numero !== undefined) return value.numero;
-    return fallback;
-  }
-  return value;
-};
 
 // 🎨 ESTILOS GLOBAIS
 const estilos = {
@@ -78,7 +69,63 @@ const estilos = {
 };
 
 // =========================================================================
-// ✅ COMPONENTES DE PÁGINA E MODAIS (DEFINIDOS FORA DO APP)
+// 🔐 COMPONENTES DE PÁGINA, MODAIS E LOGIN
+// =========================================================================
+// =========================================================================
+// 🔐 COMPONENTE DA TELA DE LOGIN
+// =========================================================================
+const LoginPage = ({ onLoginSuccess }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      // 1. Pega o cookie CSRF (esta chamada continua sendo importante)
+      await axios.get('http://localhost:8000/sanctum/csrf-cookie', { withCredentials: true });
+      
+      // 2. Tenta fazer o login com a nossa nova função fetchAPI baseada em Axios
+      const response = await fetchAPI('/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password })
+      });
+
+      if (response.success) {
+        onLoginSuccess(response.user);
+      }
+    } catch (err) {
+      setError(err.message || 'Email ou senha inválidos. Tente novamente.');
+      console.error('Falha no login:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', backgroundColor: '#f0f2f5' }}>
+      <div style={{ padding: '40px', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', textAlign: 'center', width: '400px' }}>
+        <h1 style={{ margin: '0 0 10px 0', color: '#1a237e' }}>🍔 Painel Admin</h1>
+        <p style={{ marginBottom: '30px', color: '#666' }}>Por favor, faça o login para continuar</p>
+        <form onSubmit={handleLogin}>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" required style={{ width: '100%', padding: '12px', marginBottom: '15px', border: '1px solid #ddd', borderRadius: '4px', boxSizing: 'border-box' }} />
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Senha" required style={{ width: '100%', padding: '12px', marginBottom: '20px', border: '1px solid #ddd', borderRadius: '4px', boxSizing: 'border-box' }} />
+          {error && <p style={{ color: 'red', fontSize: '14px' }}>{error}</p>}
+          <button type="submit" disabled={loading} style={{ width: '100%', padding: '12px', border: 'none', borderRadius: '4px', backgroundColor: '#1a237e', color: 'white', fontSize: '16px', cursor: 'pointer' }}>
+            {loading ? 'Entrando...' : 'Entrar'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+
+// =========================================================================
+// ✅ AQUI FICAM TODOS OS SEUS COMPONENTES DE PÁGINA E MODAIS
 // =========================================================================
 
 const Pedidos = ({ pedidos, setPedidoSelecionado, pedidoSelecionado, atualizarStatusPedido, cancelarPedido, imprimirPedidoController, configuracoes }) => {
@@ -438,11 +485,12 @@ const ModalRelatorioDia = ({ mostrar, onClose, relatorio }) => {
   );
 };
 
+
 // =========================================================================
-// ✅ FUNÇÃO PRINCIPAL APP
+// 🔒 PAINEL DE ADMIN (AGORA CONTÉM TODA A LÓGICA DO SEU SISTEMA)
 // =========================================================================
 
-function App() {
+const AdminPanel = ({ user, onLogout }) => {
   const [paginaAtiva, setPaginaAtiva] = useState('dashboard');
   const [dashboardData, setDashboardData] = useState(null);
   const [pedidos, setPedidos] = useState([]);
@@ -511,33 +559,89 @@ function App() {
     </div>
   );
 
+// Dentro do seu arquivo, substitua o return da função "AdminPanel" por este:
+
   return (
-    <div style={estilos.container}>
-      <header style={estilos.header}>
-        <h1 style={{ margin: 0 }}>🍔 {configuracoes?.nome_estabelecimento || "Painel Admin"}</h1>
-        <nav style={estilos.nav}>
-          <button onClick={() => setPaginaAtiva('dashboard')} style={paginaAtiva === 'dashboard' ? estilos.navButtonAtivo : estilos.navButton}>📊 Dashboard</button>
-          <button onClick={() => setPaginaAtiva('pedidos')} style={paginaAtiva === 'pedidos' ? estilos.navButtonAtivo : estilos.navButton}>📦 Pedidos</button>
-          <button onClick={() => setPaginaAtiva('produtos')} style={paginaAtiva === 'produtos' ? estilos.navButtonAtivo : estilos.navButton}>🍔 Produtos</button>
-          <button onClick={() => setPaginaAtiva('mesas')} style={paginaAtiva === 'mesas' ? estilos.navButtonAtivo : estilos.navButton}>🪑 Mesas</button>
-        </nav>
-      </header>
+      <div style={estilos.container}>
+        <header style={estilos.header}>
+          <div>
+            <h1 style={{ margin: 0 }}>🍔 {configuracoes?.nome_estabelecimento || "Painel Admin"}</h1>
+            <p style={{ margin: '5px 0 0 0', opacity: 0.8 }}>Bem-vindo, {user.name}!</p>
+          </div>
+          <button onClick={onLogout} style={{ ...estilos.navButton, backgroundColor: '#c82333' }}>Sair</button>
+        </header>
 
-      <main style={estilos.main}>
-        {carregando ? <p>Carregando...</p> : (
-          <>
-            {paginaAtiva === 'dashboard' && <Dashboard dashboardData={dashboardData} ControleExpediente={ControleExpediente} MesasComponent={() => <Mesas mesas={mesas} pagarContaMesa={pagarContaMesa} liberarMesa={liberarMesa} />} />}
-            {paginaAtiva === 'pedidos' && <Pedidos pedidos={pedidos} setPedidoSelecionado={setPedidoSelecionado} pedidoSelecionado={pedidoSelecionado} atualizarStatusPedido={atualizarStatusPedido} cancelarPedido={cancelarPedido} imprimirPedidoController={imprimirPedidoController} configuracoes={configuracoes} />}
-            {paginaAtiva === 'produtos' && <Produtos produtos={produtos} abrirModalProduto={abrirModalProduto} excluirProduto={excluirProduto} />}
-            {paginaAtiva === 'mesas' && <Mesas mesas={mesas} pagarContaMesa={pagarContaMesa} liberarMesa={liberarMesa} />}
-          </>
-        )}
-      </main>
+        <div style={{ padding: '0 20px', backgroundColor: '#e8eaf6' }}>
+          <nav style={{ ...estilos.nav, maxWidth: '1200px', margin: '0 auto', padding: '10px 0' }}>
+            <button onClick={() => setPaginaAtiva('dashboard')} style={paginaAtiva === 'dashboard' ? estilos.navButtonAtivo : estilos.navButton}>📊 Dashboard</button>
+            <button onClick={() => setPaginaAtiva('pedidos')} style={paginaAtiva === 'pedidos' ? estilos.navButtonAtivo : estilos.navButton}>📦 Pedidos</button>
+            <button onClick={() => setPaginaAtiva('produtos')} style={paginaAtiva === 'produtos' ? estilos.navButtonAtivo : estilos.navButton}>🍔 Produtos</button>
+            <button onClick={() => setPaginaAtiva('mesas')} style={paginaAtiva === 'mesas' ? estilos.navButtonAtivo : estilos.navButton}>🪑 Mesas</button>
+          </nav>
+        </div>
 
-      <ModalConfiguracoes mostrar={mostrarModalConfig} onClose={() => setMostrarModalConfig(false)} form={formConfig} setForm={setFormConfig} onSubmit={handleConfigSubmit} />
-      <ModalProduto mostrar={mostrarModalProduto} onClose={() => setMostrarModalProduto(false)} produto={produtoEditando} onSubmit={salvarProduto} categorias={categorias} />
-      <ModalRelatorioDia mostrar={mostrarModalExpediente} onClose={() => setMostrarModalExpediente(false)} relatorio={expedienteStatus} />
-    </div>
+        <main style={estilos.main}>
+          {carregando ? <p>Carregando...</p> : (
+            <>
+              {paginaAtiva === 'dashboard' && <Dashboard dashboardData={dashboardData} ControleExpediente={ControleExpediente} MesasComponent={() => <Mesas mesas={mesas} pagarContaMesa={pagarContaMesa} liberarMesa={liberarMesa} />} />}
+              {paginaAtiva === 'pedidos' && <Pedidos pedidos={pedidos} setPedidoSelecionado={setPedidoSelecionado} pedidoSelecionado={pedidoSelecionado} atualizarStatusPedido={atualizarStatusPedido} cancelarPedido={cancelarPedido} imprimirPedidoController={imprimirPedidoController} configuracoes={configuracoes} />}
+              {paginaAtiva === 'produtos' && <Produtos produtos={produtos} abrirModalProduto={abrirModalProduto} excluirProduto={excluirProduto} />}
+              {paginaAtiva === 'mesas' && <Mesas mesas={mesas} pagarContaMesa={pagarContaMesa} liberarMesa={liberarMesa} />}
+            </>
+          )}
+        </main>
+
+        {/* Os Modais são chamados aqui no final, para aparecerem sobre todo o conteúdo */}
+        <ModalConfiguracoes mostrar={mostrarModalConfig} onClose={() => setMostrarModalConfig(false)} form={formConfig} setForm={setFormConfig} onSubmit={handleConfigSubmit} />
+        <ModalProduto mostrar={mostrarModalProduto} onClose={() => setMostrarModalProduto(false)} produto={produtoEditando} onSubmit={salvarProduto} categorias={categorias} />
+        <ModalRelatorioDia mostrar={mostrarModalExpediente} onClose={() => setMostrarModalExpediente(false)} relatorio={expedienteStatus} />
+      </div>
+    );
+
+  }
+
+// =========================================================================
+// 🚀 COMPONENTE PRINCIPAL APP (AGORA É O "ROTEADOR" DE AUTENTICAÇÃO)
+// =========================================================================
+
+function App() {
+  const [user, setUser] = useState(null);
+  const [loadingAuth, setLoadingAuth] = useState(true);
+
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const response = await fetchAPI('/user');
+        if (response.user) {
+          setUser(response.user);
+        }
+      } catch (error) {
+        console.log('Nenhum usuário logado, exibindo tela de login.');
+      } finally {
+        setLoadingAuth(false);
+      }
+    };
+    checkUser();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await fetchAPI('/logout', { method: 'POST' });
+      setUser(null);
+    } catch(err) {
+      console.error('Erro no logout', err);
+      alert('Não foi possível fazer logout.');
+    }
+  };
+
+  if (loadingAuth) {
+    return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>Verificando sessão...</div>;
+  }
+
+  return user ? (
+    <AdminPanel user={user} onLogout={handleLogout} />
+  ) : (
+    <LoginPage onLoginSuccess={setUser} />
   );
 }
 
