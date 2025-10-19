@@ -347,24 +347,17 @@ function App() {
     }
 
     try {
-      const resultado = await fetchAPI(`/api/garcom/mesas/${mesa.id}/ocupar`, {
-        method: 'POST',
-        body: JSON.stringify({
-          garcom_nome: garcomNome
-        })
-      });
+      const resultado = await fetchAPI(`/api/garcom/mesas/${mesa.id}/ocupar`, { /* ... */ });
 
       if (resultado.success) {
-        // Atualizar lista de mesas
-        await atualizarMesas();
+        // ATUALIZA A LISTA DE MESAS EM SEGUNDO PLANO
+        atualizarMesas(); 
         
-        // Buscar mesa atualizada
-        const mesaAtualizada = mesas.find(m => m.id === mesa.id) || resultado.data;
-        
-        setMesaSelecionada(mesaAtualizada);
+        // ✅ CORREÇÃO: USA DIRETAMENTE O RETORNO DA API
+        setMesaSelecionada(resultado.data);
         setEtapa('cardapio');
         
-        alert('✅ Mesa preparada para uso! Agora você pode fazer pedidos.');
+        alert('✅ Mesa ocupada! Agora você pode fazer pedidos.');
       }
     } catch (erro) {
       console.error('Erro ao preparar mesa:', erro);
@@ -501,36 +494,52 @@ function App() {
     }
   };
 
-  // ✅ CORRIGIDO: Fechar conta
+// frontend/src/App.js
+
   const fecharConta = async () => {
     try {
+      // ✅ CORREÇÃO: Adicionado o /api/ no início do caminho
+      const verificaResultado = await fetchAPI(`/api/garcom/mesas/${mesaSelecionada.id}/pode-fechar-conta`);
+      
+      if (!verificaResultado.success) {
+        alert('❌ Erro ao verificar conta');
+        return;
+      }
+
+      const { pode_fechar, mensagem, total_conta } = verificaResultado.data;
+
+      if (!pode_fechar) {
+        alert(`❌ Não é possível fechar conta:\n${mensagem}`);
+        return;
+      }
+
+      if (!window.confirm(`Fechar conta da Mesa ${mesaSelecionada.numero}?\n\nTotal: R$ ${Number(total_conta).toFixed(2)}`)) {
+        return;
+      }
+
+      // ✅ CORREÇÃO: Adicionado o /api/ no início do caminho
       const resultado = await fetchAPI(`/api/garcom/mesas/${mesaSelecionada.id}/fechar-conta`, {
         method: 'POST'
       });
       
       if (resultado.success) {
-        setResumoConta(resultado);
+        setResumoConta(resultado.data); // Corrigido para usar resultado.data
         setEtapa('conta-fechada');
         
-        // Atualizar status local
         setMesaSelecionada(prev => ({
           ...prev,
           status_pagamento: 'fechada'
         }));
 
-        // Atualizar lista de mesas
         await atualizarMesas();
+        alert('✅ ' + resultado.message);
+      } else {
+        alert(`❌ ${resultado.message}`);
       }
     } catch (erro) {
       console.error('Erro ao fechar conta:', erro);
-      
-      if (erro.message.includes('422') || erro.message.includes('Sem pedidos')) {
-        alert('❌ Não é possível fechar a conta!\n\nNenhum pedido foi realizado nesta mesa.');
-      } else if (erro.message.includes('já foi fechada')) {
-        alert('❌ Esta conta já está fechada!');
-      } else {
-        alert('❌ Erro ao fechar conta: ' + erro.message);
-      }
+      // O erro 'NetworkError' aparecerá aqui se a URL estiver errada.
+      alert('❌ Erro ao fechar conta: ' + erro.message);
     }
   };
 

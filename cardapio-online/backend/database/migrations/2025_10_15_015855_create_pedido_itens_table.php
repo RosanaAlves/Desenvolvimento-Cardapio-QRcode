@@ -14,6 +14,7 @@ return new class extends Migration
             $table->integer('quantidade');
             $table->decimal('preco_unitario', 8, 2);
             $table->text('observacoes')->nullable();
+            $table->decimal('subtotal', 10, 2);
             $table->timestamps();
         });
     }

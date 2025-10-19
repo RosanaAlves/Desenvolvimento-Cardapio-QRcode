@@ -65,6 +65,7 @@ Route::prefix('garcom')->group(function () {
     Route::get('/mesas/{mesaId}/pedidos', [MesaController::class, 'pedidos']);
     Route::post('/mesas/{id}/ocupar', [MesaController::class, 'ocupar']);
     Route::post('/mesas/{id}/liberar', [MesaController::class, 'liberar']);
+    Route::get('/mesas/{id}/pode-fechar-conta', [MesaController::class, 'podeFecharConta']);
     Route::post('/mesas/{id}/fechar-conta', [MesaController::class, 'fecharConta']);
     Route::post('/mesas/{id}/reabrir-conta', [MesaController::class, 'reabrirConta']);
     Route::get('/mesas/{id}/status-conta', [MesaController::class, 'statusConta']);
@@ -81,7 +82,7 @@ Route::prefix('garcom')->group(function () {
      //🔥 PRODUTO - GARÇOM (ATUALIZADAS)
     Route::get('/produtos', [ProdutoController::class, 'index']);
     Route::get('/produtos/{id}', [ProdutoController::class, 'show']);
-    
+
     // 🔥 CATEGORIAS
     Route::get('/categorias', [CategoriaController::class, 'index']);
     Route::get('/categorias/{id}/produtos', [CategoriaController::class, 'produtosPorCategoria']);
@@ -121,6 +122,8 @@ Route::prefix('admin')->group(function () {
     Route::post('/mesas/{id}/pagar-conta', [AdminMesaController::class, 'pagarConta']);
     Route::post('/mesas/{id}/liberar', [AdminMesaController::class, 'liberarMesa']);
     Route::get('/mesas/estatisticas', [AdminMesaController::class, 'estatisticas']);
+    Route::get('/mesas/{id}', [AdminMesaController::class, 'show']);
+    Route::post('/mesas/{id}/fechar-conta', [AdminMesaController::class, 'fecharConta']);
     
     // 🍔 PRODUTOS
     Route::get('/produtos', [AdminProdutoController::class, 'index']);

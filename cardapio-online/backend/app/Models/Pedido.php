@@ -129,13 +129,13 @@ class Pedido extends Model
         return $this->update(['status' => 'entregue']);
     }
 
-    public function marcarComoCancelado($motivo = null, $canceladoPor = null)
-    {
-        return $this->update([
-            'status' => 'cancelado'
-        ]);
-    }
+  // app/Models/Pedido.php
 
+    public function marcarComoCancelado()
+    {
+        return $this->update(['status' => 'cancelado']);
+    }
+    
     // 🔥 MÉTODOS DE CÁLCULO
     public function calcularTotal()
     {

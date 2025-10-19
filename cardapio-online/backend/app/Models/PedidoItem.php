@@ -15,7 +15,8 @@ class PedidoItem extends Model
         'produto_id',
         'quantidade',
         'preco_unitario',
-        'observacoes'
+        'observacoes',
+        'subtotal'
     ];
 
     protected $casts = [

@@ -64,18 +64,12 @@ class Mesa extends Model
         $this->attributes['status_pagamento'] = $value;
     }
 
-    // 🔥 BOOT METHOD SIMPLIFICADO
+    // 🔥 BOOT METHOD ATUALIZADO
     protected static function boot()
     {
         parent::boot();
 
-        static::creating(function ($mesa) {
-            // Garantir valores padrão
-            $mesa->status = $mesa->status ?? 'livre';
-            $mesa->status_pagamento = $mesa->status_pagamento ?? 'aberta';
-            $mesa->disponivel = $mesa->disponivel ?? true;
-            $mesa->capacidade = $mesa->capacidade ?? 4;
-        });
+        // ... (a parte 'creating' está ok) ...
 
         static::updating(function ($mesa) {
             try {
@@ -83,21 +77,23 @@ class Mesa extends Model
                 if ($mesa->isDirty('status_pagamento') && $mesa->status_pagamento === 'paga') {
                     $mesa->status = 'livre';
                     $mesa->garcom_nome = null;
+                    // REMOVIDA: $mesa->total_conta = 0;
                 }
 
                 // ✅ CORREÇÃO: Quando a conta é fechada, a mesa permanece ocupada
                 if ($mesa->isDirty('status_pagamento') && $mesa->status_pagamento === 'fechada') {
                     $mesa->status = 'ocupada';
+                    // REMOVIDA: Lógica de cálculo que já está no Accessor
                 }
 
                 // ✅ CORREÇÃO: Quando a mesa é liberada, resetar status de pagamento
                 if ($mesa->isDirty('status') && $mesa->status === 'livre' && $mesa->status_pagamento !== 'paga') {
                     $mesa->status_pagamento = 'aberta';
                     $mesa->garcom_nome = null;
+                    // REMOVIDA: $mesa->total_conta = 0;
                 }
             } catch (\Exception $e) {
                 Log::error("Erro no boot method da Mesa {$mesa->id}: " . $e->getMessage());
-                // Não lançar exceção para não bloquear atualizações
             }
         });
     }
@@ -249,8 +245,28 @@ class Mesa extends Model
 
     public function getTotalContaAttribute(): float
     {
-        $total = $this->pedidosEmAberto()->sum('total');
+        // ✅ CORREÇÃO: Calcular total dos pedidos ENTREGUES (não em aberto)
+        $total = $this->pedidosEntregues->sum('total');
         return (float) ($total ?: 0);
+    }
+
+    // ✅ ADICIONE ESTE MÉTODO PARA PEDIDOS ENTREGUES
+    public function pedidosEntregues(): HasMany
+    {
+        return $this->hasMany(Pedido::class)
+                    ->where('status', 'entregue');
+    }
+
+    // ✅ ADICIONE ESTE MÉTODO PARA VERIFICAR PEDIDOS ENTREGUES
+    public function getTemPedidosEntreguesAttribute(): bool
+    {
+        return $this->pedidosEntregues()->exists();
+    }
+
+    // ✅ ADICIONE ESTE MÉTODO PARA QUANTIDADE DE PEDIDOS ENTREGUES
+    public function getQuantidadePedidosEntreguesAttribute(): int
+    {
+        return $this->pedidosEntregues()->count();
     }
 
     public function getQuantidadePedidosAtivosAttribute(): int
@@ -278,6 +294,7 @@ class Mesa extends Model
     }
 
     // 🔥 MÉTODO PARA RESPOSTA DA API - SIMPLIFICADO
+   // 🔥 MÉTODO PARA RESPOSTA DA API - ATUALIZADO
     public function toArrayResumido(): array
     {
         return [
@@ -290,6 +307,8 @@ class Mesa extends Model
             'garcom_nome' => $this->garcom_nome,
             'tem_pedidos_ativos' => $this->tem_pedidos_ativos,
             'quantidade_pedidos_ativos' => $this->quantidade_pedidos_ativos,
+            'tem_pedidos_entregues' => $this->tem_pedidos_entregues, // ✅ NOVO
+            'quantidade_pedidos_entregues' => $this->quantidade_pedidos_entregues, // ✅ NOVO
             'total_conta' => $this->total_conta,
             'capacidade' => $this->capacidade,
             'disponivel' => $this->disponivel,
@@ -301,6 +320,7 @@ class Mesa extends Model
     }
 
     // 🔥 MÉTODO PARA DASHBOARD/ADMIN
+        // 🔥 MÉTODO PARA DASHBOARD/ADMIN - ATUALIZADO
     public function toArrayAdmin(): array
     {
         return array_merge($this->toArrayResumido(), [
@@ -312,8 +332,16 @@ class Mesa extends Model
                     'created_at' => $pedido->created_at?->format('d/m/Y H:i')
                 ];
             }),
+            'pedidos_entregues' => $this->pedidosEntregues->map(function ($pedido) { // ✅ NOVO
+                return [
+                    'id' => $pedido->id,
+                    'status' => $pedido->status,
+                    'total' => $pedido->total,
+                    'created_at' => $pedido->created_at?->format('d/m/Y H:i')
+                ];
+            }),
             'pode_liberar' => $this->estaLivre() || ($this->contaFechada() && $this->total_conta == 0),
-            'pode_fechar_conta' => $this->contaAberta() && $this->total_conta > 0,
+            'pode_fechar_conta' => $this->contaAberta() && $this->tem_pedidos_entregues && $this->total_conta > 0, // ✅ CORRIGIDO
             'pode_pagar_conta' => $this->contaFechada() && $this->total_conta > 0
         ]);
     }
