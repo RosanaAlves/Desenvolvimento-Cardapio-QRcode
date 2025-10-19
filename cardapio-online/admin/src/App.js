@@ -7,17 +7,44 @@ import axios from 'axios'; // ✅ Importa o Axios
 
 const api = axios.create({
   baseURL: 'http://localhost:8000/api',
-  withCredentials: true, // Essencial para o Sanctum enviar cookies
+  // ✅ REMOVEMOS withCredentials: true - não precisa mais para tokens
 });
 
-// Nossa função fetchAPI agora usa o Axios por baixo dos panos
+// ✅ INTERCEPTOR PARA ADICIONAR TOKEN AUTOMATICAMENTE
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('auth_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// ✅ INTERCEPTOR PARA TRATAR ERROS DE AUTENTICAÇÃO
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expirado ou inválido - faz logout automático
+      localStorage.removeItem('auth_token');
+      window.location.reload(); // Força voltar para tela de login
+    }
+    return Promise.reject(error);
+  }
+);
+
+// =========================================================================
+// ✅ FUNÇÃO fetchAPI (ADICIONAR ESTA FUNÇÃO QUE ESTÁ FALTANDO)
+// =========================================================================
 const fetchAPI = async (endpoint, options = {}) => {
   try {
     const response = await api({
       url: endpoint,
       method: options.method || 'GET',
-      data: options.body ? JSON.parse(options.body) : null,
-      ...options,
+      data: options.body,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
     });
     
     if (response.data.success === false) {
@@ -26,11 +53,21 @@ const fetchAPI = async (endpoint, options = {}) => {
     return response.data;
   } catch (error) {
     console.error(`❌ Erro na requisição para ${endpoint}:`, error);
-    if (error.response && error.response.data && error.response.data.message) {
+    if (error.response?.data?.message) {
       throw new Error(error.response.data.message);
     }
     throw error;
   }
+};
+
+// =========================================================================
+// ✅ FUNÇÃO renderSafe (PARA EVITAR ERROS DE VALORES NULOS)
+// =========================================================================
+const renderSafe = (value, defaultValue = '') => {
+  if (value === null || value === undefined || value === '') {
+    return defaultValue;
+  }
+  return value;
 };
 
 
@@ -81,20 +118,20 @@ const LoginPage = ({ onLoginSuccess }) => {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+  e.preventDefault();
+  setError('');
+  setLoading(true);
+  
     try {
-      // 1. Pega o cookie CSRF (esta chamada continua sendo importante)
-      await axios.get('http://localhost:8000/sanctum/csrf-cookie', { withCredentials: true });
-      
-      // 2. Tenta fazer o login com a nossa nova função fetchAPI baseada em Axios
+      // ✅ MUDANÇA: Login direto sem CSRF cookie
       const response = await fetchAPI('/login', {
         method: 'POST',
-        body: JSON.stringify({ email, password })
+        body: { email, password } // ✅ MUDANÇA: objeto direto, sem JSON.stringify
       });
 
-      if (response.success) {
+      if (response.success && response.token) {
+        // ✅ Salva o token no localStorage
+        localStorage.setItem('auth_token', response.token);
         onLoginSuccess(response.user);
       }
     } catch (err) {
@@ -104,7 +141,7 @@ const LoginPage = ({ onLoginSuccess }) => {
       setLoading(false);
     }
   };
-  
+
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', backgroundColor: '#f0f2f5' }}>
       <div style={{ padding: '40px', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', textAlign: 'center', width: '400px' }}>

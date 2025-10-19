@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens; // ✅ ESSENCIAL PARA TOKENS
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasApiTokens; // ✅ ADICIONE HasApiTokens AQUI
 
     /**
      * The attributes that are mass assignable.
@@ -40,6 +41,6 @@ class User extends Authenticatable
      */
     protected $casts = [
         'ativo' => 'boolean',
-        'password' => 'hashed', // ✅ ESTA É A LINHA CRÍTICA
+        'password' => 'hashed', // ✅ CORRETO - Laravel 10+
     ];
 }
