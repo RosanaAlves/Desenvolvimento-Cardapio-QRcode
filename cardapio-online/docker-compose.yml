@@ -47,6 +47,7 @@ services:
     volumes:
       - ./backend:/var/www/html
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./backend/php.ini:/usr/local/etc/php/conf.d/custom.ini
     networks:
       - cardapio-network
     depends_on:

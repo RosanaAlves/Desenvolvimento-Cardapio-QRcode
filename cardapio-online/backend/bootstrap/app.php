@@ -15,6 +15,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // ✅ ADICIONE ESTA LINHA PARA CORS
         $middleware->api(prepend: [
             \Illuminate\Http\Middleware\HandleCors::class,
+            // ✅ ADICIONE ESTA NOVA LINHA PARA O SANCTUM
+            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
