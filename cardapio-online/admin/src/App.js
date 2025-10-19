@@ -118,19 +118,23 @@ const LoginPage = ({ onLoginSuccess }) => {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e) => {
-  e.preventDefault();
-  setError('');
-  setLoading(true);
-  
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    
     try {
-      // ✅ MUDANÇA: Login direto sem CSRF cookie
+      // ✅ PRIMEIRO: Pega o CSRF cookie (ESSENCIAL)
+      await axios.get('http://localhost:8000/sanctum/csrf-cookie', { 
+        withCredentials: true 
+      });
+      
+      // ✅ DEPOIS: Faz o login
       const response = await fetchAPI('/login', {
         method: 'POST',
-        body: { email, password } // ✅ MUDANÇA: objeto direto, sem JSON.stringify
+        body: { email, password }
       });
 
       if (response.success && response.token) {
-        // ✅ Salva o token no localStorage
         localStorage.setItem('auth_token', response.token);
         onLoginSuccess(response.user);
       }

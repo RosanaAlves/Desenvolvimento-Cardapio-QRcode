@@ -22,7 +22,6 @@ use App\Http\Controllers\Api\Admin\CategoriaController as AdminCategoriaControll
 use App\Http\Controllers\Api\Admin\MesaController as AdminMesaController;
 use App\Http\Controllers\Api\Admin\ImpressaoController;
 
-
 // =========================================================================
 // ROTAS DE AUTENTICAÇÃO
 // =========================================================================
@@ -55,14 +54,13 @@ Route::middleware('auth:sanctum')->group(function () {
     // --- ROTAS DO GARÇOM (AGORA PROTEGIDAS) ---
     Route::prefix('garcom')->group(function () {
         // CARDÁPIO
-        // 🔥 CARDÁPIO
         Route::get('/cardapio/categorias', [CardapioController::class, 'categorias']);
         Route::get('/cardapio', [CardapioController::class, 'index']);
         Route::get('/cardapio/produtos', [CardapioController::class, 'produtos']);
         Route::get('/cardapio/categorias/{categoriaId}/produtos', [CardapioController::class, 'produtosPorCategoria']);
         Route::get('/cardapio/buscar/{termo}', [CardapioController::class, 'buscarProdutos']);
         
-        // 🔥 MESAS
+        // MESAS
         Route::get('/mesas', [MesaController::class, 'index']);
         Route::get('/mesas/status', [MesaController::class, 'status']);
         Route::get('/mesas/{mesaId}/pedidos', [MesaController::class, 'pedidos']);
@@ -73,25 +71,20 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/mesas/{id}/reabrir-conta', [MesaController::class, 'reabrirConta']);
         Route::get('/mesas/{id}/status-conta', [MesaController::class, 'statusConta']);
         
-        //🔥 PEDIDOS - GARÇOM (ATUALIZADAS)
+        // PEDIDOS - GARÇOM
         Route::post('/pedidos', [PedidoController::class, 'store']);
         Route::get('/pedidos/{id}', [PedidoController::class, 'show']);
         Route::post('/pedidos/{id}/cancelar', [PedidoController::class, 'cancelar']);
         Route::get('/pedidos/garcom/{garcomNome}', [PedidoController::class, 'meusPedidos']);
-        Route::get('/pedidos/mesa/{mesaId}', [PedidoController::class, 'pedidosPorMesa']); // ✅ NOVA
-        Route::put('/pedidos/{id}/observacoes', [PedidoController::class, 'atualizarObservacoes']); // ✅ NOVA
-        Route::get('/pedidos/garcom/{garcomNome}/estatisticas', [PedidoController::class, 'estatisticas']); // ✅ NOVA
+        Route::get('/pedidos/mesa/{mesaId}', [PedidoController::class, 'pedidosPorMesa']);
+        Route::put('/pedidos/{id}/observacoes', [PedidoController::class, 'atualizarObservacoes']);
+        Route::get('/pedidos/garcom/{garcomNome}/estatisticas', [PedidoController::class, 'estatisticas']);
         
-
-        // 🔥 CATEGORIAS
+        // CATEGORIAS
         Route::get('/categorias', [CategoriaController::class, 'index']);
         Route::get('/categorias/{id}/produtos', [CategoriaController::class, 'produtosPorCategoria']);
         
-        // 🔥 PRODUTOS
-        Route::get('/produtos', [ProdutoController::class, 'index']);
-        Route::get('/produtos/{id}', [ProdutoController::class, 'show']);
-        
-        // 🔥 DASHBOARD
+        // DASHBOARD
         Route::get('/dashboard', [DashboardController::class, 'index']);
     });
 
@@ -103,7 +96,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/configuracoes', [ConfiguracaoController::class, 'update']);
         Route::post('/configuracoes/reiniciar-sistema', [ConfiguracaoController::class, 'reiniciarSistema']);
         
-        // 🕒 EXPEDIENTE - CORRIGIDO PARA OS MÉTODOS EXISTENTES
+        // 🕒 EXPEDIENTE
         Route::get('/expediente/status', [ExpedienteController::class, 'status']);
         Route::post('/expediente/abrir', [ExpedienteController::class, 'abrirExpediente']);
         Route::post('/expediente/fechar', [ExpedienteController::class, 'fecharExpediente']);
@@ -137,64 +130,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/categorias/{id}', [AdminCategoriaController::class, 'update']);
         Route::delete('/categorias/{id}', [AdminCategoriaController::class, 'destroy']);
         
-        // 🖨️ IMPRESSÃO - CORRIGIDO PARA OS MÉTODOS EXISTENTES
+        // 🖨️ IMPRESSÃO
         Route::get('/impressao/pedido/{id}/termica', [ImpressaoController::class, 'imprimirPedidoTermica']);
         Route::get('/impressao/pedido/{id}/compacto', [ImpressaoController::class, 'imprimirPedidoCompacto']);
         Route::post('/impressao/relatorio', [ImpressaoController::class, 'imprimirRelatorio']);
+        
+        // 📈 RELATÓRIOS
+        Route::get('/relatorios/vendas', [RelatorioController::class, 'vendas']);
+        Route::get('/relatorios/produtos', [RelatorioController::class, 'produtos']);
+        Route::get('/relatorios/mesas', [RelatorioController::class, 'mesas']);
     });
-
 });
-
-// // =========================================================================
-// // ROTAS DE COMPATIBILIDADE (PUBLICAS - MANTIDAS COMO FALLBACK)
-// // =========================================================================
-
-// // 🔥 ROTAS PÚBLICAS PARA COMPATIBILIDADE
-// Route::get('/categorias', function() {
-//     try {
-//         $categorias = \App\Models\Categoria::where('disponivel', true)->get();
-//         return response()->json($categorias);
-//     } catch (\Exception $e) {
-//         \Illuminate\Support\Facades\Log::error('Erro em /categorias: ' . $e->getMessage());
-//         return response()->json(['error' => 'Erro ao carregar categorias'], 500);
-//     }
-// });
-
-// Route::get('/produtos', function() {
-//     try {
-//         $produtos = \App\Models\Produto::with('categoria')
-//             ->where('disponivel', true)
-//             ->get();
-//         return response()->json($produtos);
-//     } catch (\Exception $e) {
-//         \Illuminate\Support\Facades\Log::error('Erro em /produtos: ' . $e->getMessage());
-//         return response()->json(['error' => 'Erro ao carregar produtos'], 500);
-//     }
-// });
-
-// Route::get('/mesas', function() {
-//     try {
-//         $mesas = \App\Models\Mesa::all();
-//         return response()->json($mesas);
-//     } catch (\Exception $e) {
-//         \Illuminate\Support\Facades\Log::error('Erro em /mesas: ' . $e->getMessage());
-//         return response()->json(['error' => 'Erro ao carregar mesas'], 500);
-//     }
-// });
-
-// Route::get('/mesas/{id}/pedidos', function($id) {
-//     try {
-//         $pedidos = \App\Models\Pedido::where('mesa_id', $id)
-//             ->where('status', '!=', 'cancelado')
-//             ->with(['itens.produto', 'mesa'])
-//             ->get();
-
-//         return response()->json($pedidos);
-//     } catch (\Exception $e) {
-//         \Illuminate\Support\Facades\Log::error('Erro em /mesas/{id}/pedidos: ' . $e->getMessage());
-//         return response()->json(['error' => 'Erro ao carregar pedidos'], 500);
-//     }
-// });
 
 // =========================================================================
 // ROTA DE FALLBACK
