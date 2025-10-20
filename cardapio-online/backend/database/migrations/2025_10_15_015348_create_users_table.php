@@ -12,7 +12,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('email')->unique();
             $table->string('password');
-            $table->enum('tipo', ['admin', 'caixa', 'garcom'])->default('garcom');
+            $table->enum('tipo', ['administrador', 'caixa', 'garcom'])->default('garcom');
             $table->boolean('ativo')->default(true);
             $table->rememberToken();
             $table->timestamps();

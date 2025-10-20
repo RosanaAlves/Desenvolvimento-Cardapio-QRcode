@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http;
+namespace App\Http\Middleware; // Se você mudou o namespace, use o seu.
 
 use Closure;
 use Illuminate\Http\Request;
@@ -9,11 +9,6 @@ use Symfony\Component\HttpFoundation\Response;
 
 class CheckRole
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     */
     public function handle(Request $request, Closure $next, ...$roles): Response
     {
         if (!Auth::check()) {
@@ -22,14 +17,19 @@ class CheckRole
 
         $user = Auth::user();
 
-        // Supondo que você tenha uma coluna 'role' ou 'tipo' no seu model User
-        // Ex: 'admin', 'garcom'
+        // 1. ✅ Verificar se o usuário está ATIVO (Adicionado)
+        if (!$user->isAtivo()) {
+            return response()->json(['message' => 'Sua conta está inativa. Acesso negado.'], 403);
+        }
+
+        // 2. ✅ Verificar o PAPEL (TIPO)
         foreach ($roles as $role) {
-            if ($user->role == $role) {
+            // Agora usamos o método hasRole() que verifica a coluna 'tipo'
+            if ($user->hasRole($role)) { 
                 return $next($request);
             }
         }
 
-        return response()->json(['message' => 'Acesso não autorizado.'], 403);
+        return response()->json(['message' => 'Acesso não autorizado para esta função.'], 403);
     }
 }

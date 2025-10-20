@@ -665,37 +665,62 @@ function App() {
   };
 
   if (loadingAuth) {
-    return <div style={{...}}>Verificando sessão...</div>;
+    return <div style={{}}>Verificando sessão...</div>; // ✅ CORRIGIDO
   }
 
-  // 🛑 NÃO FAÇA ISSO:
-  // return user ? (
-  //   <AdminPanel user={user} onLogout={handleLogout} />
-  // ) : (
-  //   <LoginPage onLoginSuccess={setUser} />
-  // );
-
-  // ✅ FAÇA ISSO (Renderização Condicional):
+  // ✅ RENDERIZAÇÃO CONDICIONAL SIMPLIFICADA
   if (!user) {
     return <LoginPage onLoginSuccess={handleLoginSuccess} />;
   }
 
-  // Supondo que seu objeto user tenha user.role
-  if (user.role === 'admin') {
+  // ✅ APENAS ADMINISTRADOR ACESSA ESTE PAINEL
+  if (user.tipo === 'administrador') {
     return <AdminPanel user={user} onLogout={handleLogout} />;
   }
 
-  if (user.role === 'garcom') {
-    // Você precisará criar e importar um <GarcomPanel />
-    // return <GarcomPanel user={user} onLogout={handleLogout} />;
-    return (<div>Painel do Garçom (user: {user.name}) <button onClick={handleLogout}>Sair</button></div>);
-  }
-
-  // Se logou mas não tem role definida
+  // ✅ TRATAMENTO PARA OUTROS TIPOS DE USUÁRIO
   return (
-    <div>
-       <p>Erro: Usuário com função desconhecida.</p>
-       <button onClick={handleLogout}>Sair</button>
+    <div style={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      height: '100vh', 
+      backgroundColor: '#f0f2f5',
+      flexDirection: 'column',
+      padding: '20px',
+      textAlign: 'center'
+    }}>
+      <div style={{ 
+        padding: '40px', 
+        backgroundColor: 'white', 
+        borderRadius: '8px', 
+        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+        maxWidth: '500px'
+      }}>
+        <h2 style={{ color: '#1a237e', marginBottom: '15px' }}>🔐 Sistema de Garçom</h2>
+        <p style={{ marginBottom: '20px', color: '#666' }}>
+          Olá, <strong>{user.name}</strong>!<br/>
+          Seu tipo de usuário (<strong>{user.tipo}</strong>) acessa o sistema através do painel específico.
+        </p>
+        <p style={{ marginBottom: '25px', color: '#888', fontSize: '14px' }}>
+          ⚠️ Este painel é exclusivo para administradores.
+        </p>
+        <button 
+          onClick={handleLogout}
+          style={{ 
+            width: '100%', 
+            padding: '12px', 
+            border: 'none', 
+            borderRadius: '4px', 
+            backgroundColor: '#1a237e', 
+            color: 'white', 
+            fontSize: '16px', 
+            cursor: 'pointer' 
+          }}
+        >
+          Sair do Sistema
+        </button>
+      </div>
     </div>
   );
 }

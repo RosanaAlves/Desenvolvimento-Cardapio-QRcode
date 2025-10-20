@@ -13,13 +13,14 @@ class DatabaseSeeder extends Seeder
     {
         // 1. CHAME O SEEDER DE CATEGORIAS PRIMEIRO
         // Isso garante que todas as categorias (IDs 1-10) existam antes de serem referenciadas.
-        $this->call(CategoriasSeeder::class);
 
+        $this->call(CategoriasSeeder::class);
+        
         // 2. CHAME O SEEDER DE PRODUTOS DEPOIS
         // Agora, os produtos podem ser inseridos com segurança.
         $this->call(ProdutoSeeder::class);
         $this->call(MesasSeeder::class);
-      
+        $this->call(UserSeeder::class);
 
         // Se você tiver outros seeders (como Users, Pedidos, etc.), chame-os aqui.
         // $this->call(UserSeeder::class); 

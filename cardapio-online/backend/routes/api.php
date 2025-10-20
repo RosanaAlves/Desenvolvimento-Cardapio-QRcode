@@ -49,7 +49,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [AuthController::class, 'user']);
 
     // --- ROTAS DO GARÇOM ---
-    Route::prefix('garcom')->middleware('role:garcom,admin')->group(function () {
+    Route::prefix('garcom')->middleware('check.role:garcom,administrador')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index']);
         Route::get('/cardapio', [CardapioController::class, 'index']);
         Route::get('/cardapio/buscar/{termo}', [CardapioController::class, 'buscarProdutos']);
@@ -64,7 +64,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // --- ROTAS DO ADMIN ---
-    Route::prefix('admin')->middleware('role:admin')->group(function () {
+    Route::prefix('admin')->middleware('check.role:administrador')->group(function () {
         Route::get('/dashboard', [ConfiguracaoController::class, 'dashboard']);
         Route::get('/configuracoes', [ConfiguracaoController::class, 'index']);
         Route::put('/configuracoes', [ConfiguracaoController::class, 'update']);
