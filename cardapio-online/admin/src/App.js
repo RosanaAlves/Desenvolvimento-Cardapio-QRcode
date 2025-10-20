@@ -1,75 +1,55 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios'; // ✅ Importa o Axios
 
 // =========================================================================
 // CONFIGURAÇÃO E FUNÇÕES AUXILIARES (NO TOPO DO ARQUIVO)
 // =========================================================================
 
-const api = axios.create({
-  baseURL: 'http://localhost:8000/api',
-  // ✅ REMOVEMOS withCredentials: true - não precisa mais para tokens
-});
-
-// ✅ INTERCEPTOR PARA ADICIONAR TOKEN AUTOMATICAMENTE
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('auth_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-// ✅ INTERCEPTOR PARA TRATAR ERROS DE AUTENTICAÇÃO
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Token expirado ou inválido - faz logout automático
-      localStorage.removeItem('auth_token');
-      window.location.reload(); // Força voltar para tela de login
-    }
-    return Promise.reject(error);
-  }
-);
-
-// =========================================================================
-// ✅ FUNÇÃO fetchAPI (ADICIONAR ESTA FUNÇÃO QUE ESTÁ FALTANDO)
-// =========================================================================
+// ✅ FUNÇÃO fetchAPI CORRIGIDA PARA SANCTUM
 const fetchAPI = async (endpoint, options = {}) => {
   try {
-    const response = await api({
-      url: endpoint,
-      method: options.method || 'GET',
-      data: options.body,
+    const defaultOptions = {
+      credentials: 'include', // 🔥 IMPORTANTE para cookies
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+    };
+
+    const config = {
+      ...defaultOptions,
+      ...options,
+      headers: {
+        ...defaultOptions.headers,
         ...options.headers,
       },
-    });
-    
-    if (response.data.success === false) {
-      throw new Error(response.data.message || 'API retornou um erro');
+    };
+
+    if (config.body && typeof config.body === 'object') {
+      config.body = JSON.stringify(config.body);
     }
-    return response.data;
+
+    const response = await fetch(`http://localhost:8000/api${endpoint}`, config);
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+    
+    return response.json();
   } catch (error) {
     console.error(`❌ Erro na requisição para ${endpoint}:`, error);
-    if (error.response?.data?.message) {
-      throw new Error(error.response.data.message);
-    }
     throw error;
   }
 };
 
-// =========================================================================
 // ✅ FUNÇÃO renderSafe (PARA EVITAR ERROS DE VALORES NULOS)
-// =========================================================================
 const renderSafe = (value, defaultValue = '') => {
   if (value === null || value === undefined || value === '') {
     return defaultValue;
   }
   return value;
 };
-
 
 // 🎨 ESTILOS GLOBAIS
 const estilos = {
@@ -106,9 +86,6 @@ const estilos = {
 };
 
 // =========================================================================
-// 🔐 COMPONENTES DE PÁGINA, MODAIS E LOGIN
-// =========================================================================
-// =========================================================================
 // 🔐 COMPONENTE DA TELA DE LOGIN
 // =========================================================================
 const LoginPage = ({ onLoginSuccess }) => {
@@ -116,6 +93,7 @@ const LoginPage = ({ onLoginSuccess }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -123,10 +101,24 @@ const LoginPage = ({ onLoginSuccess }) => {
     setLoading(true);
     
     try {
+      console.log('1. Obtendo CSRF token...');
+      
       // ✅ PRIMEIRO: Pega o CSRF cookie (ESSENCIAL)
-      await axios.get('http://localhost:8000/sanctum/csrf-cookie', { 
-        withCredentials: true 
+      const csrfResponse = await fetch('http://localhost:8000/sanctum/csrf-cookie', {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+        }
       });
+      
+      console.log('CSRF Response:', csrfResponse.ok);
+      
+      if (!csrfResponse.ok) {
+        throw new Error('Falha ao obter CSRF token');
+      }
+
+      console.log('2. Fazendo login...');
       
       // ✅ DEPOIS: Faz o login
       const response = await fetchAPI('/login', {
@@ -134,9 +126,10 @@ const LoginPage = ({ onLoginSuccess }) => {
         body: { email, password }
       });
 
-      if (response.success && response.token) {
-        localStorage.setItem('auth_token', response.token);
+      if (response.success) {
         onLoginSuccess(response.user);
+      } else {
+        throw new Error(response.message || 'Login falhou');
       }
     } catch (err) {
       setError(err.message || 'Email ou senha inválidos. Tente novamente.');
@@ -164,9 +157,8 @@ const LoginPage = ({ onLoginSuccess }) => {
   );
 };
 
-
 // =========================================================================
-// ✅ AQUI FICAM TODOS OS SEUS COMPONENTES DE PÁGINA E MODAIS
+// ✅ COMPONENTES DE PÁGINA E MODAIS
 // =========================================================================
 
 const Pedidos = ({ pedidos, setPedidoSelecionado, pedidoSelecionado, atualizarStatusPedido, cancelarPedido, imprimirPedidoController, configuracoes }) => {
@@ -422,8 +414,6 @@ const ModalConfiguracoes = ({ mostrar, onClose, form, setForm, onSubmit }) => {
   );
 };
 
-// Encontre e substitua este componente inteiro no seu App.js
-
 const ModalProduto = ({ mostrar, onClose, produto, onSubmit, categorias }) => {
   const [form, setForm] = useState({ nome: '', descricao: '', preco: '', categoria_id: '', disponivel: true, imagem: '' });
 
@@ -438,10 +428,9 @@ const ModalProduto = ({ mostrar, onClose, produto, onSubmit, categorias }) => {
         imagem: produto.imagem || ''
       });
     } else {
-      // Reseta para um formulário limpo ao criar um novo produto
       setForm({ nome: '', descricao: '', preco: '', categoria_id: '', disponivel: true, imagem: '' });
     }
-  }, [produto, mostrar]); // Roda o efeito quando o produto ou a visibilidade do modal muda
+  }, [produto, mostrar]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -453,7 +442,7 @@ const ModalProduto = ({ mostrar, onClose, produto, onSubmit, categorias }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(form); // Envia o estado local do formulário para a função 'salvarProduto'
+    onSubmit(form);
   };
 
   if (!mostrar) return null;
@@ -526,9 +515,8 @@ const ModalRelatorioDia = ({ mostrar, onClose, relatorio }) => {
   );
 };
 
-
 // =========================================================================
-// 🔒 PAINEL DE ADMIN (AGORA CONTÉM TODA A LÓGICA DO SEU SISTEMA)
+// 🔒 PAINEL DE ADMIN
 // =========================================================================
 
 const AdminPanel = ({ user, onLogout }) => {
@@ -600,49 +588,45 @@ const AdminPanel = ({ user, onLogout }) => {
     </div>
   );
 
-// Dentro do seu arquivo, substitua o return da função "AdminPanel" por este:
-
   return (
-      <div style={estilos.container}>
-        <header style={estilos.header}>
-          <div>
-            <h1 style={{ margin: 0 }}>🍔 {configuracoes?.nome_estabelecimento || "Painel Admin"}</h1>
-            <p style={{ margin: '5px 0 0 0', opacity: 0.8 }}>Bem-vindo, {user.name}!</p>
-          </div>
-          <button onClick={onLogout} style={{ ...estilos.navButton, backgroundColor: '#c82333' }}>Sair</button>
-        </header>
-
-        <div style={{ padding: '0 20px', backgroundColor: '#e8eaf6' }}>
-          <nav style={{ ...estilos.nav, maxWidth: '1200px', margin: '0 auto', padding: '10px 0' }}>
-            <button onClick={() => setPaginaAtiva('dashboard')} style={paginaAtiva === 'dashboard' ? estilos.navButtonAtivo : estilos.navButton}>📊 Dashboard</button>
-            <button onClick={() => setPaginaAtiva('pedidos')} style={paginaAtiva === 'pedidos' ? estilos.navButtonAtivo : estilos.navButton}>📦 Pedidos</button>
-            <button onClick={() => setPaginaAtiva('produtos')} style={paginaAtiva === 'produtos' ? estilos.navButtonAtivo : estilos.navButton}>🍔 Produtos</button>
-            <button onClick={() => setPaginaAtiva('mesas')} style={paginaAtiva === 'mesas' ? estilos.navButtonAtivo : estilos.navButton}>🪑 Mesas</button>
-          </nav>
+    <div style={estilos.container}>
+      <header style={estilos.header}>
+        <div>
+          <h1 style={{ margin: 0 }}>🍔 {configuracoes?.nome_estabelecimento || "Painel Admin"}</h1>
+          <p style={{ margin: '5px 0 0 0', opacity: 0.8 }}>Bem-vindo, {user.name}!</p>
         </div>
+        <button onClick={onLogout} style={{ ...estilos.navButton, backgroundColor: '#c82333' }}>Sair</button>
+      </header>
 
-        <main style={estilos.main}>
-          {carregando ? <p>Carregando...</p> : (
-            <>
-              {paginaAtiva === 'dashboard' && <Dashboard dashboardData={dashboardData} ControleExpediente={ControleExpediente} MesasComponent={() => <Mesas mesas={mesas} pagarContaMesa={pagarContaMesa} liberarMesa={liberarMesa} />} />}
-              {paginaAtiva === 'pedidos' && <Pedidos pedidos={pedidos} setPedidoSelecionado={setPedidoSelecionado} pedidoSelecionado={pedidoSelecionado} atualizarStatusPedido={atualizarStatusPedido} cancelarPedido={cancelarPedido} imprimirPedidoController={imprimirPedidoController} configuracoes={configuracoes} />}
-              {paginaAtiva === 'produtos' && <Produtos produtos={produtos} abrirModalProduto={abrirModalProduto} excluirProduto={excluirProduto} />}
-              {paginaAtiva === 'mesas' && <Mesas mesas={mesas} pagarContaMesa={pagarContaMesa} liberarMesa={liberarMesa} />}
-            </>
-          )}
-        </main>
-
-        {/* Os Modais são chamados aqui no final, para aparecerem sobre todo o conteúdo */}
-        <ModalConfiguracoes mostrar={mostrarModalConfig} onClose={() => setMostrarModalConfig(false)} form={formConfig} setForm={setFormConfig} onSubmit={handleConfigSubmit} />
-        <ModalProduto mostrar={mostrarModalProduto} onClose={() => setMostrarModalProduto(false)} produto={produtoEditando} onSubmit={salvarProduto} categorias={categorias} />
-        <ModalRelatorioDia mostrar={mostrarModalExpediente} onClose={() => setMostrarModalExpediente(false)} relatorio={expedienteStatus} />
+      <div style={{ padding: '0 20px', backgroundColor: '#e8eaf6' }}>
+        <nav style={{ ...estilos.nav, maxWidth: '1200px', margin: '0 auto', padding: '10px 0' }}>
+          <button onClick={() => setPaginaAtiva('dashboard')} style={paginaAtiva === 'dashboard' ? estilos.navButtonAtivo : estilos.navButton}>📊 Dashboard</button>
+          <button onClick={() => setPaginaAtiva('pedidos')} style={paginaAtiva === 'pedidos' ? estilos.navButtonAtivo : estilos.navButton}>📦 Pedidos</button>
+          <button onClick={() => setPaginaAtiva('produtos')} style={paginaAtiva === 'produtos' ? estilos.navButtonAtivo : estilos.navButton}>🍔 Produtos</button>
+          <button onClick={() => setPaginaAtiva('mesas')} style={paginaAtiva === 'mesas' ? estilos.navButtonAtivo : estilos.navButton}>🪑 Mesas</button>
+        </nav>
       </div>
-    );
 
-  }
+      <main style={estilos.main}>
+        {carregando ? <p>Carregando...</p> : (
+          <>
+            {paginaAtiva === 'dashboard' && <Dashboard dashboardData={dashboardData} ControleExpediente={ControleExpediente} MesasComponent={() => <Mesas mesas={mesas} pagarContaMesa={pagarContaMesa} liberarMesa={liberarMesa} />} />}
+            {paginaAtiva === 'pedidos' && <Pedidos pedidos={pedidos} setPedidoSelecionado={setPedidoSelecionado} pedidoSelecionado={pedidoSelecionado} atualizarStatusPedido={atualizarStatusPedido} cancelarPedido={cancelarPedido} imprimirPedidoController={imprimirPedidoController} configuracoes={configuracoes} />}
+            {paginaAtiva === 'produtos' && <Produtos produtos={produtos} abrirModalProduto={abrirModalProduto} excluirProduto={excluirProduto} />}
+            {paginaAtiva === 'mesas' && <Mesas mesas={mesas} pagarContaMesa={pagarContaMesa} liberarMesa={liberarMesa} />}
+          </>
+        )}
+      </main>
+
+      <ModalConfiguracoes mostrar={mostrarModalConfig} onClose={() => setMostrarModalConfig(false)} form={formConfig} setForm={setFormConfig} onSubmit={handleConfigSubmit} />
+      <ModalProduto mostrar={mostrarModalProduto} onClose={() => setMostrarModalProduto(false)} produto={produtoEditando} onSubmit={salvarProduto} categorias={categorias} />
+      <ModalRelatorioDia mostrar={mostrarModalExpediente} onClose={() => setMostrarModalExpediente(false)} relatorio={expedienteStatus} />
+    </div>
+  );
+};
 
 // =========================================================================
-// 🚀 COMPONENTE PRINCIPAL APP (AGORA É O "ROTEADOR" DE AUTENTICAÇÃO)
+// 🚀 COMPONENTE PRINCIPAL APP
 // =========================================================================
 
 function App() {
@@ -650,29 +634,25 @@ function App() {
   const [loadingAuth, setLoadingAuth] = useState(true);
 
   useEffect(() => {
-  const checkUser = async () => {
+    const checkUser = async () => {
       try {
-        // ✅ PRIMEIRO VERIFICA SE EXISTE TOKEN
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-          setLoadingAuth(false);
-          return;
-        }
-        
-        // ✅ SE TEM TOKEN, VERIFICA SE É VÁLIDO
-        const response = await fetchAPI('/user');
-        if (response.user) {
-          setUser(response.user);
+        // A API /api/user já está protegida por Sanctum
+        const data = await fetchAPI('/user'); 
+        if (data.id) { // Verifica se recebeu dados do usuário
+          setUser(data);
         }
       } catch (error) {
-        console.log('Token inválido ou expirado');
-        localStorage.removeItem('auth_token');
+        console.log('Usuário não autenticado');
       } finally {
         setLoadingAuth(false);
       }
     };
-      checkUser();
-    }, []);
+    checkUser();
+  }, []);
+
+  const handleLoginSuccess = (loggedInUser) => {
+    setUser(loggedInUser);
+  };
 
   const handleLogout = async () => {
     try {
@@ -680,20 +660,43 @@ function App() {
     } catch (err) {
       console.error('Erro no logout:', err);
     } finally {
-      // ✅ SEMPRE remove o token
-      localStorage.removeItem('auth_token');
       setUser(null);
     }
   };
 
   if (loadingAuth) {
-    return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>Verificando sessão...</div>;
+    return <div style={{...}}>Verificando sessão...</div>;
   }
 
-  return user ? (
-    <AdminPanel user={user} onLogout={handleLogout} />
-  ) : (
-    <LoginPage onLoginSuccess={setUser} />
+  // 🛑 NÃO FAÇA ISSO:
+  // return user ? (
+  //   <AdminPanel user={user} onLogout={handleLogout} />
+  // ) : (
+  //   <LoginPage onLoginSuccess={setUser} />
+  // );
+
+  // ✅ FAÇA ISSO (Renderização Condicional):
+  if (!user) {
+    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  // Supondo que seu objeto user tenha user.role
+  if (user.role === 'admin') {
+    return <AdminPanel user={user} onLogout={handleLogout} />;
+  }
+
+  if (user.role === 'garcom') {
+    // Você precisará criar e importar um <GarcomPanel />
+    // return <GarcomPanel user={user} onLogout={handleLogout} />;
+    return (<div>Painel do Garçom (user: {user.name}) <button onClick={handleLogout}>Sair</button></div>);
+  }
+
+  // Se logou mas não tem role definida
+  return (
+    <div>
+       <p>Erro: Usuário com função desconhecida.</p>
+       <button onClick={handleLogout}>Sair</button>
+    </div>
   );
 }
 

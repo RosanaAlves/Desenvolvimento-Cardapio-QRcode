@@ -12,12 +12,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        $middleware->statefulApi(); // ✅ ADICIONE ESTA LINHA
-        
-        $middleware->prepend([
+        // Adiciona o middleware de CORS para todas as requisições da API.
+        $middleware->api(prepend: [
             \Illuminate\Http\Middleware\HandleCors::class,
-            \Illuminate\Session\Middleware\StartSession::class,
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+        ]);
+        
+        // Usa o atalho do Laravel para configurar a autenticação de API baseada em sessão (Sanctum).
+        $middleware->statefulApi();
+        $middleware->alias([
+            'role' => \App\Http\Middleware\CheckRole::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
