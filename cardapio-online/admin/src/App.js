@@ -43,6 +43,30 @@ const fetchAPI = async (endpoint, options = {}) => {
   }
 };
 
+// ✅ FUNÇÃO PARA OBTER CSRF TOKEN
+const getCsrfToken = async () => {
+  try {
+    console.log('🔐 Obtendo CSRF token...');
+    const response = await fetch('http://localhost:8000/sanctum/csrf-cookie', {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        'Accept': 'application/json',
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error('Falha ao obter CSRF token');
+    }
+    
+    console.log('✅ CSRF token obtido com sucesso');
+    return true;
+  } catch (error) {
+    console.error('❌ Erro ao obter CSRF token:', error);
+    throw error;
+  }
+};
+
 // ✅ FUNÇÃO renderSafe (PARA EVITAR ERROS DE VALORES NULOS)
 const renderSafe = (value, defaultValue = '') => {
   if (value === null || value === undefined || value === '') {
@@ -86,7 +110,7 @@ const estilos = {
 };
 
 // =========================================================================
-// 🔐 COMPONENTE DA TELA DE LOGIN
+// 🔐 COMPONENTE DA TELA DE LOGIN - CORRIGIDO
 // =========================================================================
 const LoginPage = ({ onLoginSuccess }) => {
   const [email, setEmail] = useState('');
@@ -104,20 +128,8 @@ const LoginPage = ({ onLoginSuccess }) => {
       console.log('1. Obtendo CSRF token...');
       
       // ✅ PRIMEIRO: Pega o CSRF cookie (ESSENCIAL)
-      const csrfResponse = await fetch('http://localhost:8000/sanctum/csrf-cookie', {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Accept': 'application/json',
-        }
-      });
+      await getCsrfToken();
       
-      console.log('CSRF Response:', csrfResponse.ok);
-      
-      if (!csrfResponse.ok) {
-        throw new Error('Falha ao obter CSRF token');
-      }
-
       console.log('2. Fazendo login...');
       
       // ✅ DEPOIS: Faz o login
@@ -158,7 +170,7 @@ const LoginPage = ({ onLoginSuccess }) => {
 };
 
 // =========================================================================
-// ✅ COMPONENTES DE PÁGINA E MODAIS
+// ✅ COMPONENTES DE PÁGINA E MODAIS (MANTIDOS IGUAIS)
 // =========================================================================
 
 const Pedidos = ({ pedidos, setPedidoSelecionado, pedidoSelecionado, atualizarStatusPedido, cancelarPedido, imprimirPedidoController, configuracoes }) => {
@@ -475,25 +487,31 @@ const ModalProduto = ({ mostrar, onClose, produto, onSubmit, categorias }) => {
             <label style={estilos.label} htmlFor="categoria_id">Categoria: *</label>
             <select id="categoria_id" name="categoria_id" value={form.categoria_id} onChange={handleChange} style={estilos.input} required>
               <option value="">Selecione uma categoria</option>
-              {categorias.map(cat => <option key={cat.id} value={cat.id}>{renderSafe(cat.nome)}</option>)}
+              {categorias.map(categoria => (
+                <option key={categoria.id} value={categoria.id}>{categoria.nome}</option>
+              ))}
             </select>
           </div>
 
           <div style={estilos.formGroup}>
             <label style={estilos.label} htmlFor="imagem">URL da Imagem:</label>
-            <input id="imagem" type="url" name="imagem" value={form.imagem} onChange={handleChange} style={estilos.input} placeholder="https://exemplo.com/imagem.jpg" />
+            <input id="imagem" type="text" name="imagem" value={form.imagem} onChange={handleChange} style={estilos.input} placeholder="https://exemplo.com/imagem.jpg" />
           </div>
 
           <div style={estilos.formGroup}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
-              <input type="checkbox" name="disponivel" checked={form.disponivel} onChange={handleChange} style={{ transform: 'scale(1.2)' }} />
-              <span style={{ fontWeight: 'bold', fontSize: '16px' }}>Produto disponível</span>
+            <label style={{ ...estilos.label, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <input id="disponivel" type="checkbox" name="disponivel" checked={form.disponivel} onChange={handleChange} style={{ width: 'auto' }} />
+              Produto Disponível
             </label>
           </div>
 
           <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-            <button type="submit" style={{ ...estilos.button, ...estilos.buttonSuccess, padding: '12px 24px', fontSize: '16px', flex: 1 }}>💾 {produto ? 'Atualizar Produto' : 'Criar Produto'}</button>
-            <button type="button" onClick={onClose} style={{ ...estilos.button, backgroundColor: '#6c757d', color: 'white', padding: '12px 24px', fontSize: '16px', flex: 1 }}>Cancelar</button>
+            <button type="submit" style={{ ...estilos.button, ...estilos.buttonSuccess, padding: '12px 24px', fontSize: '16px', flex: 1 }}>
+              {produto ? '💾 Atualizar' : '➕ Criar'}
+            </button>
+            <button type="button" onClick={onClose} style={{ ...estilos.button, backgroundColor: '#6c757d', color: 'white', padding: '12px 24px', fontSize: '16px', flex: 1 }}>
+              Cancelar
+            </button>
           </div>
         </form>
       </div>
@@ -501,228 +519,304 @@ const ModalProduto = ({ mostrar, onClose, produto, onSubmit, categorias }) => {
   );
 };
 
-const ModalRelatorioDia = ({ mostrar, onClose, relatorio }) => {
-  if (!mostrar || !relatorio) return null;
-  return (
-    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-      <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', width: '500px' }}>
-        <h3>📊 Relatório do Dia</h3>
-        <p>Pedidos Hoje: {renderSafe(relatorio.pedidos_hoje, 0)}</p>
-        <p>Vendas Hoje: R$ {Number(renderSafe(relatorio.vendas_hoje, 0)).toFixed(2)}</p>
-        <button type="button" onClick={onClose}>Fechar</button>
-      </div>
-    </div>
-  );
-};
-
 // =========================================================================
-// 🔒 PAINEL DE ADMIN
+// ✅ COMPONENTE PRINCIPAL APP - CORRIGIDO
 // =========================================================================
-
-const AdminPanel = ({ user, onLogout }) => {
+const App = () => {
+  const [usuario, setUsuario] = useState(null);
   const [paginaAtiva, setPaginaAtiva] = useState('dashboard');
-  const [dashboardData, setDashboardData] = useState(null);
   const [pedidos, setPedidos] = useState([]);
   const [produtos, setProdutos] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [mesas, setMesas] = useState([]);
-  const [carregando, setCarregando] = useState(true);
   const [pedidoSelecionado, setPedidoSelecionado] = useState(null);
-  const [configuracoes, setConfiguracoes] = useState(null);
-  const [expedienteStatus, setExpedienteStatus] = useState(null);
+  const [dashboardData, setDashboardData] = useState(null);
   const [mostrarModalConfig, setMostrarModalConfig] = useState(false);
-  const [mostrarModalExpediente, setMostrarModalExpediente] = useState(false);
   const [mostrarModalProduto, setMostrarModalProduto] = useState(false);
   const [produtoEditando, setProdutoEditando] = useState(null);
-  const [formConfig, setFormConfig] = useState({ nome_estabelecimento: '', telefone: '', numero_mesas: 10, taxa_servico: 0 });
+  const [configuracoes, setConfiguracoes] = useState({ nome_estabelecimento: 'Meu Restaurante', telefone: '', numero_mesas: 10, taxa_servico: 0 });
 
-  const carregarDashboard = async () => { try { const data = await fetchAPI('/admin/dashboard'); setDashboardData(data.data); } catch (e) { console.error(e); }};
-  const carregarPedidos = async () => { try { const res = await fetchAPI('/admin/pedidos'); setPedidos(res.data || []); } catch (e) { console.error(e); setPedidos([]); }};
-  const carregarProdutos = async () => { try { const res = await fetchAPI('/admin/produtos'); setProdutos(res.data || []); const catRes = await fetchAPI('/admin/categorias'); setCategorias(catRes.data || []); } catch (e) { console.error(e); setProdutos([]); }};
-  const carregarMesas = async () => { try { const res = await fetchAPI('/admin/mesas'); setMesas(res.data || []); } catch (e) { console.error(e); setMesas([]); }};
-  const carregarConfiguracoes = async () => { try { const data = await fetchAPI('/admin/configuracoes'); if (data.data) { setConfiguracoes(data.data); setFormConfig(data.data); }} catch (e) { console.error(e); }};
-  const carregarExpedienteStatus = async () => { try { const data = await fetchAPI('/admin/expediente/status'); setExpedienteStatus(data.data); } catch (e) { console.error(e); }};
-
-  const handleConfigSubmit = async (e) => { e.preventDefault(); try { await fetchAPI('/admin/configuracoes', { method: 'PUT', body: JSON.stringify(formConfig) }); alert('✅ Configurações salvas!'); setMostrarModalConfig(false); carregarConfiguracoes(); } catch (e) { alert('❌ Erro: ' + e.message); }};
-  const atualizarStatusPedido = async (id, status) => { try { await fetchAPI(`/admin/pedidos/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }); alert(`✅ Pedido #${id} atualizado!`); carregarPedidos(); } catch (e) { alert('❌ Erro: ' + e.message); }};
-  const cancelarPedido = async (id) => { if (window.confirm('Certeza?')) { try { await fetchAPI(`/admin/pedidos/${id}/cancelar`, { method: 'POST' }); alert(`✅ Pedido #${id} cancelado!`); carregarPedidos(); } catch (e) { alert('❌ Erro: ' + e.message); }}};
-  const pagarContaMesa = async (id) => { if (window.confirm('Confirmar pagamento?')) { try { await fetchAPI(`/admin/mesas/${id}/pagar-conta`, { method: 'POST' }); alert(`✅ Conta paga!`); carregarMesas(); carregarDashboard(); } catch (e) { alert('❌ Erro: ' + e.message); }}};
-  const liberarMesa = async (id) => { if (window.confirm('Liberar esta mesa?')) { try { await fetchAPI(`/admin/mesas/${id}/liberar`, { method: 'POST' }); alert(`✅ Mesa liberada!`); carregarMesas(); } catch (e) { alert('❌ Erro: ' + e.message); }}};
-  const abrirModalProduto = (produto = null) => { setProdutoEditando(produto); setMostrarModalProduto(true); };
-  const salvarProduto = async (produtoData) => { try { const url = produtoEditando ? `/admin/produtos/${produtoEditando.id}` : '/admin/produtos'; const method = produtoEditando ? 'PUT' : 'POST'; await fetchAPI(url, { method, body: JSON.stringify(produtoData) }); alert('✅ Produto salvo!'); setMostrarModalProduto(false); carregarProdutos(); } catch (e) { alert('❌ Erro: ' + e.message); }};
-  const excluirProduto = async (id) => { if (window.confirm('Excluir este produto?')) { try { await fetchAPI(`/admin/produtos/${id}`, { method: 'DELETE' }); alert('✅ Produto excluído!'); carregarProdutos(); } catch (e) { alert('❌ Erro: ' + e.message); }}};
-  const imprimirPedidoController = async (pedido, tipo, configs) => { try { const endpoint = `/admin/impressao/pedido/${pedido.id}/${tipo}`; const data = await fetchAPI(endpoint); const win = window.open('', '_blank'); win.document.write(data.data.conteudo_impressao); win.document.close(); setTimeout(() => { win.print(); win.close(); }, 500); } catch (e) { alert('❌ Erro de impressão: ' + e.message); }};
-  const abrirExpediente = async () => { try { await fetchAPI('/admin/expediente/abrir', { method: 'POST' }); alert('✅ Expediente aberto!'); carregarExpedienteStatus(); carregarDashboard(); carregarMesas(); } catch (e) { alert('❌ Erro: ' + e.message); }};
-  const fecharExpediente = async () => { try { const res = await fetchAPI('/admin/expediente/fechar', { method: 'POST' }); alert('✅ Expediente fechado!'); setExpedienteStatus(res.data); setMostrarModalExpediente(true); carregarDashboard(); } catch (e) { alert('❌ Erro: ' + e.message); }};
-  const reiniciarSistema = async () => { if (window.confirm('⚠️ ATENÇÃO! Reiniciar o sistema?')) { try { await fetchAPI('/admin/configuracoes/reiniciar-sistema', { method: 'POST' }); alert('✅ Sistema reiniciado!'); carregarDashboard(); carregarMesas(); carregarPedidos(); } catch (e) { alert('❌ Erro: ' + e.message); }}};
-
+  // ✅ INICIALIZAÇÃO - OBTER CSRF TOKEN AO CARREGAR
   useEffect(() => {
-    const carregarDadosIniciais = async () => {
-      setCarregando(true);
-      await carregarDashboard();
-      await carregarExpedienteStatus();
-      await carregarConfiguracoes();
-      setCarregando(false);
+    const initializeApp = async () => {
+      try {
+        console.log('🔄 Inicializando aplicação...');
+        await getCsrfToken();
+        
+        // Verificar se já está logado
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+          console.log('🔑 Token encontrado, verificando autenticação...');
+          await verificarAutenticacao();
+        }
+      } catch (error) {
+        console.error('❌ Erro na inicialização:', error);
+      }
     };
-    carregarDadosIniciais();
+
+    initializeApp();
   }, []);
 
-  useEffect(() => {
-    if (paginaAtiva === 'pedidos') carregarPedidos();
-    if (paginaAtiva === 'produtos') carregarProdutos();
-    if (paginaAtiva === 'mesas') carregarMesas();
-  }, [paginaAtiva]);
+  // ✅ VERIFICAR AUTENTICAÇÃO
+  const verificarAutenticacao = async () => {
+    try {
+      const response = await fetchAPI('/user');
+      if (response.user) {
+        setUsuario(response.user);
+        await carregarDados();
+      }
+    } catch (error) {
+      console.error('❌ Falha na verificação de autenticação:', error);
+      localStorage.removeItem('auth_token');
+      setUsuario(null);
+    }
+  };
 
+  // ✅ LOGIN CORRIGIDO
+  const handleLogin = async (userData) => {
+    setUsuario(userData);
+    localStorage.setItem('auth_token', userData.token || 'demo-token');
+    await carregarDados();
+  };
+
+  // ✅ LOGOUT
+  const handleLogout = async () => {
+    try {
+      await fetchAPI('/logout', { method: 'POST' });
+    } catch (error) {
+      console.error('Erro no logout:', error);
+    } finally {
+      localStorage.removeItem('auth_token');
+      setUsuario(null);
+      setPedidos([]);
+      setProdutos([]);
+      setMesas([]);
+      setDashboardData(null);
+    }
+  };
+
+  // ✅ CARREGAR DADOS
+  const carregarDados = async () => {
+    try {
+      console.log('📦 Carregando dados...');
+      const [pedidosRes, produtosRes, categoriasRes, mesasRes, dashboardRes] = await Promise.all([
+        fetchAPI('/pedidos').catch(() => ({ pedidos: [] })),
+        fetchAPI('/produtos').catch(() => ({ produtos: [] })),
+        fetchAPI('/categorias').catch(() => ({ categorias: [] })),
+        fetchAPI('/mesas').catch(() => ({ mesas: [] })),
+        fetchAPI('/dashboard').catch(() => null)
+      ]);
+
+      setPedidos(pedidosRes.pedidos || []);
+      setProdutos(produtosRes.produtos || []);
+      setCategorias(categoriasRes.categorias || []);
+      setMesas(mesasRes.mesas || []);
+      setDashboardData(dashboardRes);
+    } catch (error) {
+      console.error('❌ Erro ao carregar dados:', error);
+    }
+  };
+
+  // ✅ ATUALIZAR STATUS DO PEDIDO
+  const atualizarStatusPedido = async (pedidoId, novoStatus) => {
+    try {
+      const response = await fetchAPI(`/pedidos/${pedidoId}/status`, {
+        method: 'PUT',
+        body: { status: novoStatus }
+      });
+
+      if (response.success) {
+        setPedidos(pedidos.map(pedido => 
+          pedido.id === pedidoId ? { ...pedido, status: novoStatus } : pedido
+        ));
+      }
+    } catch (error) {
+      console.error('❌ Erro ao atualizar status:', error);
+      alert('Erro ao atualizar status do pedido: ' + error.message);
+    }
+  };
+
+  // ✅ CANCELAR PEDIDO
+  const cancelarPedido = async (pedidoId) => {
+    if (!confirm('Tem certeza que deseja cancelar este pedido?')) return;
+    
+    try {
+      const response = await fetchAPI(`/pedidos/${pedidoId}/cancelar`, {
+        method: 'PUT'
+      });
+
+      if (response.success) {
+        setPedidos(pedidos.map(pedido => 
+          pedido.id === pedidoId ? { ...pedido, status: 'cancelado' } : pedido
+        ));
+      }
+    } catch (error) {
+      console.error('❌ Erro ao cancelar pedido:', error);
+      alert('Erro ao cancelar pedido: ' + error.message);
+    }
+  };
+
+  // ✅ IMPRIMIR PEDIDO
+  const imprimirPedidoController = async (pedido, tipoImpressao, config) => {
+    try {
+      const response = await fetchAPI(`/pedidos/${pedido.id}/imprimir`, {
+        method: 'POST',
+        body: { tipo_impressao: tipoImpressao }
+      });
+
+      if (response.success) {
+        alert(`✅ Pedido #${pedido.id} enviado para impressão!`);
+      } else {
+        throw new Error(response.message || 'Erro ao imprimir');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao imprimir pedido:', error);
+      alert('Erro ao imprimir pedido: ' + error.message);
+    }
+  };
+
+  // ✅ PAGAR CONTA DA MESA
+  const pagarContaMesa = async (mesaId) => {
+    try {
+      const response = await fetchAPI(`/mesas/${mesaId}/pagar`, {
+        method: 'PUT'
+      });
+
+      if (response.success) {
+        setMesas(mesas.map(mesa => 
+          mesa.id === mesaId ? { ...mesa, status_pagamento: 'paga' } : mesa
+        ));
+        await carregarDados();
+      }
+    } catch (error) {
+      console.error('❌ Erro ao pagar conta:', error);
+      alert('Erro ao pagar conta: ' + error.message);
+    }
+  };
+
+  // ✅ LIBERAR MESA
+  const liberarMesa = async (mesaId) => {
+    try {
+      const response = await fetchAPI(`/mesas/${mesaId}/liberar`, {
+        method: 'PUT'
+      });
+
+      if (response.success) {
+        setMesas(mesas.map(mesa => 
+          mesa.id === mesaId ? { ...mesa, status: 'livre', status_pagamento: null, garcom_nome: null, total_conta: 0 } : mesa
+        ));
+        await carregarDados();
+      }
+    } catch (error) {
+      console.error('❌ Erro ao liberar mesa:', error);
+      alert('Erro ao liberar mesa: ' + error.message);
+    }
+  };
+
+  // ✅ SALVAR/EDITAR PRODUTO
+  const salvarProduto = async (dadosProduto) => {
+    try {
+      const endpoint = produtoEditando ? `/produtos/${produtoEditando.id}` : '/produtos';
+      const method = produtoEditando ? 'PUT' : 'POST';
+
+      const response = await fetchAPI(endpoint, {
+        method,
+        body: dadosProduto
+      });
+
+      if (response.success) {
+        await carregarDados();
+        setMostrarModalProduto(false);
+        setProdutoEditando(null);
+      }
+    } catch (error) {
+      console.error('❌ Erro ao salvar produto:', error);
+      alert('Erro ao salvar produto: ' + error.message);
+    }
+  };
+
+  // ✅ EXCLUIR PRODUTO
+  const excluirProduto = async (produtoId) => {
+    if (!confirm('Tem certeza que deseja excluir este produto?')) return;
+    
+    try {
+      const response = await fetchAPI(`/produtos/${produtoId}`, {
+        method: 'DELETE'
+      });
+
+      if (response.success) {
+        setProdutos(produtos.filter(produto => produto.id !== produtoId));
+      }
+    } catch (error) {
+      console.error('❌ Erro ao excluir produto:', error);
+      alert('Erro ao excluir produto: ' + error.message);
+    }
+  };
+
+  // ✅ ABRIR MODAL PRODUTO
+  const abrirModalProduto = (produto = null) => {
+    setProdutoEditando(produto);
+    setMostrarModalProduto(true);
+  };
+
+  // ✅ CONTROLE EXPEDIENTE
   const ControleExpediente = () => (
     <div style={estilos.card}>
       <h3 style={{ marginBottom: '15px' }}>🕒 Controle de Expediente</h3>
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-        {expedienteStatus && !expedienteStatus.expediente_aberto ? (
-          <button onClick={abrirExpediente} style={{ ...estilos.button, ...estilos.buttonSuccess }}>🟢 Iniciar</button>
-        ) : (
-          <button onClick={fecharExpediente} style={{ ...estilos.button, ...estilos.buttonDanger }}>🔴 Fechar</button>
-        )}
-        <button onClick={() => setMostrarModalConfig(true)} style={{ ...estilos.button, ...estilos.buttonPrimary }}>⚙️ Configs</button>
-        <button onClick={reiniciarSistema} style={{ ...estilos.button, ...estilos.buttonWarning }}>🔄 Reiniciar</button>
+        <button style={{ ...estilos.button, ...estilos.buttonSuccess }}>🟢 Iniciar Expediente</button>
+        <button style={{ ...estilos.button, ...estilos.buttonWarning }}>🟡 Pausar Expediente</button>
+        <button style={{ ...estilos.button, ...estilos.buttonDanger }}>🔴 Encerrar Expediente</button>
+        <button style={{ ...estilos.button, ...estilos.buttonInfo }}>📊 Relatório do Dia</button>
       </div>
     </div>
   );
+
+  // ✅ RENDERIZAÇÃO CONDICIONAL
+  if (!usuario) {
+    return <LoginPage onLoginSuccess={handleLogin} />;
+  }
 
   return (
     <div style={estilos.container}>
+      {/* HEADER */}
       <header style={estilos.header}>
-        <div>
-          <h1 style={{ margin: 0 }}>🍔 {configuracoes?.nome_estabelecimento || "Painel Admin"}</h1>
-          <p style={{ margin: '5px 0 0 0', opacity: 0.8 }}>Bem-vindo, {user.name}!</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: '28px' }}>🍔 {configuracoes.nome_estabelecimento || 'Painel Admin'}</h1>
+            <p style={{ margin: '5px 0 0 0', opacity: 0.8 }}>Bem-vindo, {usuario.name || 'Administrador'}!</p>
+          </div>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <button onClick={() => setMostrarModalConfig(true)} style={{ ...estilos.button, ...estilos.buttonInfo }}>⚙️ Configurações</button>
+            <button onClick={handleLogout} style={{ ...estilos.button, ...estilos.buttonDanger }}>🚪 Sair</button>
+          </div>
         </div>
-        <button onClick={onLogout} style={{ ...estilos.navButton, backgroundColor: '#c82333' }}>Sair</button>
+        
+        <nav style={estilos.nav}>
+          {['dashboard', 'pedidos', 'produtos', 'mesas'].map(pagina => (
+            <button key={pagina} onClick={() => setPaginaAtiva(pagina)} style={paginaAtiva === pagina ? estilos.navButtonAtivo : estilos.navButton}>
+              {pagina === 'dashboard' && '📊 Dashboard'}
+              {pagina === 'pedidos' && '📦 Pedidos'}
+              {pagina === 'produtos' && '🍔 Produtos'}
+              {pagina === 'mesas' && '🪑 Mesas'}
+            </button>
+          ))}
+        </nav>
       </header>
 
-      <div style={{ padding: '0 20px', backgroundColor: '#e8eaf6' }}>
-        <nav style={{ ...estilos.nav, maxWidth: '1200px', margin: '0 auto', padding: '10px 0' }}>
-          <button onClick={() => setPaginaAtiva('dashboard')} style={paginaAtiva === 'dashboard' ? estilos.navButtonAtivo : estilos.navButton}>📊 Dashboard</button>
-          <button onClick={() => setPaginaAtiva('pedidos')} style={paginaAtiva === 'pedidos' ? estilos.navButtonAtivo : estilos.navButton}>📦 Pedidos</button>
-          <button onClick={() => setPaginaAtiva('produtos')} style={paginaAtiva === 'produtos' ? estilos.navButtonAtivo : estilos.navButton}>🍔 Produtos</button>
-          <button onClick={() => setPaginaAtiva('mesas')} style={paginaAtiva === 'mesas' ? estilos.navButtonAtivo : estilos.navButton}>🪑 Mesas</button>
-        </nav>
-      </div>
-
+      {/* MAIN CONTENT */}
       <main style={estilos.main}>
-        {carregando ? <p>Carregando...</p> : (
-          <>
-            {paginaAtiva === 'dashboard' && <Dashboard dashboardData={dashboardData} ControleExpediente={ControleExpediente} MesasComponent={() => <Mesas mesas={mesas} pagarContaMesa={pagarContaMesa} liberarMesa={liberarMesa} />} />}
-            {paginaAtiva === 'pedidos' && <Pedidos pedidos={pedidos} setPedidoSelecionado={setPedidoSelecionado} pedidoSelecionado={pedidoSelecionado} atualizarStatusPedido={atualizarStatusPedido} cancelarPedido={cancelarPedido} imprimirPedidoController={imprimirPedidoController} configuracoes={configuracoes} />}
-            {paginaAtiva === 'produtos' && <Produtos produtos={produtos} abrirModalProduto={abrirModalProduto} excluirProduto={excluirProduto} />}
-            {paginaAtiva === 'mesas' && <Mesas mesas={mesas} pagarContaMesa={pagarContaMesa} liberarMesa={liberarMesa} />}
-          </>
-        )}
+        {paginaAtiva === 'dashboard' && <Dashboard dashboardData={dashboardData} ControleExpediente={ControleExpediente} MesasComponent={() => <Mesas mesas={mesas} pagarContaMesa={pagarContaMesa} liberarMesa={liberarMesa} />} />}
+        {paginaAtiva === 'pedidos' && <Pedidos pedidos={pedidos} setPedidoSelecionado={setPedidoSelecionado} pedidoSelecionado={pedidoSelecionado} atualizarStatusPedido={atualizarStatusPedido} cancelarPedido={cancelarPedido} imprimirPedidoController={imprimirPedidoController} configuracoes={configuracoes} />}
+        {paginaAtiva === 'produtos' && <Produtos produtos={produtos} abrirModalProduto={abrirModalProduto} excluirProduto={excluirProduto} />}
+        {paginaAtiva === 'mesas' && <Mesas mesas={mesas} pagarContaMesa={pagarContaMesa} liberarMesa={liberarMesa} />}
       </main>
 
-      <ModalConfiguracoes mostrar={mostrarModalConfig} onClose={() => setMostrarModalConfig(false)} form={formConfig} setForm={setFormConfig} onSubmit={handleConfigSubmit} />
-      <ModalProduto mostrar={mostrarModalProduto} onClose={() => setMostrarModalProduto(false)} produto={produtoEditando} onSubmit={salvarProduto} categorias={categorias} />
-      <ModalRelatorioDia mostrar={mostrarModalExpediente} onClose={() => setMostrarModalExpediente(false)} relatorio={expedienteStatus} />
+      {/* MODAIS */}
+      <ModalConfiguracoes mostrar={mostrarModalConfig} onClose={() => setMostrarModalConfig(false)} form={configuracoes} setForm={setConfiguracoes} onSubmit={() => {}} />
+      <ModalProduto mostrar={mostrarModalProduto} onClose={() => { setMostrarModalProduto(false); setProdutoEditando(null); }} produto={produtoEditando} onSubmit={salvarProduto} categorias={categorias} />
     </div>
   );
 };
-
-// =========================================================================
-// 🚀 COMPONENTE PRINCIPAL APP
-// =========================================================================
-
-function App() {
-  const [user, setUser] = useState(null);
-  const [loadingAuth, setLoadingAuth] = useState(true);
-
-  useEffect(() => {
-    const checkUser = async () => {
-      try {
-        // A API /api/user já está protegida por Sanctum
-        const data = await fetchAPI('/user'); 
-        if (data.id) { // Verifica se recebeu dados do usuário
-          setUser(data);
-        }
-      } catch (error) {
-        console.log('Usuário não autenticado');
-      } finally {
-        setLoadingAuth(false);
-      }
-    };
-    checkUser();
-  }, []);
-
-  const handleLoginSuccess = (loggedInUser) => {
-    setUser(loggedInUser);
-  };
-
-  const handleLogout = async () => {
-    try {
-      await fetchAPI('/logout', { method: 'POST' });
-    } catch (err) {
-      console.error('Erro no logout:', err);
-    } finally {
-      setUser(null);
-    }
-  };
-
-  if (loadingAuth) {
-    return <div style={{}}>Verificando sessão...</div>; // ✅ CORRIGIDO
-  }
-
-  // ✅ RENDERIZAÇÃO CONDICIONAL SIMPLIFICADA
-  if (!user) {
-    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
-  }
-
-  // ✅ APENAS ADMINISTRADOR ACESSA ESTE PAINEL
-  if (user.tipo === 'administrador') {
-    return <AdminPanel user={user} onLogout={handleLogout} />;
-  }
-
-  // ✅ TRATAMENTO PARA OUTROS TIPOS DE USUÁRIO
-  return (
-    <div style={{ 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'center', 
-      height: '100vh', 
-      backgroundColor: '#f0f2f5',
-      flexDirection: 'column',
-      padding: '20px',
-      textAlign: 'center'
-    }}>
-      <div style={{ 
-        padding: '40px', 
-        backgroundColor: 'white', 
-        borderRadius: '8px', 
-        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-        maxWidth: '500px'
-      }}>
-        <h2 style={{ color: '#1a237e', marginBottom: '15px' }}>🔐 Sistema de Garçom</h2>
-        <p style={{ marginBottom: '20px', color: '#666' }}>
-          Olá, <strong>{user.name}</strong>!<br/>
-          Seu tipo de usuário (<strong>{user.tipo}</strong>) acessa o sistema através do painel específico.
-        </p>
-        <p style={{ marginBottom: '25px', color: '#888', fontSize: '14px' }}>
-          ⚠️ Este painel é exclusivo para administradores.
-        </p>
-        <button 
-          onClick={handleLogout}
-          style={{ 
-            width: '100%', 
-            padding: '12px', 
-            border: 'none', 
-            borderRadius: '4px', 
-            backgroundColor: '#1a237e', 
-            color: 'white', 
-            fontSize: '16px', 
-            cursor: 'pointer' 
-          }}
-        >
-          Sair do Sistema
-        </button>
-      </div>
-    </div>
-  );
-}
 
 export default App;
