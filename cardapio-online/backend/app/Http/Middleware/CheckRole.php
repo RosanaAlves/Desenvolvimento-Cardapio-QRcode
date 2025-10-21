@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Middleware; // Se você mudou o namespace, use o seu.
+namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
@@ -17,14 +17,13 @@ class CheckRole
 
         $user = Auth::user();
 
-        // 1. ✅ Verificar se o usuário está ATIVO (Adicionado)
+        // 1. ✅ Verificar se o usuário está ATIVO
         if (!$user->isAtivo()) {
             return response()->json(['message' => 'Sua conta está inativa. Acesso negado.'], 403);
         }
 
         // 2. ✅ Verificar o PAPEL (TIPO)
         foreach ($roles as $role) {
-            // Agora usamos o método hasRole() que verifica a coluna 'tipo'
             if ($user->hasRole($role)) { 
                 return $next($request);
             }

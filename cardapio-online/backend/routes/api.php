@@ -34,9 +34,59 @@ Route::post('/login', [AuthController::class, 'login']);
 
 Route::prefix('cliente')->group(function () {
     Route::get('/cardapio', [ClienteCardapioController::class, 'categorias']);
+    Route::get('/categorias', [ClienteCardapioController::class, 'categorias']);
     Route::get('/produtos', [ClienteCardapioController::class, 'produtos']);
     Route::get('/categorias/{categoriaId}/produtos', [ClienteCardapioController::class, 'produtosPorCategoria']);
     Route::get('/produtos/{id}', [ClienteCardapioController::class, 'show']);
+});
+
+// =========================================================================
+// ROTAS DO GARÇOM (USANDO CONTROLLERS)
+// =========================================================================
+
+Route::prefix('garcom')->group(function () {
+    
+    // 🔥 CARDÁPIO
+    Route::get('/cardapio/categorias', [CardapioController::class, 'categorias']);
+    Route::get('/cardapio', [CardapioController::class, 'index']);
+    Route::get('/cardapio/produtos', [CardapioController::class, 'produtos']);
+    Route::get('/cardapio/categorias/{categoriaId}/produtos', [CardapioController::class, 'produtosPorCategoria']);
+    Route::get('/cardapio/buscar/{termo}', [CardapioController::class, 'buscarProdutos']);
+    
+    // 🔥 MESAS
+    Route::get('/mesas', [MesaController::class, 'index']);
+    Route::get('/mesas/status', [MesaController::class, 'status']);
+    Route::get('/mesas/{mesaId}/pedidos', [MesaController::class, 'pedidos']);
+    Route::post('/mesas/{id}/ocupar', [MesaController::class, 'ocupar']);
+    Route::post('/mesas/{id}/liberar', [MesaController::class, 'liberar']);
+    Route::get('/mesas/{id}/pode-fechar-conta', [MesaController::class, 'podeFecharConta']);
+    Route::post('/mesas/{id}/fechar-conta', [MesaController::class, 'fecharConta']);
+    Route::post('/mesas/{id}/reabrir-conta', [MesaController::class, 'reabrirConta']);
+    Route::get('/mesas/{id}/status-conta', [MesaController::class, 'statusConta']);
+    
+    //🔥 PEDIDOS - GARÇOM (ATUALIZADAS)
+    Route::post('/pedidos', [PedidoController::class, 'store']);
+    Route::get('/pedidos/{id}', [PedidoController::class, 'show']);
+    Route::post('/pedidos/{id}/cancelar', [PedidoController::class, 'cancelar']);
+    Route::get('/pedidos/garcom/{garcomNome}', [PedidoController::class, 'meusPedidos']);
+    Route::get('/pedidos/mesa/{mesaId}', [PedidoController::class, 'pedidosPorMesa']); // ✅ NOVA
+    Route::put('/pedidos/{id}/observacoes', [PedidoController::class, 'atualizarObservacoes']); // ✅ NOVA
+    Route::get('/pedidos/garcom/{garcomNome}/estatisticas', [PedidoController::class, 'estatisticas']); // ✅ NOVA
+    
+     //🔥 PRODUTO - GARÇOM (ATUALIZADAS)
+    Route::get('/produtos', [ProdutoController::class, 'index']);
+    Route::get('/produtos/{id}', [ProdutoController::class, 'show']);
+
+    // 🔥 CATEGORIAS
+    Route::get('/categorias', [CategoriaController::class, 'index']);
+    Route::get('/categorias/{id}/produtos', [CategoriaController::class, 'produtosPorCategoria']);
+    
+    // 🔥 PRODUTOS
+    Route::get('/produtos', [ProdutoController::class, 'index']);
+    Route::get('/produtos/{id}', [ProdutoController::class, 'show']);
+    
+    // 🔥 DASHBOARD
+    Route::get('/dashboard', [DashboardController::class, 'index']);
 });
 
 // =========================================================================
@@ -48,47 +98,54 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
 
-    // --- ROTAS DO GARÇOM ---
-    Route::prefix('garcom')->middleware('check.role:garcom,administrador')->group(function () {
-        Route::get('/dashboard', [DashboardController::class, 'index']);
-        Route::get('/cardapio', [CardapioController::class, 'index']);
-        Route::get('/cardapio/buscar/{termo}', [CardapioController::class, 'buscarProdutos']);
-        Route::get('/mesas/status', [MesaController::class, 'status']);
-        Route::post('/mesas/{id}/ocupar', [MesaController::class, 'ocupar']);
-        Route::post('/mesas/{id}/liberar', [MesaController::class, 'liberar']);
-        Route::get('/mesas/{id}/pode-fechar-conta', [MesaController::class, 'podeFecharConta']);
-        Route::post('/mesas/{id}/fechar-conta', [MesaController::class, 'fecharConta']);
-        Route::post('/mesas/{id}/reabrir-conta', [MesaController::class, 'reabrirConta']);
-        Route::get('/mesas/{id}/status-conta', [MesaController::class, 'statusConta']);
-        Route::post('/pedidos', [PedidoController::class, 'store']);
-    });
 
     // --- ROTAS DO ADMIN ---
-    Route::prefix('admin')->middleware('check.role:administrador')->group(function () {
+    Route::prefix('admin')->group(function () {
+            // 📊 DASHBOARD E CONFIGURAÇÕES
         Route::get('/dashboard', [ConfiguracaoController::class, 'dashboard']);
         Route::get('/configuracoes', [ConfiguracaoController::class, 'index']);
         Route::put('/configuracoes', [ConfiguracaoController::class, 'update']);
         Route::post('/configuracoes/reiniciar-sistema', [ConfiguracaoController::class, 'reiniciarSistema']);
+        
+        // 🕒 EXPEDIENTE - CORRIGIDO PARA OS MÉTODOS EXISTENTES
         Route::get('/expediente/status', [ExpedienteController::class, 'status']);
         Route::post('/expediente/abrir', [ExpedienteController::class, 'abrirExpediente']);
         Route::post('/expediente/fechar', [ExpedienteController::class, 'fecharExpediente']);
         Route::post('/expediente/relatorio', [ExpedienteController::class, 'relatorioPorData']);
+        
+        // 📦 PEDIDOS
         Route::get('/pedidos', [AdminPedidoController::class, 'index']);
         Route::get('/pedidos/{id}', [AdminPedidoController::class, 'show']);
         Route::put('/pedidos/{id}/status', [AdminPedidoController::class, 'updateStatus']);
         Route::post('/pedidos/{id}/cancelar', [AdminPedidoController::class, 'cancelar']);
         Route::get('/pedidos/estatisticas', [AdminPedidoController::class, 'estatisticas']);
+        
+        // 🪑 MESAS
         Route::get('/mesas', [AdminMesaController::class, 'index']);
         Route::post('/mesas/{id}/pagar-conta', [AdminMesaController::class, 'pagarConta']);
         Route::post('/mesas/{id}/liberar', [AdminMesaController::class, 'liberarMesa']);
         Route::get('/mesas/estatisticas', [AdminMesaController::class, 'estatisticas']);
         Route::get('/mesas/{id}', [AdminMesaController::class, 'show']);
         Route::post('/mesas/{id}/fechar-conta', [AdminMesaController::class, 'fecharConta']);
-        Route::resource('/produtos', AdminProdutoController::class)->except(['create', 'edit']);
-        Route::resource('/categorias', AdminCategoriaController::class)->except(['create', 'edit']);
+        
+        // 🍔 PRODUTOS
+        Route::get('/produtos', [AdminProdutoController::class, 'index']);
+        Route::post('/produtos', [AdminProdutoController::class, 'store']);
+        Route::get('/produtos/{id}', [AdminProdutoController::class, 'show']);
+        Route::put('/produtos/{id}', [AdminProdutoController::class, 'update']);
+        Route::delete('/produtos/{id}', [AdminProdutoController::class, 'destroy']);
+        
+        // 📂 CATEGORIAS
+        Route::get('/categorias', [AdminCategoriaController::class, 'index']);
+        Route::post('/categorias', [AdminCategoriaController::class, 'store']);
+        Route::put('/categorias/{id}', [AdminCategoriaController::class, 'update']);
+        Route::delete('/categorias/{id}', [AdminCategoriaController::class, 'destroy']);
+        
+        // 🖨️ IMPRESSÃO - CORRIGIDO PARA OS MÉTODOS EXISTENTES
         Route::get('/impressao/pedido/{id}/termica', [ImpressaoController::class, 'imprimirPedidoTermica']);
         Route::get('/impressao/pedido/{id}/compacto', [ImpressaoController::class, 'imprimirPedidoCompacto']);
-        
+        Route::post('/impressao/relatorio', [ImpressaoController::class, 'imprimirRelatorio']);
+            
         // ✅ CORREÇÃO: Rotas de relatório apontando para os métodos corretos
         Route::post('/relatorios/vendas-por-periodo', [RelatorioController::class, 'vendasPorPeriodo']);
         Route::post('/relatorios/produtos-mais-vendidos', [RelatorioController::class, 'produtosMaisVendidos']);

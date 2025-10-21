@@ -168,9 +168,10 @@ const estilos = {
 // =========================================================================
 // 🔐 COMPONENTE DA TELA DE LOGIN - COMPLETAMENTE REVISADO
 // =========================================================================
+
 const LoginPage = ({ onLoginSuccess }) => {
-  const [email, setEmail] = useState();
-  const [password, setPassword] = useState();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
