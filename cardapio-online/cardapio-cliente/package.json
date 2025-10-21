@@ -1,5 +1,5 @@
 {
-  "name": "cardapio-frontend",
+  "name": "cardapio-cliente",
   "version": "1.0.0",
   "proxy": "http://localhost:8000",
   "dependencies": {

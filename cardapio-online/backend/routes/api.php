@@ -12,7 +12,7 @@ use App\Http\Controllers\Api\Garcom\CategoriaController;
 use App\Http\Controllers\Api\Garcom\DashboardController;
 use App\Http\Controllers\Api\Garcom\MesaController;
 use App\Http\Controllers\Api\Garcom\PedidoController;
-use App\Http\Controllers\Api\Garcom\ProdutoController; // ✅ ADICIONE ESTA LINHA
+use App\Http\Controllers\Api\Garcom\ProdutoController;
 
 use App\Http\Controllers\Api\Admin\ConfiguracaoController;
 use App\Http\Controllers\Api\Admin\ExpedienteController;
@@ -58,17 +58,20 @@ Route::prefix('garcom')->group(function () {
     Route::get('/mesas', [MesaController::class, 'index']);
     Route::get('/mesas/status', [MesaController::class, 'status']);
     Route::get('/mesas/{mesaId}/pedidos', [MesaController::class, 'pedidos']);
+
     Route::post('/mesas/{id}/ocupar', [MesaController::class, 'ocupar']);
     Route::post('/mesas/{id}/liberar', [MesaController::class, 'liberar']);
-    Route::get('/mesas/{id}/pode-fechar-conta', [MesaController::class, 'podeFecharConta']);
     Route::post('/mesas/{id}/fechar-conta', [MesaController::class, 'fecharConta']);
     Route::post('/mesas/{id}/reabrir-conta', [MesaController::class, 'reabrirConta']);
+    
+    Route::get('/mesas/{id}/pode-fechar-conta', [MesaController::class, 'podeFecharConta']);
     Route::get('/mesas/{id}/status-conta', [MesaController::class, 'statusConta']);
     
     //🔥 PEDIDOS - GARÇOM
     Route::post('/pedidos', [PedidoController::class, 'store']);
-    Route::get('/pedidos/{id}', [PedidoController::class, 'show']);
     Route::post('/pedidos/{id}/cancelar', [PedidoController::class, 'cancelar']);
+    
+    Route::get('/pedidos/{id}', [PedidoController::class, 'show']);
     Route::get('/pedidos/garcom/{garcomNome}', [PedidoController::class, 'meusPedidos']);
     Route::get('/pedidos/mesa/{mesaId}', [PedidoController::class, 'pedidosPorMesa']);
     Route::put('/pedidos/{id}/observacoes', [PedidoController::class, 'atualizarObservacoes']);
@@ -95,16 +98,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
 
-
     // --- ROTAS DO ADMIN ---
     Route::prefix('admin')->group(function () {
-            // 📊 DASHBOARD E CONFIGURAÇÕES
+        // 📊 DASHBOARD E CONFIGURAÇÕES
         Route::get('/dashboard', [ConfiguracaoController::class, 'dashboard']);
         Route::get('/configuracoes', [ConfiguracaoController::class, 'index']);
         Route::put('/configuracoes', [ConfiguracaoController::class, 'update']);
         Route::post('/configuracoes/reiniciar-sistema', [ConfiguracaoController::class, 'reiniciarSistema']);
         
-        // 🕒 EXPEDIENTE - CORRIGIDO PARA OS MÉTODOS EXISTENTES
+        // 🕒 EXPEDIENTE
         Route::get('/expediente/status', [ExpedienteController::class, 'status']);
         Route::post('/expediente/abrir', [ExpedienteController::class, 'abrirExpediente']);
         Route::post('/expediente/fechar', [ExpedienteController::class, 'fecharExpediente']);
@@ -138,12 +140,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/categorias/{id}', [AdminCategoriaController::class, 'update']);
         Route::delete('/categorias/{id}', [AdminCategoriaController::class, 'destroy']);
         
-        // 🖨️ IMPRESSÃO - CORRIGIDO PARA OS MÉTODOS EXISTENTES
+        // 🖨️ IMPRESSÃO
         Route::get('/impressao/pedido/{id}/termica', [ImpressaoController::class, 'imprimirPedidoTermica']);
         Route::get('/impressao/pedido/{id}/compacto', [ImpressaoController::class, 'imprimirPedidoCompacto']);
         Route::post('/impressao/relatorio', [ImpressaoController::class, 'imprimirRelatorio']);
             
-        // ✅ CORREÇÃO: Rotas de relatório apontando para os métodos corretos
+        // 📊 RELATÓRIOS
         Route::post('/relatorios/vendas-por-periodo', [RelatorioController::class, 'vendasPorPeriodo']);
         Route::post('/relatorios/produtos-mais-vendidos', [RelatorioController::class, 'produtosMaisVendidos']);
     });

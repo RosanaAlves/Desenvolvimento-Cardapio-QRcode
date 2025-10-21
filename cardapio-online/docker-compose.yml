@@ -97,7 +97,7 @@ services:
     depends_on:
       - backend
 
-  # NOVO SERVIÇO - CARDÁPIO DO CLIENTE
+ # NOVO SERVIÇO - CARDÁPIO DO CLIENTE
   cardapio-cliente:
     build:
       context: ./cardapio-cliente
@@ -108,7 +108,8 @@ services:
       - "3002:3000"
     volumes:
       - ./cardapio-cliente:/app
-      - /app/node_modules
+      # RE-INTRODUZA esta linha para ISOLAR o node_modules do bind mount do host:
+      - /app/node_modules 
     environment:
       REACT_APP_API_URL: http://localhost:8000
       CHOKIDAR_USEPOLLING: "true"
