@@ -3,15 +3,15 @@
 namespace App\Http\Controllers\Api\Garcom;
 
 use App\Http\Controllers\Controller;
-use App\Models\Mesa; // ✅ CORRIGIDO
-use App\Models\Pedido; // ✅ CORRIGIDO
+use App\Models\Mesa;
+use App\Models\Pedido;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class MesaController extends Controller
 {
-    // ✅ LISTAR MESAS - CORRIGIDO PARA NOVO MODEL
+    // ✅ LISTAR MESAS
     public function index()
     {
         try {
@@ -33,14 +33,12 @@ class MesaController extends Controller
         }
     }
 
-    // ✅ STATUS DAS MESAS - CORRIGIDO PARA NOVO MODEL
+    // ✅ STATUS DAS MESAS
     public function status()
     {
         try {
-            // ✅ PRÉ-CARREGAMENTO EFICIENTE DE TODOS OS DADOS NECESSÁRIOS
             $mesas = Mesa::with(['pedidosAtivos', 'pedidosEntregues'])->orderBy('numero')->get();
 
-            // ✅ LÓGICA SIMPLES E CONSISTENTE USANDO O MÉTODO DO MODEL
             return response()->json([
                 'success' => true,
                 'data' => $mesas->map(fn($mesa) => $mesa->toArrayResumido())
@@ -55,7 +53,7 @@ class MesaController extends Controller
         }
     }
 
-    // ✅ PEDIDOS DA MESA - CORRIGIDO
+    // ✅ PEDIDOS DA MESA
     public function pedidos($mesaId)
     {
         try {
@@ -78,44 +76,44 @@ class MesaController extends Controller
         }
     }
 
-    // ✅ OCUPAR MESA - CORRIGIDO PARA NOVO MODEL
-    // app/Http/Controllers/Api/Garcom/MesaController.php
-
-    // ATENÇÃO: Adicione 'use Illuminate\Http\Request;' no topo do arquivo se não houver.
-
+    // ✅ OCUPAR MESA - CORREÇÃO CRÍTICA
     public function ocupar(Request $request, $id)
     {
         DB::beginTransaction();
         try {
-            // ✅ VALIDAÇÃO DO NOME DO GARÇOM ENVIADO PELO FRONTEND
+            // ✅ VALIDAÇÃO DO NOME DO GARÇOM
             $request->validate([
                 'garcom_nome' => 'required|string|max:255'
             ]);
 
             $mesa = Mesa::findOrFail($id);
             
-            if ($mesa->estaOcupada()) {
+            // ✅ VERIFICAÇÕES SIMPLIFICADAS E FUNCIONAIS
+            if ($mesa->status === 'ocupada') {
                 return response()->json([
                     'success' => false,
                     'message' => 'Mesa já está ocupada'
                 ], 400);
             }
 
-            if ($mesa->contaFechada() || $mesa->contaPaga()) {
+            if ($mesa->status_pagamento === 'fechada' || $mesa->status_pagamento === 'paga') {
                 return response()->json([
                     'success' => false,
                     'message' => 'Mesa com conta fechada ou paga. Libere a mesa primeiro.'
                 ], 400);
             }
 
-            // ✅ CORREÇÃO: Usa o 'garcom_nome' que veio da requisição
-            $resultado = $mesa->ocupar($request->garcom_nome);
-
-            if (!$resultado) {
-                throw new \Exception('Falha ao atualizar o status da mesa no banco de dados.');
-            }
+            // ✅ OCUPAÇÃO DIRETA - MÉTODO SIMPLES E FUNCIONAL
+            $mesa->update([
+                'status' => 'ocupada',
+                'garcom_nome' => $request->garcom_nome,
+                'status_pagamento' => 'aberta'
+            ]);
 
             DB::commit();
+
+            // ✅ RECARREGA OS DADOS ATUALIZADOS
+            $mesa->refresh();
 
             return response()->json([
                 'success' => true,
@@ -140,7 +138,7 @@ class MesaController extends Controller
         }
     }
 
-    // ✅ LIBERAR MESA - CORRIGIDO PARA NOVO MODEL
+    // ✅ LIBERAR MESA - CORREÇÃO CRÍTICA
     public function liberar($id)
     {
         DB::beginTransaction();
@@ -154,29 +152,30 @@ class MesaController extends Controller
                 ], 404);
             }
 
-            // ✅ VERIFICAR SE PODE LIBERAR (não pode liberar com conta fechada e valor pendente)
-            if ($mesa->contaFechada() && $mesa->total_conta > 0) {
+            // ✅ VERIFICAÇÃO SIMPLIFICADA
+            if ($mesa->status_pagamento === 'fechada' && $mesa->total_conta > 0) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Não é possível liberar mesa com conta fechada e valor pendente. Feche o pedido no caixa primeiro.'
+                    'message' => 'Não é possível liberar mesa com conta fechada e valor pendente.'
                 ], 422);
             }
 
-            // ✅ CANCELAR PEDIDOS ATIVOS SE HOUVER
-            if ($mesa->tem_pedidos_ativos) {
-                Pedido::where('mesa_id', $id)
-                     ->whereIn('status', ['pendente', 'preparando', 'pronto'])
-                     ->update(['status' => 'cancelado']);
-            }
+            // ✅ CANCELAR PEDIDOS ATIVOS
+            Pedido::where('mesa_id', $id)
+                 ->whereIn('status', ['pendente', 'preparando', 'pronto'])
+                 ->update(['status' => 'cancelado']);
 
-            // ✅ USAR MÉTODO DO MODEL
-            $resultado = $mesa->liberar();
-
-            if (!$resultado) {
-                throw new \Exception('Falha ao liberar mesa');
-            }
+            // ✅ LIBERAÇÃO DIRETA
+            $mesa->update([
+                'status' => 'livre',
+                'garcom_nome' => null,
+                'status_pagamento' => 'aberta',
+                'total_conta' => 0
+            ]);
 
             DB::commit();
+
+            $mesa->refresh();
 
             return response()->json([
                 'success' => true,
@@ -194,7 +193,7 @@ class MesaController extends Controller
         }
     }
 
-    // ✅ STATUS DA CONTA - CORRIGIDO
+    // ✅ STATUS DA CONTA - CORREÇÃO
     public function statusConta($id)
     {
         try {
@@ -207,16 +206,20 @@ class MesaController extends Controller
                 ], 404);
             }
 
+            // ✅ CALCULA O TOTAL CORRETAMENTE
+            $totalConta = $mesa->pedidos()
+                ->where('status', 'entregue')
+                ->sum('total');
+
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'total_conta' => $mesa->total_conta,
+                    'total_conta' => $totalConta,
                     'pedidos' => $mesa->pedidosAtivos,
                     'mesa' => $mesa->toArrayResumido(),
-                    'pode_fechar_conta' => $mesa->contaAberta() && $mesa->total_conta > 0,
-                    'pode_reabrir_conta' => $mesa->contaFechada(),
-                    // ✅ INFORMAR QUE O PAGAMENTO É NO CAIXA
-                    'instrucao_pagamento' => $mesa->contaFechada() ? 'Direcione o cliente ao caixa para pagamento' : null
+                    'pode_fechar_conta' => $this->podeFecharContaInterno($mesa),
+                    'pode_reabrir_conta' => $mesa->status_pagamento === 'fechada',
+                    'instrucao_pagamento' => $mesa->status_pagamento === 'fechada' ? 'Direcione o cliente ao caixa para pagamento' : null
                 ]
             ]);
 
@@ -227,6 +230,24 @@ class MesaController extends Controller
                 'message' => 'Erro ao carregar status da conta'
             ], 500);
         }
+    }
+
+    // ✅ MÉTODO AUXILIAR PARA VERIFICAR SE PODE FECHAR CONTA
+    private function podeFecharContaInterno($mesa)
+    {
+        $pedidosEmAndamento = $mesa->pedidos()
+            ->whereIn('status', ['pendente', 'preparando', 'pronto'])
+            ->exists();
+
+        $pedidosEntregues = $mesa->pedidos()
+            ->where('status', 'entregue')
+            ->exists();
+
+        $totalConta = $mesa->pedidos()
+            ->where('status', 'entregue')
+            ->sum('total');
+
+        return !$pedidosEmAndamento && $pedidosEntregues && $totalConta > 0;
     }
     
     // ✅ VERIFICAR SE PODE FECHAR CONTA
@@ -242,10 +263,6 @@ class MesaController extends Controller
                 ], 404);
             }
 
-            $totalConta = $mesa->pedidos()
-                ->where('status', 'entregue')
-                ->sum('total');
-
             $pedidosEmAndamento = $mesa->pedidos()
                 ->whereIn('status', ['pendente', 'preparando', 'pronto'])
                 ->exists();
@@ -253,6 +270,10 @@ class MesaController extends Controller
             $pedidosEntregues = $mesa->pedidos()
                 ->where('status', 'entregue')
                 ->exists();
+
+            $totalConta = $mesa->pedidos()
+                ->where('status', 'entregue')
+                ->sum('total');
 
             $podeFechar = !$pedidosEmAndamento && $pedidosEntregues && $totalConta > 0;
 
@@ -284,11 +305,7 @@ class MesaController extends Controller
         }
     }
 
-    // ✅ FECHAR CONTA - GARÇOM APENAS FECHA, NÃO PAGA
-    
-   // ✅ FECHAR CONTA - CORREÇÃO FINAL
-   // app/Http/Controllers/Api/Garcom/MesaController.php
-
+    // ✅ FECHAR CONTA - CORREÇÃO CRÍTICA
     public function fecharConta($id)
     {
         DB::beginTransaction();
@@ -299,31 +316,24 @@ class MesaController extends Controller
                 return response()->json(['success' => false, 'message' => 'Mesa não encontrada'], 404);
             }
 
-            if ($mesa->contaFechada() || $mesa->contaPaga()) {
+            // ✅ VERIFICAÇÕES SIMPLIFICADAS
+            if ($mesa->status_pagamento === 'fechada' || $mesa->status_pagamento === 'paga') {
                 return response()->json(['success' => false, 'message' => 'Conta já foi fechada ou paga.'], 422);
             }
 
-            // ✅ LÓGICA CORRIGIDA:
-            // 1. Verifica se ainda há pedidos sendo preparados na cozinha.
-            $pedidosEmAndamento = $mesa->pedidos()->whereIn('status', ['pendente', 'preparando'])->exists();
-            if ($pedidosEmAndamento) {
+            // ✅ VERIFICA SE PODE FECHAR
+            $podeFechar = $this->podeFecharContaInterno($mesa);
+            if (!$podeFechar) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Não é possível fechar conta! Existem pedidos em andamento na cozinha.'
+                    'message' => 'Não é possível fechar conta! Existem pedidos em andamento ou nenhum pedido entregue.'
                 ], 422);
             }
-            
-            // 2. Verifica se existe pelo menos um pedido que já saiu da cozinha (pronto ou entregue).
-            $temPedidosConcluidos = $mesa->pedidos()->whereIn('status', ['pronto', 'entregue'])->exists();
-            if (!$temPedidosConcluidos) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Não é possível fechar conta! Nenhum pedido foi finalizado ainda.'
-                ], 422);
-            }
-            
-            // ✅ ATUALIZA O STATUS DA MESA
-            $mesa->fecharConta(); // Usa o método do model para consistência
+
+            // ✅ FECHA A CONTA DIRETAMENTE
+            $mesa->update([
+                'status_pagamento' => 'fechada'
+            ]);
 
             DB::commit();
 
@@ -333,7 +343,7 @@ class MesaController extends Controller
                 'success' => true,
                 'message' => '✅ Conta fechada com sucesso! Direcione o cliente ao caixa.',
                 'data' => [
-                    'total_conta' => $mesa->total_conta,
+                    'total_conta' => $mesa->pedidos()->where('status', 'entregue')->sum('total'),
                     'mesa' => $mesa->toArrayResumido(),
                     'instrucao' => 'Cliente deve ser direcionado ao caixa para efetuar o pagamento'
                 ]
@@ -345,7 +355,8 @@ class MesaController extends Controller
             return response()->json(['success' => false, 'message' => 'Erro interno ao fechar conta.'], 500);
         }
     }
-    // ✅ REABRIR CONTA - GARÇOM PODE REABRIR SE NECESSÁRIO
+
+    // ✅ REABRIR CONTA - CORREÇÃO
     public function reabrirConta($id)
     {
         DB::beginTransaction();
@@ -359,22 +370,21 @@ class MesaController extends Controller
                 ], 404);
             }
 
-            // ✅ VALIDAÇÃO: Só pode reabrir se estiver fechada
-            if (!$mesa->contaFechada()) {
+            // ✅ VERIFICAÇÃO SIMPLIFICADA
+            if ($mesa->status_pagamento !== 'fechada') {
                 return response()->json([
                     'success' => false,
                     'message' => 'Só é possível reabrir contas que estão fechadas'
                 ], 422);
             }
 
-            // ✅ USAR MÉTODO DO MODEL (se existir) ou atualizar diretamente
+            // ✅ REABRE A CONTA
             $mesa->update([
                 'status_pagamento' => 'aberta'
             ]);
 
             DB::commit();
 
-            // ✅ RECARREGAR DADOS ATUALIZADOS
             $mesa->refresh();
 
             return response()->json([
@@ -392,7 +402,4 @@ class MesaController extends Controller
             ], 500);
         }
     }
-
-    // ❌ REMOVIDO: Método pagarConta() - Apenas admin/caixa pode pagar conta
-    // ❌ REMOVIDO: Método marcarComoOcupada() - Não é mais necessário
 }

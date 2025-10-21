@@ -353,8 +353,31 @@ function App() {
           <div style={{ fontSize: '5em', marginBottom: designSystem.spacing.xl }}>👨‍💼</div>
           <h2 style={{ color: designSystem.cores.texto, marginBottom: designSystem.spacing.lg, ...estilosBase.titulo, fontSize: designSystem.fontSizes['2xl'] }}>Identificação do Garçom</h2>
           <p style={{ color: '#666', marginBottom: designSystem.spacing['2xl'], ...estilosBase.texto, fontSize: designSystem.fontSizes.lg }}>Por favor, informe seu nome para começar</p>
-          <input type="text" value={garcomNome} onChange={(e) => setGarcomNome(e.target.value)} placeholder="Digite seu nome completo" style={{ width: '100%', padding: designSystem.spacing.lg, fontSize: designSystem.fontSizes.lg, border: `3px solid ${designSystem.cores.borda}`, borderRadius: '12px', marginBottom: designSystem.spacing.xl, textAlign: 'center', ...estilosBase.texto }} onKeyPress={(e) => e.key === 'Enter' && avancarParaMesas()} />
-          <button onClick={avancarParaMesas} disabled={!garcomNome.trim()} style={{ backgroundColor: garcomNome.trim() ? designSystem.cores.primaria : '#ccc', color: designSystem.cores.textoClaro, border: 'none', padding: designSystem.spacing.lg, borderRadius: '12px', fontSize: designSystem.fontSizes.lg, ...estilosBase.botao, cursor: garcomNome.trim() ? 'pointer' : 'not-allowed', width: '100%' }}>Continuar para Mesas</button>
+          <input 
+            type="text" 
+            value={garcomNome} 
+            onChange={(e) => setGarcomNome(e.target.value)} 
+            placeholder="Digite seu nome completo" 
+            style={{ width: '100%', padding: designSystem.spacing.lg, fontSize: designSystem.fontSizes.lg, border: `3px solid ${designSystem.cores.borda}`, borderRadius: '12px', marginBottom: designSystem.spacing.xl, textAlign: 'center', ...estilosBase.texto }} 
+            onKeyPress={(e) => e.key === 'Enter' && avancarParaMesas()} 
+          />
+          <button 
+            onClick={avancarParaMesas} 
+            disabled={!garcomNome.trim()} 
+            style={{ 
+              backgroundColor: garcomNome.trim() ? designSystem.cores.primaria : '#ccc', 
+              color: designSystem.cores.textoClaro, 
+              border: 'none', 
+              padding: designSystem.spacing.lg, 
+              borderRadius: '12px', 
+              fontSize: designSystem.fontSizes.lg, 
+              ...estilosBase.botao, 
+              cursor: garcomNome.trim() ? 'pointer' : 'not-allowed', 
+              width: '100%' 
+            }}
+          >
+            Continuar para Mesas
+          </button>
         </div>
         <footer style={{ marginTop: designSystem.spacing['4xl'], textAlign: 'center', color: '#666', padding: designSystem.spacing['2xl'] }}>
           <p style={{ margin: '0', fontSize: designSystem.fontSizes.lg, ...estilosBase.texto }}>© 2025 Jetro's Lanches - Sistema Garçom</p>

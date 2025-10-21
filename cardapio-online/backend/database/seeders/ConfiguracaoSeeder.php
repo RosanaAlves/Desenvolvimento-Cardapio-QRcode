@@ -10,7 +10,7 @@ class ConfiguracaoSeeder extends Seeder
     {
         Configuracao::create([
             'nome_estabelecimento' => "Jetro's Lanches",
-            'telefone' => '99611-2820 | 3822-7097',
+            'telefone' => '3822-7097',
             'numero_mesas' => 10, // ✅ usa numero_mesas da migration
             'expediente_aberto' => true,
             'taxa_servico' => 0

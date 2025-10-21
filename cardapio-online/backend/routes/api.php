@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\Garcom\CategoriaController;
 use App\Http\Controllers\Api\Garcom\DashboardController;
 use App\Http\Controllers\Api\Garcom\MesaController;
 use App\Http\Controllers\Api\Garcom\PedidoController;
+use App\Http\Controllers\Api\Garcom\ProdutoController; // ✅ ADICIONE ESTA LINHA
 
 use App\Http\Controllers\Api\Admin\ConfiguracaoController;
 use App\Http\Controllers\Api\Admin\ExpedienteController;
@@ -41,7 +42,7 @@ Route::prefix('cliente')->group(function () {
 });
 
 // =========================================================================
-// ROTAS DO GARÇOM (USANDO CONTROLLERS)
+// ROTAS DO GARÇOM (SEM AUTENTICAÇÃO - PÚBLICAS)
 // =========================================================================
 
 Route::prefix('garcom')->group(function () {
@@ -64,26 +65,22 @@ Route::prefix('garcom')->group(function () {
     Route::post('/mesas/{id}/reabrir-conta', [MesaController::class, 'reabrirConta']);
     Route::get('/mesas/{id}/status-conta', [MesaController::class, 'statusConta']);
     
-    //🔥 PEDIDOS - GARÇOM (ATUALIZADAS)
+    //🔥 PEDIDOS - GARÇOM
     Route::post('/pedidos', [PedidoController::class, 'store']);
     Route::get('/pedidos/{id}', [PedidoController::class, 'show']);
     Route::post('/pedidos/{id}/cancelar', [PedidoController::class, 'cancelar']);
     Route::get('/pedidos/garcom/{garcomNome}', [PedidoController::class, 'meusPedidos']);
-    Route::get('/pedidos/mesa/{mesaId}', [PedidoController::class, 'pedidosPorMesa']); // ✅ NOVA
-    Route::put('/pedidos/{id}/observacoes', [PedidoController::class, 'atualizarObservacoes']); // ✅ NOVA
-    Route::get('/pedidos/garcom/{garcomNome}/estatisticas', [PedidoController::class, 'estatisticas']); // ✅ NOVA
+    Route::get('/pedidos/mesa/{mesaId}', [PedidoController::class, 'pedidosPorMesa']);
+    Route::put('/pedidos/{id}/observacoes', [PedidoController::class, 'atualizarObservacoes']);
+    Route::get('/pedidos/garcom/{garcomNome}/estatisticas', [PedidoController::class, 'estatisticas']);
     
-     //🔥 PRODUTO - GARÇOM (ATUALIZADAS)
+    //🔥 PRODUTOS - GARÇOM
     Route::get('/produtos', [ProdutoController::class, 'index']);
     Route::get('/produtos/{id}', [ProdutoController::class, 'show']);
 
     // 🔥 CATEGORIAS
     Route::get('/categorias', [CategoriaController::class, 'index']);
     Route::get('/categorias/{id}/produtos', [CategoriaController::class, 'produtosPorCategoria']);
-    
-    // 🔥 PRODUTOS
-    Route::get('/produtos', [ProdutoController::class, 'index']);
-    Route::get('/produtos/{id}', [ProdutoController::class, 'show']);
     
     // 🔥 DASHBOARD
     Route::get('/dashboard', [DashboardController::class, 'index']);
