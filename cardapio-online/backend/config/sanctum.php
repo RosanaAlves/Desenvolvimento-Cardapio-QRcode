@@ -14,7 +14,6 @@ return [
     |
     */
 
-    // ✅ CORREÇÃO: Lógica simplificada para ler apenas do .env
     'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', '')),
 
     /*
@@ -55,4 +54,4 @@ return [
         'validate_csrf_token' => Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
     ],
 
-]; // ✅ CORREÇÃO: O '}' extra no final do arquivo foi removido.
+];
