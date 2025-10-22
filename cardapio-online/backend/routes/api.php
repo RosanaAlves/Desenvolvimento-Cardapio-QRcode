@@ -45,6 +45,7 @@ Route::prefix('cliente')->group(function () {
 // ROTAS DO GARÇOM (SEM AUTENTICAÇÃO - PÚBLICAS)
 // =========================================================================
 
+
 Route::prefix('garcom')->group(function () {
     
     // 🔥 CARDÁPIO

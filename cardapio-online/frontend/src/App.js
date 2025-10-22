@@ -38,24 +38,86 @@ const estilosBase = {
 // Configuração da API
 const API_BASE_URL = 'http://localhost:8000';
 
-// ✅ Função para fetch com tratamento de erro
+// ✅ FUNÇÃO fetchAPI COMPLETAMENTE ATUALIZADA
 const fetchAPI = async (endpoint, options = {}) => {
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', ...options.headers },
-      ...options
-    });
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: response.statusText }));
-      throw new Error(errorData.message || `HTTP ${response.status}`);
+    console.log(`🔵 Fazendo requisição para: ${endpoint}`);
+    
+    // Para requisições POST/PUT/DELETE, sempre obter CSRF token primeiro
+    if (options.method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(options.method.toUpperCase())) {
+      console.log('🛡️ Obtendo CSRF token para requisição segura...');
+      try {
+        const csrfResponse = await fetch(`${API_BASE_URL}/sanctum/csrf-cookie`, {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json',
+          }
+        });
+        
+        if (!csrfResponse.ok) {
+          console.warn('⚠️ CSRF token não pôde ser obtido, continuando mesmo assim...');
+        } else {
+          console.log('✅ CSRF token obtido com sucesso');
+        }
+      } catch (csrfError) {
+        console.warn('⚠️ Erro ao obter CSRF token:', csrfError);
+      }
     }
+
+    const config = {
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        ...options.headers
+      },
+      ...options
+    };
+
+    console.log('🔧 Configuração da requisição:', {
+      endpoint,
+      method: config.method,
+      hasBody: !!config.body
+    });
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+    
+    console.log('📡 Resposta recebida:', {
+      status: response.status,
+      ok: response.ok,
+      headers: Object.fromEntries(response.headers.entries())
+    });
+
+    if (!response.ok) {
+      let errorMessage = `HTTP ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorMessage;
+        console.error('❌ Erro detalhado:', errorData);
+      } catch (e) {
+        // Se não conseguir parsear JSON, usa o texto da resposta
+        const textError = await response.text();
+        errorMessage = textError || errorMessage;
+      }
+      throw new Error(errorMessage);
+    }
+
     const data = await response.json();
-    if (data === null || data === undefined) throw new Error('Resposta da API vazia');
-    if (data.success === false) throw new Error(data.message || 'Erro na API');
+    console.log('✅ Resposta bem-sucedida:', data);
+    
+    if (data === null || data === undefined) {
+      throw new Error('Resposta da API vazia');
+    }
+    
+    if (data.success === false) {
+      throw new Error(data.message || 'Erro na API');
+    }
+    
     return data;
   } catch (error) {
-    console.error(`❌ Erro na requisição para ${endpoint}:`, error);
+    console.error(`❌ Erro crítico na requisição para ${endpoint}:`, error);
     throw error;
   }
 };
