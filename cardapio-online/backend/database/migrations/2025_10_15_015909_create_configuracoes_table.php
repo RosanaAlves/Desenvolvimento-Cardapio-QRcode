@@ -10,7 +10,7 @@ return new class extends Migration
         Schema::create('configuracoes', function (Blueprint $table) {
             $table->id();
             $table->string('nome_estabelecimento')->default("Jetro's Lanches");
-            $table->string('telefone')->default('99611-2820 | 3822-7097');
+            $table->string('telefone')->default('99611-2820');
             $table->integer('numero_mesas')->default(10);
             $table->boolean('expediente_aberto')->default(false);
             $table->decimal('taxa_servico', 5, 2)->default(0);
