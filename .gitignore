@@ -9,6 +9,32 @@ backend/bootstrap/cache/*
 backend/public/storage
 backend/public/hot
 
+# Node (admin)  
+admin/node_modules/
+admin/.env
+admin/.env.local
+admin/.env.development.local
+admin/.env.test.local
+admin/.env.production.local
+admin/npm-debug.log*
+admin/yarn-debug.log*
+admin/yarn-error.log*
+admin/.pnp*
+admin/.eslintcache
+
+# Node (cardapio-cliente)  
+cardapio-cliente/node_modules/
+cardapio-cliente/.env
+cardapio-cliente/.env.local
+cardapio-cliente/.env.development.local
+cardapio-cliente/.env.test.local
+cardapio-cliente/.env.production.local
+cardapio-cliente/npm-debug.log*
+cardapio-cliente/yarn-debug.log*
+cardapio-cliente/yarn-error.log*
+cardapio-cliente/.pnp*
+cardapio-cliente/.eslintcache
+
 # Node (frontend)  
 frontend/node_modules/
 frontend/.env
